@@ -152,7 +152,10 @@
 
   <aside class="col left">
     <div class="block">
-      <label class="h"><span class="num">0</span> 데이터 소스</label>
+      <label class="h" style="cursor:pointer" id="srcToggle">
+        <span class="num">⚙</span> 데이터 소스 <span id="srcState" class="cnt"></span>
+      </label>
+      <div id="srcBody" hidden>
       <div class="seg" id="srcSeg" style="margin-bottom:8px">
         <button data-s="sample">내장 샘플</button>
         <button data-s="csv">게시 CSV</button>
@@ -193,6 +196,7 @@
       <div id="proxyResult"></div>
       <div class="hint" id="srcHint"></div>
       <div id="cfgWhere" class="hint"></div>
+      </div>
       <div id="sheetErr"></div>
     </div>
 
@@ -703,6 +707,22 @@ const src = { mode:"sample", csv:"auto", syncedAt:null };
 
 /* ---- 접속 설정 저장 (§1.1.1 환경설정) ----
    localStorage 는 환경에 따라 막힐 수 있으므로 항상 try/catch. 실패해도 동작에는 지장 없음. */
+/* ============================================================
+   기본 접속 설정 (배포용)
+   ------------------------------------------------------------
+   여기에 값이 있으면 열자마자 자동으로 시트를 불러오고 프록시를 적용한다.
+   운영자가 화면에서 바꾸면 그 값이 브라우저에 저장되어 기본값보다 우선한다.
+   시트/프록시 주소가 바뀌면 이 블록만 수정하면 된다.
+   ============================================================ */
+const PRESET = {
+  csv: {
+    ProductMaster:  "https://docs.google.com/spreadsheets/d/e/2PACX-1vRS9uzvpv-1yBGogWe_DJ00ym_-SGMzrfuSSa0Boyk1-fbIcArIa0PCScW4WICvm6K-DTLYVUOEvQMd/pub?gid=802412286&single=true&output=csv",
+    TemplateMaster: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRS9uzvpv-1yBGogWe_DJ00ym_-SGMzrfuSSa0Boyk1-fbIcArIa0PCScW4WICvm6K-DTLYVUOEvQMd/pub?gid=915184877&single=true&output=csv",
+    HeroMaster:     "https://docs.google.com/spreadsheets/d/e/2PACX-1vRS9uzvpv-1yBGogWe_DJ00ym_-SGMzrfuSSa0Boyk1-fbIcArIa0PCScW4WICvm6K-DTLYVUOEvQMd/pub?gid=1232198&single=true&output=csv"
+  },
+  proxy: "https://script.google.com/macros/s/AKfycbxKjJ78pLc7Pj1VYNPCGwJ0eRC_AsEAo6-aBNDpEgYGcCjGEa9wwTTeJtK8rRJwcVr8/exec"
+};
+
 const CFG_KEY="cc-banner-cfg-v1";
 const CFG_FIELDS=["docId","tabP","tabT","tabH","urlP","urlT","urlH","gasUrl","proxyUrl"];
 let CFG_OK=null;   // localStorage 사용 가능 여부
@@ -903,7 +923,7 @@ async function syncSheet(){
     }
     SHEET_GROUPS = applySheet(B.groups);
     src.syncedAt = new Date();
-    saveCfg(); cfgHint();
+    saveCfg(); cfgHint(); srcState();
     const first=Object.keys(SHEET_GROUPS)[0];
     initGroups(); selectGroup(first);
     const hard = errs.filter(e=>e.code!=="E301");
@@ -929,6 +949,11 @@ async function syncSheet(){
 let SHEET_GROUPS = null;
 const G = () => SHEET_GROUPS || GROUPS;
 
+function srcState(){
+  const el=$("#srcState"); if(!el) return;
+  el.textContent = src.mode==="sample" ? "내장 샘플"
+    : (src.syncedAt ? `연결됨 · ${src.syncedAt.toLocaleTimeString("ko-KR")}` : "미연결");
+}
 function srcHint(){
   const h=$("#srcHint");
   if(src.mode==="sample"){ h.innerHTML="코드에 내장된 밤부500 데이터로 동작합니다."; return; }
@@ -1026,6 +1051,7 @@ $("#corsTest").onclick=async()=>{
       <table class="corstbl">${rows}</table></details></div>`;
   btn.disabled=false; btn.textContent="이미지 CORS 진단";
 };
+$("#srcToggle").onclick=()=>{ const b=$("#srcBody"); b.hidden=!b.hidden; };
 $("#syncBtn").onclick=syncSheet;
 $("#cfgClear").onclick=()=>{ clearCfg(); CFG_FIELDS.forEach(f=>{ const el=$("#"+f); if(el&&!/^tab/.test(f)) el.value=""; });
   cfgHint(); status("저장된 접속 설정을 지웠습니다."); };
@@ -1837,7 +1863,15 @@ async function boot(){
   $("#d1").value=state.d1; $("#d2").value=state.d2;
 
   cfgProbe();
-  const cfg=loadCfg();   // 저장된 접속 설정 복원
+  let cfg=loadCfg();   // 저장된 접속 설정 복원 (있으면 기본값보다 우선)
+  if(!cfg && PRESET && PRESET.csv && PRESET.csv.ProductMaster){
+    // 저장된 게 없으면 배포 기본값 사용
+    $("#urlP").value=PRESET.csv.ProductMaster||"";
+    $("#urlT").value=PRESET.csv.TemplateMaster||"";
+    $("#urlH").value=PRESET.csv.HeroMaster||"";
+    $("#proxyUrl").value=PRESET.proxy||"";
+    cfg={ mode:"csv", csv:"manual", urlP:PRESET.csv.ProductMaster, _preset:true };
+  }
   cfgHint();
 
   try{ LOGO.img=await loadImg(LOGO.src,true); }catch(e){ /* 텍스트 폴백 */ }
@@ -1868,8 +1902,9 @@ async function boot(){
     if(b) b.click();
     if(cfg.mode==="csv" && cfg.csv==="manual") $("#csvManual").click();
     const hasInput = (cfg.mode==="gas" && cfg.gasUrl) || (cfg.csv==="manual" ? cfg.urlP : cfg.docId);
-    if(hasInput){ status("저장된 설정으로 불러오는 중…"); await syncSheet(); }
+    if(hasInput){ status(cfg._preset?"시트를 불러오는 중…":"저장된 설정으로 불러오는 중…"); await syncSheet(); }
   }
+  srcState();
 }
 boot();
 </script>
