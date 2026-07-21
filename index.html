@@ -1675,33 +1675,34 @@ function drawThumb(ctx, th){
   if(state.tpl==="01"){
     if(state.hero) clipRect(ctx,0,0,W,H,()=>cover(ctx,state.hero,0,0,W,H));
     else { ctx.fillStyle="#b89a6a"; ctx.fillRect(0,0,W,H); }
-    // txt-title @(77,110), 중앙 아님 — 좌측 기준. sub(56px) + title(96px)
-    const subH=HS_LH*56, top=110;
-    ctx.textBaseline="middle";
+    // txt-title 프레임 @(77,110) w926, cAlign=CENTER → 내부 요소 가로 중앙
+    // 프레임 가로 중앙 = 77 + 926/2 = 540 = 화면 중앙
+    const cx=540, subH=HS_LH*56, top=110;
+    ctx.textBaseline="middle"; ctx.fillStyle="#fff";
     const seller=state.seller||"seller";
     ctx.font=`400 56px 'High Summit'`; const sw=ctx.measureText(seller).width;
     ctx.font=`400 48px 'Playfair Display'`; const xw=ctx.measureText("×").width;
-    const logoW=140, gap=18; let x=77+217*0;
-    // .fig: txt-sub @(217,0) within title frame @ (77,110) → sub 시작 x = 77+217
-    let sx=77+217, scy=110+subH/2;
-    ctx.textAlign="left"; ctx.fillStyle="#fff";
+    const logoW=140, gap=18, subW=sw+gap+xw+gap+logoW;
+    let sx=cx-subW/2, scy=top+subH/2;
+    ctx.textAlign="left";
     ctx.font=`400 56px 'High Summit'`; ctx.fillText(seller,sx,scy); sx+=sw+gap;
     ctx.font=`400 48px 'Playfair Display'`; ctx.fillText("×",sx,scy); sx+=xw+gap;
     drawLogo(ctx,sx,scy,logoW,24);
-    // title 96px, lineH104, 2줄 @(77-1,110+90)
-    const ty=110+90;
-    ctx.textAlign="left"; ctx.fillStyle="#fff"; ctx.font=`400 96px 'Playfair Display'`;
-    [state.t1,state.t2].filter(Boolean).forEach((l,i)=>trk(ctx,l,77,ty+i*104+48,-1.9,"left"));
+    // title 96px lineH104 2줄, 가로 중앙
+    const ty=top+subH+10+90;
+    ctx.textAlign="center"; ctx.font=`400 96px 'Playfair Display'`;
+    [state.t1,state.t2].filter(Boolean).forEach((l,i)=>trk(ctx,l,cx,ty+i*104,-1.9,"center"));
     ctx.textBaseline="alphabetic";
   } else {
-    // 02 그라데이션 배경 + 누끼 + 필 + 그라데이션 타이틀 96px + 카피바
+    // 02 그라데이션 배경 + 제품 이미지 전체(STRETCH) + 필 + 그라데이션 타이틀 + 카피바
     const a=141.81*Math.PI/180, len=Math.abs(W*Math.cos(a))+Math.abs(H*Math.sin(a));
     const g=ctx.createLinearGradient(W/2-Math.cos(a)*len/2,H/2-Math.sin(a)*len/2,W/2+Math.cos(a)*len/2,H/2+Math.sin(a)*len/2);
     g.addColorStop(0.0136,th.gradFrom); g.addColorStop(0.8337,th.gradTo);
     ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    // main-img: 1080×1080 전체를 채움 (STRETCH → cover)
     if(state.hero) clipRect(ctx,0,0,W,H,()=>cover(ctx,state.hero,0,0,W,H));
     const left=59, top=87;
-    // pill
+    // pill @(59,87)
     ctx.font=`400 32px Pretendard`; const sw=ctx.measureText(state.seller||"seller").width;
     ctx.font=`400 44px 'Playfair Display'`; const xw=ctx.measureText("×").width;
     const logoW=130, gap=16, ph=64, pw=sw+gap+xw+gap+logoW+48;
@@ -1711,8 +1712,8 @@ function drawThumb(ctx, th){
     ctx.font=`400 32px Pretendard`; ctx.fillText(state.seller||"seller",x,cy); x+=sw+gap;
     ctx.font=`400 44px 'Playfair Display'`; ctx.fillText("×",x,cy); x+=xw+gap;
     drawLogo(ctx,x,cy,logoW,22);
-    // 타이틀 96px lineH104 2줄, top+108
-    const ty=top+108;
+    // 타이틀 @(59, top+108) 96px lineH104
+    const ty=top+ph+44;
     ctx.textAlign="left";
     [[state.t1,400],[state.t2,700]].filter(l=>l[0]).forEach((l,i)=>{
       const tg=ctx.createLinearGradient(left,0,left+800,0);
@@ -1720,7 +1721,6 @@ function drawThumb(ctx, th){
       ctx.fillStyle=tg; ctx.font=`${l[1]} 96px Pretendard`;
       trk(ctx,l[0],left,ty+i*104+52,-1.9,"left");
     });
-    // date
     ctx.fillStyle=th.dateText; ctx.font=`400 40px Pretendard`;
     trk(ctx,range02(state.d1,state.d2),left,ty+2*104+40+20,-0.8,"left");
     // 카피바 @(0,980) h100
@@ -1750,25 +1750,27 @@ function feedCard(ctx, r, x, top, th){
   const CW=960, CH=468;
   ctx.fillStyle="#fff"; ctx.fillRect(x,top,CW,CH);
   // box-img @(10,10) 448×448
-  const T=SHARED.thumb;
   ctx.fillStyle="#f8f8f8"; ctx.fillRect(x+10,top+10,448,448);
-  if(r.thumb) contain(ctx,r.thumb,x+10+448*0.13,top+10+448*0.10,448*0.74,448*0.79);
-  // option @(474,46)
-  const ox=x+474, OW=CW-474-30;
+  if(r.thumb) contain(ctx,r.thumb,x+10+448*0.12,top+10+448*0.10,448*0.76,448*0.80);
+  const ox=x+474, OW=CW-474-40;
   let cy=top+46;
   ctx.textBaseline="middle";
+  // 배지
   if(r.badge!=="none"){
     const txt=r.badge==="renewal"?"RENEWAL!":"NEW!";
+    ctx.font=`600 24px Pretendard`; const bw=trkWidth(ctx,txt,-0.4)+40;
     ctx.strokeStyle=th.badgeBorder||th.accent; ctx.lineWidth=2;
-    roundRect(ctx,ox,cy,150,44,22); ctx.stroke();
-    ctx.fillStyle=th.accent; ctx.font=`600 24px Pretendard`;
-    trk(ctx,txt,ox+75,cy+22,-0.4,"center"); cy+=44+20;
+    roundRect(ctx,ox,cy,bw,44,22); ctx.stroke();
+    ctx.fillStyle= (state.tpl==="02"? (th.badgeText||th.accent) : th.accent);
+    trk(ctx,txt,ox+bw/2,cy+23,-0.4,"center"); cy+=44+20;
   }
   // 제품명 40px
   ctx.fillStyle=SHARED.textStrong; ctx.font=`600 40px Pretendard`;
-  const lns=[]; for(const p of String(rowName(r)).split(/\r?\n/)){ const t=p.trim(); if(t) lns.push(...wrapText(_mc.font=`600 40px Pretendard`&&_mc, t, OW, -0.8)); }
+  const lns=[]; _mc.font=`600 40px Pretendard`;
+  for(const para of String(rowName(r)).split(/\r?\n/)){ const t=para.trim(); if(t) lns.push(...wrapText(_mc, t, OW, -0.8)); }
+  ctx.fillStyle=SHARED.textStrong; ctx.font=`600 40px Pretendard`;
   lns.forEach((l,i)=>trk(ctx,l,ox,cy+i*50+25,-0.8,"left"));
-  cy+=lns.length*50+14;
+  cy+=lns.length*50+12;
   // optionInfo
   const attrs=rowAttrs(r);
   if(attrs.length){
@@ -1779,113 +1781,170 @@ function feedCard(ctx, r, x, top, th){
       let ay=cy;
       attrs.forEach(a=>{
         if(a.label){ ctx.fillStyle=SHARED.textStrong; ctx.font=`600 26px Pretendard`;
-          trk(ctx,a.label,ox,ay+18,-0.52,"left"); ay+=38; }
+          trk(ctx,a.label,ox,ay+18,-0.52,"left"); ay+=36; }
         ctx.fillStyle=SHARED.textSub; ctx.font=`400 26px Pretendard`;
-        trk(ctx,a.value,ox,ay+18,-0.52,"left"); ay+=38;
+        trk(ctx,a.value,ox,ay+18,-0.52,"left"); ay+=36;
       });
     }
   }
-  // 가격 @(474,270+) — 할인 원 + 정상가/혜택가
-  const py=top+270;
-  const d=disc(r.normal,r.sale);
-  ctx.fillStyle=th.circleBg||th.accent; ctx.beginPath(); ctx.arc(ox+OW-52,py+30,52,0,7); ctx.fill();
-  ctx.fillStyle="#fff"; ctx.font=`700 36px GmarketSans, Pretendard`;
-  trk(ctx,d!=null?d+"%":"—",ox+OW-52,py+31,-0.6,"center");
-  ctx.fillStyle=SHARED.textMuted; ctx.font=`600 26px Pretendard`;
-  trk(ctx,(G()[state.group]||{}).normalLabel||"정상가",ox,py+80+13,-0.52,"left");
-  ctx.font=`400 26px Pretendard`;
-  const np=won(r.normal), npw=trkWidth(ctx,np,-0.52);
-  trk(ctx,np,ox+OW,py+80+13,-0.52,"right");
-  ctx.strokeStyle=SHARED.textMuted; ctx.lineWidth=2;
-  ctx.beginPath(); ctx.moveTo(ox+OW-npw,py+80+13); ctx.lineTo(ox+OW,py+80+13); ctx.stroke();
-  ctx.fillStyle=SHARED.textStrong; ctx.font=`600 36px Pretendard`;
-  trk(ctx,(G()[state.group]||{}).saleLabel||"혜택가",ox,py+130+18,-0.72,"left");
-  ctx.font=`700 36px Pretendard`;
-  trk(ctx,won(r.sale),ox+OW,py+130+18,-0.72,"right");
+  // 가격부 @(474, 270+) — 템플릿별
+  const py=top+312, d=disc(r.normal,r.sale);
+  const G0=G()[state.group]||{};
+  if(state.tpl==="01"){
+    // 01: 원형 할인 배지(우측) + 정상가(취소선)/혜택가 2줄
+    ctx.fillStyle=th.circleBg||th.accent; ctx.beginPath(); ctx.arc(ox+OW-52,py+8,52,0,7); ctx.fill();
+    ctx.fillStyle="#fff"; ctx.font=`700 34px GmarketSans, Pretendard`; ctx.textBaseline="middle";
+    trk(ctx,d!=null?d+"%":"—",ox+OW-52,py+9,-0.6,"center");
+    ctx.fillStyle=SHARED.textMuted; ctx.font=`600 26px Pretendard`;
+    trk(ctx,G0.normalLabel||"정상가",ox,py+72,-0.52,"left");
+    ctx.font=`400 26px Pretendard`;
+    const np=won(r.normal), npw=trkWidth(ctx,np,-0.52);
+    trk(ctx,np,ox+OW,py+72,-0.52,"right");
+    ctx.strokeStyle=SHARED.textMuted; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(ox+OW-npw,py+72); ctx.lineTo(ox+OW,py+72); ctx.stroke();
+    ctx.fillStyle=SHARED.textStrong; ctx.font=`600 36px Pretendard`;
+    trk(ctx,G0.saleLabel||"혜택가",ox,py+120,-0.72,"left");
+    ctx.font=`700 36px Pretendard`;
+    trk(ctx,won(r.sale),ox+OW,py+120,-0.72,"right");
+  } else {
+    // 02: 사각 할인 칩(좌) + 혜택가 + 정상가(취소선), 한 줄 (.fig: discount_rate 칩)
+    ctx.textBaseline="middle";
+    const chipW=104, chipH=52;
+    ctx.fillStyle=th.chipBg||"#eee"; roundRect(ctx,ox,py,chipW,chipH,10); ctx.fill();
+    ctx.fillStyle=th.chipText||th.accent; ctx.font=`700 34px GmarketSans, Pretendard`;
+    trk(ctx,d!=null?d+"%":"—",ox+chipW/2,py+chipH/2+1,-0.6,"center");
+    let px=ox+chipW+28;
+    ctx.fillStyle=SHARED.textStrong; ctx.font=`700 40px Pretendard`;
+    const sp=won(r.sale); trk(ctx,sp,px,py+chipH/2,-0.8,"left");
+    const spw=trkWidth(ctx,sp,-0.8);
+    ctx.fillStyle=SHARED.textMuted; ctx.font=`400 28px Pretendard`;
+    const np=won(r.normal);
+    trk(ctx,np,px+spw+16,py+chipH/2+2,-0.56,"left");
+    const npw=trkWidth(ctx,np,-0.56);
+    ctx.strokeStyle=SHARED.textMuted; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(px+spw+16,py+chipH/2+2); ctx.lineTo(px+spw+16+npw,py+chipH/2+2); ctx.stroke();
+  }
   ctx.textBaseline="alphabetic";
   return CH;
 }
 
-/* ---- 피드 슬라이드 1장 렌더 (idx: 0=히어로, 1~=옵션면) ---- */
+/* 피드 히어로 슬라이드 */
+function feedHero(ctx, th){
+  const W=1080, H=1350;
+  if(state.tpl==="01"){
+    if(state.hero) clipRect(ctx,0,0,W,H,()=>cover(ctx,state.hero,0,0,W,H));
+    else { ctx.fillStyle="#b89a6a"; ctx.fillRect(0,0,W,H); }
+    // txt-title @(77,110) 가로 중앙 (thumb과 동일 정렬)
+    const cx=540, subH=HS_LH*56, top=110;
+    ctx.textBaseline="middle"; ctx.fillStyle="#fff";
+    const seller=state.seller||"seller";
+    ctx.font=`400 56px 'High Summit'`; const sw=ctx.measureText(seller).width;
+    ctx.font=`400 48px 'Playfair Display'`; const xw=ctx.measureText("×").width;
+    const logoW=140, gap=18, subW=sw+gap+xw+gap+logoW;
+    let sx=cx-subW/2, scy=top+subH/2; ctx.textAlign="left";
+    ctx.font=`400 56px 'High Summit'`; ctx.fillText(seller,sx,scy); sx+=sw+gap;
+    ctx.font=`400 48px 'Playfair Display'`; ctx.fillText("×",sx,scy); sx+=xw+gap;
+    drawLogo(ctx,sx,scy,logoW,24);
+    const ty=top+subH+10+90;
+    ctx.textAlign="center"; ctx.font=`400 96px 'Playfair Display'`;
+    [state.t1,state.t2].filter(Boolean).forEach((l,i)=>trk(ctx,l,cx,ty+i*104,-1.9,"center"));
+    ctx.textBaseline="alphabetic";
+    // box-bottom @(0,1250) h100
+    ctx.fillStyle=th.accent; ctx.fillRect(0,1250,W,100);
+    ctx.fillStyle="#fff"; ctx.textBaseline="middle"; ctx.textAlign="center";
+    ctx.font=`400 44px 'Playfair Display'`;
+    trk(ctx,range01(state.d1,state.d2),W/2,1300,-0.8,"center");
+    ctx.textBaseline="alphabetic";
+  } else {
+    const a=141.81*Math.PI/180, len=Math.abs(W*Math.cos(a))+Math.abs(H*Math.sin(a));
+    const g=ctx.createLinearGradient(W/2-Math.cos(a)*len/2,H/2-Math.sin(a)*len/2,W/2+Math.cos(a)*len/2,H/2+Math.sin(a)*len/2);
+    g.addColorStop(0.0136,th.gradFrom); g.addColorStop(0.8337,th.gradTo);
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    if(state.hero) clipRect(ctx,0,0,W,H,()=>cover(ctx,state.hero,0,0,W,H));
+    const left=88, top=130;   // .fig txt-title @(88,130)
+    ctx.font=`400 32px Pretendard`; const sw=ctx.measureText(state.seller||"seller").width;
+    ctx.font=`400 44px 'Playfair Display'`; const xw=ctx.measureText("×").width;
+    const ph=64, pw=sw+16+xw+16+130+48;
+    ctx.fillStyle=th.pillBg; roundRect(ctx,left,top,pw,ph,ph/2); ctx.fill();
+    ctx.textBaseline="middle"; ctx.textAlign="left"; ctx.fillStyle="#fff";
+    let x=left+24, cy=top+ph/2;
+    ctx.font=`400 32px Pretendard`; ctx.fillText(state.seller||"seller",x,cy); x+=sw+16;
+    ctx.font=`400 44px 'Playfair Display'`; ctx.fillText("×",x,cy); x+=xw+16;
+    drawLogo(ctx,x,cy,130,22);
+    const ty=top+ph+44; ctx.textAlign="left";
+    [[state.t1,400],[state.t2,700]].filter(l=>l[0]).forEach((l,i)=>{
+      const tg=ctx.createLinearGradient(left,0,left+800,0);
+      tg.addColorStop(0,th.titleFrom); tg.addColorStop(1,th.titleTo);
+      ctx.fillStyle=tg; ctx.font=`${l[1]} 96px Pretendard`;
+      trk(ctx,l[0],left,ty+i*104+52,-1.9,"left");
+    });
+    ctx.fillStyle=th.dateText; ctx.font=`400 40px Pretendard`;
+    trk(ctx,range02(state.d1,state.d2),left,ty+2*104+40+20,-0.8,"left");
+    ctx.fillStyle=th.accent; ctx.fillRect(0,1250,W,100);
+    ctx.fillStyle="#fff"; ctx.textBaseline="middle";
+    ctx.font=`400 44px Pretendard`; const c1=trkWidth(ctx,state.copy,-0.88);
+    ctx.font=`700 44px Pretendard`; const c2=trkWidth(ctx,state.copyBold,-0.88);
+    let bx=(W-(c1+c2))/2;
+    ctx.font=`400 44px Pretendard`; trk(ctx,state.copy,bx,1300,-0.88,"left");
+    ctx.font=`700 44px Pretendard`; trk(ctx,state.copyBold,bx+c1,1300,-0.88,"left");
+    ctx.textBaseline="alphabetic";
+  }
+}
+
+/* 피드 옵션면 헤더 (option info. + 시리즈/옵션명) */
+function feedOptHeader(ctx, W, th){
+  ctx.textAlign="center"; ctx.textBaseline="middle";
+  ctx.fillStyle= state.tpl==="02" ? (th.eyebrowColor||th.accent) : th.accent;
+  ctx.font= state.tpl==="02" ? `400 40px 'High Summit'` : `400 40px 'Playfair Display'`;
+  ctx.fillText("option info.", W/2, 100+25);
+  ctx.fillStyle= state.tpl==="02" ? "#ffffff" : th.accent;
+  ctx.font= state.tpl==="02" ? `700 72px GmarketSans, Pretendard` : `600 72px Pretendard`;
+  ctx.fillText(state.series||"", W/2, 100+110);
+  ctx.textBaseline="alphabetic";
+}
+
+/* 피드 슬라이드 1장 (idx 0=히어로, 1~=옵션면) */
 function drawFeedSlide(ctx, idx, th){
   const W=1080, H=1350;
-  if(idx===0){
-    // 히어로 슬라이드
-    if(state.tpl==="01"){
-      if(state.hero) clipRect(ctx,0,0,W,H,()=>cover(ctx,state.hero,0,0,W,H));
-      else { ctx.fillStyle="#b89a6a"; ctx.fillRect(0,0,W,H); }
-      const subH=HS_LH*56;
-      ctx.textBaseline="middle"; ctx.fillStyle="#fff";
-      const seller=state.seller||"seller";
-      let sx=77, scy=110+subH/2;
-      ctx.font=`400 56px 'High Summit'`; ctx.textAlign="left";
-      ctx.fillText(seller,sx,scy); const sw=ctx.measureText(seller).width;
-      ctx.font=`400 48px 'Playfair Display'`; const xw=ctx.measureText("×").width;
-      let x=sx+sw+18; ctx.fillText("×",x,scy); x+=xw+18; drawLogo(ctx,x,scy,140,24);
-      const ty=110+90; ctx.font=`400 96px 'Playfair Display'`;
-      [state.t1,state.t2].filter(Boolean).forEach((l,i)=>trk(ctx,l,77,ty+i*104+48,-1.9,"left"));
-      ctx.textBaseline="alphabetic";
-      // box-bottom @(0,1250) h100 (날짜바)
-      ctx.fillStyle=th.accent; ctx.fillRect(0,1250,W,100);
-      ctx.fillStyle="#fff"; ctx.textBaseline="middle"; ctx.textAlign="center";
-      ctx.font=`400 44px 'Playfair Display'`;
-      trk(ctx,range01(state.d1,state.d2),W/2,1300,-0.8,"center");
-      ctx.textBaseline="alphabetic";
-    } else {
-      const a=141.81*Math.PI/180, len=Math.abs(W*Math.cos(a))+Math.abs(H*Math.sin(a));
-      const g=ctx.createLinearGradient(W/2-Math.cos(a)*len/2,H/2-Math.sin(a)*len/2,W/2+Math.cos(a)*len/2,H/2+Math.sin(a)*len/2);
-      g.addColorStop(0.0136,th.gradFrom); g.addColorStop(0.8337,th.gradTo);
-      ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
-      if(state.hero) clipRect(ctx,0,0,W,H,()=>cover(ctx,state.hero,0,0,W,H));
-      const left=59, top=110;
-      ctx.font=`400 32px Pretendard`; const sw=ctx.measureText(state.seller||"seller").width;
-      ctx.font=`400 44px 'Playfair Display'`; const xw=ctx.measureText("×").width;
-      const ph=64, pw=sw+16+xw+16+130+48;
-      ctx.fillStyle=th.pillBg; roundRect(ctx,left,top,pw,ph,ph/2); ctx.fill();
-      ctx.textBaseline="middle"; ctx.textAlign="left"; ctx.fillStyle="#fff";
-      let x=left+24, cy=top+ph/2;
-      ctx.font=`400 32px Pretendard`; ctx.fillText(state.seller||"seller",x,cy); x+=sw+16;
-      ctx.font=`400 44px 'Playfair Display'`; ctx.fillText("×",x,cy); x+=xw+16;
-      drawLogo(ctx,x,cy,130,22);
-      const ty=top+108; ctx.textAlign="left";
-      [[state.t1,400],[state.t2,700]].filter(l=>l[0]).forEach((l,i)=>{
-        const tg=ctx.createLinearGradient(left,0,left+800,0);
-        tg.addColorStop(0,th.titleFrom); tg.addColorStop(1,th.titleTo);
-        ctx.fillStyle=tg; ctx.font=`${l[1]} 96px Pretendard`;
-        trk(ctx,l[0],left,ty+i*104+52,-1.9,"left");
-      });
-      ctx.fillStyle=th.dateText; ctx.font=`400 40px Pretendard`;
-      trk(ctx,range02(state.d1,state.d2),left,ty+2*104+40+20,-0.8,"left");
-      ctx.fillStyle=th.accent; ctx.fillRect(0,1250,W,100);
-      ctx.fillStyle="#fff"; ctx.textBaseline="middle";
-      ctx.font=`400 44px Pretendard`; const c1=trkWidth(ctx,state.copy,-0.88);
-      ctx.font=`700 44px Pretendard`; const c2=trkWidth(ctx,state.copyBold,-0.88);
-      let bx=(W-(c1+c2))/2;
-      ctx.font=`400 44px Pretendard`; trk(ctx,state.copy,bx,1300,-0.88,"left");
-      ctx.font=`700 44px Pretendard`; trk(ctx,state.copyBold,bx+c1,1300,-0.88,"left");
-      ctx.textBaseline="alphabetic";
-    }
+  if(idx===0){ feedHero(ctx,th); return; }
+  const slides=feedSlides();
+  const cards=slides[idx-1]||[];
+  const isLastOdd = (idx-1===slides.length-1) && cards.length===1;
+
+  // 배경
+  if(state.tpl==="02"){
+    // 02: 진한 배경 + 흰 컨테이너(카드 감싸기)
+    ctx.fillStyle=th.sectionBg||"#b9ca7d"; ctx.fillRect(0,0,W,H);
   } else {
-    // 옵션면
-    const slides=feedSlides();
-    const cards=slides[idx-1]||[];
-    const isLastOdd = (idx-1===slides.length-1) && cards.length===1;
-    // 배경: 마지막 홀수 슬라이드만 배경이미지 폼(카드1 + 여백), 그 외 sectionBg
-    ctx.fillStyle = th.sectionBg || "#f0f3dd";
-    ctx.fillRect(0,0,W,H);
-    // section title @(60,100) — Playfair 40 + Pretendard 72
-    ctx.textAlign="center"; ctx.textBaseline="middle";
-    ctx.fillStyle=th.eyebrowColor||th.accent;
-    ctx.font=`400 40px 'Playfair Display'`;
-    ctx.fillText("option info.", W/2, 100+25);
-    ctx.fillStyle= state.tpl==="02" ? "#ffffff" : th.accent;
-    ctx.font= state.tpl==="02" ? `700 72px GmarketSans, Pretendard` : `600 72px Pretendard`;
-    ctx.fillText(state.series||"", W/2, 100+110);
-    ctx.textBaseline="alphabetic";
-    // 카드 @(60,319), 960폭, pitch 488
-    let cy=319;
-    for(const r of cards){ feedCard(ctx,r,60,cy,th); cy+=488; }
+    // 01: 옅은 배경, 카드가 흰색
+    ctx.fillStyle=th.sectionBg||"#f0f3dd"; ctx.fillRect(0,0,W,H);
   }
+  feedOptHeader(ctx, W, th);
+
+  // 마지막 홀수 장: Bamboo 워터마크 + 하단 제품 이미지 폼
+  if(isLastOdd){
+    ctx.save();
+    ctx.globalAlpha=0.5;
+    ctx.fillStyle="#ffffff"; ctx.textAlign="left";
+    ctx.font=`400 150px 'Playfair Display'`;
+    ctx.fillText("Bamboo", 40, 1120);
+    ctx.restore();
+    // 하단 제품 이미지 (히어로 이미지 재활용) @ 하단 중앙
+    if(state.hero){ contain(ctx,state.hero, W/2-260, 900, 520, 400); }
+  }
+
+  // 02는 흰 컨테이너 배경 (option-list #ffffff @(60,312) w960)
+  const listY=312;
+  if(state.tpl==="02" && !isLastOdd){
+    const listH = cards.length*488 - 20 + 40;
+    ctx.fillStyle="#ffffff"; roundRect(ctx,60,listY,960,listH,16); ctx.fill();
+  } else if(state.tpl==="02" && isLastOdd){
+    ctx.fillStyle="#ffffff"; roundRect(ctx,60,listY,960,468+40,16); ctx.fill();
+  }
+  // 카드 @(60,319 또는 컨테이너 내부), pitch 488
+  let cy = state.tpl==="02" ? listY+20 : 319;
+  const cardX = state.tpl==="02" ? 90 : 60;
+  for(const r of cards){ feedCard(ctx,r,cardX,cy,th); cy+=488; }
 }
 
 
