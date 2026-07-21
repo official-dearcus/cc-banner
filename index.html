@@ -26,7 +26,7 @@
   *{box-sizing:border-box}
   html,body{margin:0;height:100%}
   body{font-family:Pretendard,system-ui,sans-serif;color:var(--ink);background:var(--paper);-webkit-font-smoothing:antialiased}
-  .app{display:grid;grid-template-columns:400px minmax(0,1fr) 290px;grid-template-rows:56px 1fr;
+  .app{display:grid;grid-template-columns:480px minmax(0,1fr) 260px;grid-template-rows:56px 1fr;
     grid-template-areas:"top top top" "left center right";height:100vh}
   header.top{grid-area:top;display:flex;align-items:center;gap:12px;padding:0 20px;background:var(--panel);border-bottom:1px solid var(--line)}
   header.top .logo{font-family:'Playfair Display',serif;font-weight:500;font-size:19px}
@@ -35,30 +35,31 @@
   header.top .spacer{flex:1}
   header.top #statusline{font-size:12px;color:var(--ink-soft)}
   .col{overflow-y:auto;padding:18px}
+  .left{padding:22px 24px}
   .left{grid-area:left;background:var(--panel);border-right:1px solid var(--line)}
   .center{grid-area:center;display:flex;flex-direction:column;align-items:center;gap:12px;padding:18px 20px}
   .right{grid-area:right;background:var(--panel);border-left:1px solid var(--line)}
-  .block{margin-bottom:18px}
-  .block>label.h{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:9px}
-  .num{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:5px;background:var(--accent-weak);color:var(--accent);font-size:10px;font-weight:700}
-  input[type=text],input[type=date],input[type=url]{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;font:inherit;font-size:13px;background:#fff;outline:none;color:var(--ink)}
+  .block{margin-bottom:22px}
+  .block>label.h{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--ink);margin-bottom:10px}
+  .num{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:6px;background:var(--accent-weak);color:var(--accent);font-size:11px;font-weight:700}
+  input[type=text],input[type=date],input[type=url]{width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:10px;font:inherit;font-size:14px;background:#fff;outline:none;color:var(--ink)}
   input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-weak)}
   input.bad{border-color:var(--err);box-shadow:0 0 0 3px #fdecea}
   .row{display:flex;gap:8px}.row>*{flex:1;min-width:0}
-  .hint{font-size:11px;color:var(--ink-soft);margin-top:5px;line-height:1.5}
+  .hint{font-size:12px;color:var(--ink-soft);margin-top:6px;line-height:1.55}
   .hint.err{color:var(--err)}
   .seg{display:flex;gap:6px}
-  .seg button{flex:1;padding:9px;border:1.5px solid var(--line);border-radius:9px;background:#fff;font:inherit;font-size:12px;cursor:pointer;color:var(--ink-soft)}
+  .seg button{flex:1;padding:11px;border:1.5px solid var(--line);border-radius:10px;background:#fff;font:inherit;font-size:13px;cursor:pointer;color:var(--ink-soft)}
   .seg button.on{border-color:var(--accent);background:var(--accent-weak);color:var(--accent);font-weight:600}
   .swatches{display:flex;gap:8px}
-  .tplcard{display:flex;gap:10px;align-items:center;border:1.5px solid var(--line);border-radius:11px;padding:8px;margin-bottom:8px;background:#fff;cursor:pointer;transition:.12s}
+  .tplcard{display:flex;gap:14px;align-items:center;border:1.5px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;background:#fff;cursor:pointer;transition:.12s}
   .tplcard:hover{border-color:#cfc7ee}
   .tplcard.on{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-weak)}
-  .tplprev{width:120px;height:151px;border-radius:6px;border:1px solid var(--line);flex:none;background:#f4f2f7}
+  .tplprev{width:140px;height:176px;border-radius:8px;border:1px solid var(--line);flex:none;background:#f4f2f7}
   .tplmeta{min-width:0}
-  .tplname{font-size:13px;font-weight:600;margin-bottom:3px}
+  .tplname{font-size:15px;font-weight:600;margin-bottom:5px}
   .tplcard.on .tplname{color:var(--accent)}
-  .tpldesc{font-size:11px;color:var(--ink-soft);line-height:1.45}
+  .tpldesc{font-size:12.5px;color:var(--ink-soft);line-height:1.5}
   .corstbl{width:100%;border-collapse:collapse;margin-top:6px;font-size:11px}
   .corstbl td{padding:3px 4px;border-bottom:1px solid rgba(0,0,0,.06);vertical-align:top}
   .corstbl td:first-child{width:18px}
@@ -69,7 +70,7 @@
   .hero{border:1.5px solid var(--line);border-radius:9px;overflow:hidden;cursor:pointer;background:#fff;transition:.12s}
   .hero:hover{border-color:#cfc7ee}
   .hero.on{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-weak)}
-  .hero img{display:block;width:100%;height:58px;object-fit:cover;background:#f2f0f6}
+  .hero img{display:block;width:100%;height:70px;object-fit:cover;background:#f2f0f6}
   .hero img.bad{background:#fdecea}
   .hero span{display:block;font-size:10px;color:var(--ink-soft);padding:4px 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .hero.on span{color:var(--accent);font-weight:600}
@@ -1103,12 +1104,22 @@ function initGroups(){
     `<option value="${k}">${g.label}${g.templates.length?"":" — 템플릿 미등록"}</option>`).join("");
   selectGroup("bamboo500");
 }
+/* 히어로 상태 완전 초기화 (템플릿 전환·제품군 전환 시) */
+function clearHero(){
+  state.hero=null; state.heroSrc=""; state.heroUrl=""; state.heroUpload=false; state.heroTainted=false;
+}
+/* 처음 진입 시 템플릿을 랜덤으로 고른다 — 선택 고민을 줄이되, 이후 수정 가능 */
+function pickInitialTpl(g){
+  if(!g.templates || !g.templates.length) return null;
+  return g.templates[Math.floor(Math.random()*g.templates.length)];
+}
 function selectGroup(key){
   state.group=key;
   const g=G()[key];
   // 하위 선택 초기화 (§2.1.1)
-  state.tpl = g.templates[0] || null;
+  state.tpl = pickInitialTpl(g);      // 처음엔 랜덤 (수정 가능)
   state.theme = state.tpl ? Object.keys(themesForKey(key,state.tpl))[0] : null;
+  clearHero();
   // 셀러명·공구기간은 운영자 입력값(가변값)이므로 제품군을 바꿔도 유지한다.
   Object.assign(state,{
     seller: state.seller || g.seller || "",
@@ -1176,8 +1187,10 @@ function renderTplList(){
         <div class="tpldesc">${TPL_META[t].desc}</div></div>
     </div>`).join("");
   box.querySelectorAll(".tplcard").forEach(el=>el.onclick=()=>{
+    const prev=state.tpl;
     state.tpl=el.dataset.t;
-    if(!THEMES[state.tpl][state.theme]) state.theme=Object.keys(THEMES[state.tpl])[0];
+    if(state.tpl!==prev) clearHero();   // 템플릿마다 히어로 성격이 다르므로 초기화
+    if(!themesForKey(state.group,state.tpl)[state.theme]) state.theme=Object.keys(themesForKey(state.group,state.tpl))[0];
     applyTplDefaults(); renderTplList(); renderThemes(); syncTplUI(); renderHeroList(); draw();
   });
   requestAnimationFrame(drawTplPreviews);
