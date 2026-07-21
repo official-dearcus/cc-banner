@@ -1894,12 +1894,13 @@ function feedHero(ctx, th){
 /* 피드 옵션면 헤더 (option info. + 시리즈/옵션명) */
 function feedOptHeader(ctx, W, th){
   ctx.textAlign="center"; ctx.textBaseline="middle";
+  // 01 = Playfair 40px accent / 02 = High Summit 52px eyebrowColor
   ctx.fillStyle= state.tpl==="02" ? (th.eyebrowColor||th.accent) : th.accent;
-  ctx.font= state.tpl==="02" ? `400 40px 'High Summit'` : `400 40px 'Playfair Display'`;
-  ctx.fillText("option info.", W/2, 100+25);
+  ctx.font= state.tpl==="02" ? `400 52px 'High Summit'` : `400 40px 'Playfair Display'`;
+  ctx.fillText("option info.", W/2, 100+26);
   ctx.fillStyle= state.tpl==="02" ? "#ffffff" : th.accent;
   ctx.font= state.tpl==="02" ? `700 72px GmarketSans, Pretendard` : `600 72px Pretendard`;
-  ctx.fillText(state.series||"", W/2, 100+110);
+  ctx.fillText(state.series||"", W/2, 100+112);
   ctx.textBaseline="alphabetic";
 }
 
@@ -1912,39 +1913,39 @@ function drawFeedSlide(ctx, idx, th){
   const isLastOdd = (idx-1===slides.length-1) && cards.length===1;
 
   // 배경
-  if(state.tpl==="02"){
-    // 02: 진한 배경 + 흰 컨테이너(카드 감싸기)
-    ctx.fillStyle=th.sectionBg||"#b9ca7d"; ctx.fillRect(0,0,W,H);
-  } else {
-    // 01: 옅은 배경, 카드가 흰색
-    ctx.fillStyle=th.sectionBg||"#f0f3dd"; ctx.fillRect(0,0,W,H);
-  }
+  ctx.fillStyle = state.tpl==="02" ? (th.sectionBg||"#b9ca7d") : (th.sectionBg||"#f0f3dd");
+  ctx.fillRect(0,0,W,H);
   feedOptHeader(ctx, W, th);
 
-  // 마지막 홀수 장: Bamboo 워터마크 + 하단 제품 이미지 폼
   if(isLastOdd){
-    ctx.save();
-    ctx.globalAlpha=0.5;
-    ctx.fillStyle="#ffffff"; ctx.textAlign="left";
-    ctx.font=`400 150px 'Playfair Display'`;
-    ctx.fillText("Bamboo", 40, 1120);
-    ctx.restore();
-    // 하단 제품 이미지 (히어로 이미지 재활용) @ 하단 중앙
-    if(state.hero){ contain(ctx,state.hero, W/2-260, 900, 520, 400); }
+    if(state.tpl==="01"){
+      // 01: 하단 전체폭 제품 이미지(1080×520 @y830) + Bamboo 워터마크
+      ctx.save(); ctx.globalAlpha=0.55; ctx.fillStyle="#ffffff"; ctx.textAlign="left";
+      ctx.font=`400 150px 'Playfair Display'`; ctx.fillText("Bamboo", 28, 960); ctx.restore();
+      if(state.hero) clipRect(ctx,0,830,W,520,()=>cover(ctx,state.hero,0,830,W,520));
+      // 카드 1장 (컨테이너 없음)
+      feedCard(ctx, cards[0], 60, 319, th);
+    } else {
+      // 02: 진한 배경 + 흰 컨테이너 카드 1장 + 하단 로고
+      ctx.fillStyle="#ffffff"; roundRect(ctx,60,312,960,468+60,16); ctx.fill();
+      feedCard(ctx, cards[0], 90, 312+40, th);
+      drawLogo(ctx, W/2-100, 1270, 200, 32);
+    }
+    return;
   }
 
-  // 02는 흰 컨테이너 배경 (option-list #ffffff @(60,312) w960)
-  const listY=312;
-  if(state.tpl==="02" && !isLastOdd){
-    const listH = cards.length*488 - 20 + 40;
-    ctx.fillStyle="#ffffff"; roundRect(ctx,60,listY,960,listH,16); ctx.fill();
-  } else if(state.tpl==="02" && isLastOdd){
-    ctx.fillStyle="#ffffff"; roundRect(ctx,60,listY,960,468+40,16); ctx.fill();
+  // 일반 옵션면
+  if(state.tpl==="02"){
+    // 흰 컨테이너가 카드를 감쌈
+    const listH=cards.length*488-20+40;
+    ctx.fillStyle="#ffffff"; roundRect(ctx,60,312,960,listH,16); ctx.fill();
+    let cy=312+20;
+    for(const r of cards){ feedCard(ctx,r,90,cy,th); cy+=488; }
+  } else {
+    // 01: 배경 위에 흰 카드 직접
+    let cy=319;
+    for(const r of cards){ feedCard(ctx,r,60,cy,th); cy+=488; }
   }
-  // 카드 @(60,319 또는 컨테이너 내부), pitch 488
-  let cy = state.tpl==="02" ? listY+20 : 319;
-  const cardX = state.tpl==="02" ? 90 : 60;
-  for(const r of cards){ feedCard(ctx,r,cardX,cy,th); cy+=488; }
 }
 
 
