@@ -3902,7 +3902,7 @@
           ctx.fillStyle = "#ffffff";
           ctx.fillRect(x, top + imgY, imgW, imgH);
           if (r.thumb)
-            contain(
+            drawThumbFit(
               ctx,
               r.thumb,
               x + imgW * 0.08,
@@ -3915,10 +3915,30 @@
           const ix = x + 462,
             IW = 456;
           const badgeOn = r.badge !== "none";
-          // name-wrap: 배지있으면 48+gap20+164=232, 없으면 164 / info=name+gap48+price(108)
-          const nameWrapH = badgeOn ? 48 + 20 + 164 : 164;
+
+          /* ── auto-layout: 내용을 먼저 측정한 뒤 높이를 계산한다 (고정값 금지) ──
+             name-wrap = [badge 48 + gap20] + box-top(제품명 n줄 + gap12 + 단위값)
+             info      = name-wrap + gap48 + price-wrap(108)
+             제품명이 2줄이든 3줄이든 아래 가격 덩어리와의 간격(48)이 항상 유지된다. */
+          const LH = 52; // 제품명 줄높이
+          const lns = [];
+          _mc.font = `600 40px Pretendard`;
+          for (const para of String(rowName(r)).split(/\r?\n/)) {
+            const t = para.trim();
+            if (t) lns.push(...wrapText(_mc, t, IW, -0.8));
+          }
+          const attrs = rowAttrs(r);
+          const isSingleAttr = attrs.length === 1 && !attrs[0].label;
+          const attrH = attrs.length
+            ? isSingleAttr
+              ? 48
+              : attrs.length * 32
+            : 0;
+          const boxTopH = lns.length * LH + (attrH ? 12 + attrH : 0);
+          const nameWrapH = (badgeOn ? 48 + 20 : 0) + boxTopH;
           const infoH = nameWrapH + 48 + 108;
-          const iy = top + (CH - infoH) / 2; // primary=CENTER → 세로 중앙
+          // primary=CENTER → 세로 중앙. 내용이 길면 위로 붙여 잘림 방지
+          const iy = top + Math.max(8, (CH - infoH) / 2);
 
           ctx.textAlign = "left";
           let ny = iy;
@@ -3930,25 +3950,18 @@
             trk(ctx, bt, ix, ny + 24, -0.4, "left");
             ny += 48 + 20;
           }
-          // box-top(164): 제품명(40px, lineH52) + gap12 + value(24px 48h)
+          // box-top: 제품명(40px, lineH52) + gap12 + 단위값(24px)
           ctx.fillStyle = "#333333";
           ctx.font = `600 40px Pretendard`;
           ctx.textBaseline = "middle";
-          const lns = [];
-          _mc.font = `600 40px Pretendard`;
-          for (const para of String(rowName(r)).split(/\r?\n/)) {
-            const t = para.trim();
-            if (t) lns.push(...wrapText(_mc, t, IW, -0.8));
-          }
           lns.forEach((l, i) =>
-            trk(ctx, l, ix, ny + 26 + i * 52, -0.8, "left"),
+            trk(ctx, l, ix, ny + 26 + i * LH, -0.8, "left"),
           );
-          let vy = ny + lns.length * 52 + 12;
-          const attrs = rowAttrs(r);
+          let vy = ny + lns.length * LH + 12;
           if (attrs.length) {
             ctx.fillStyle = "#605850";
             ctx.font = `400 24px Pretendard`;
-            if (attrs.length === 1 && !attrs[0].label) {
+            if (isSingleAttr) {
               trk(ctx, attrs[0].value, ix, vy + 24, -0.48, "left");
             } else
               attrs.forEach((a) => {
@@ -3956,14 +3969,14 @@
                   ctx,
                   (a.label ? a.label + " " : "") + a.value,
                   ix,
-                  vy + 24,
+                  vy + 16,
                   -0.48,
                   "left",
                 );
                 vy += 32;
               });
           }
-          // price-wrap(가로 flex gap24, counter=CENTER) @ iy+nameWrapH+48
+          // price-wrap(가로 flex gap24, counter=CENTER) — name-wrap 아래 gap48
           const py = iy + nameWrapH + 48;
           ctx.fillStyle = th.chipBg || "#f0f3dd";
           ctx.fillRect(ix, py, 108, 108); // 정사각, radius 0
@@ -4004,7 +4017,7 @@
         ctx.fillStyle = "#f8f8f8";
         ctx.fillRect(x + 10, top + imgY, imgW, imgH);
         if (r.thumb)
-          contain(
+          drawThumbFit(
             ctx,
             r.thumb,
             x + 10 + imgW * 0.08,
@@ -4497,7 +4510,7 @@
         ctx.fillStyle = T.bg;
         ctx.fillRect(x, top + 10, T.w, CH - 20);
         if (r.thumb)
-          contain(
+          drawThumbFit(
             ctx,
             r.thumb,
             x + (T.w * T.imgLeft) / 100,
@@ -4593,7 +4606,7 @@
         ctx.fillStyle = "#fff";
         ctx.fillRect(x, top + 7, T.w, CH - 14);
         if (r.thumb)
-          contain(
+          drawThumbFit(
             ctx,
             r.thumb,
             x + (T.w * T.imgLeft) / 100,
@@ -4711,6 +4724,21 @@
           dy = y - (dh - h) / 2;
         }
         ctx.drawImage(img, dx, dy, dw, dh);
+      }
+      /* 제품 썸네일 전용 — 시트 이미지 표준 규격(960×1020) 비율로 항상 동일한 크기로 그린다.
+         개별 이미지의 실제 비율을 쓰지 않으므로 제품마다 크기가 들쭉날쭉하지 않는다. */
+      const THUMB_RATIO = 960 / 1020;
+      function drawThumbFit(ctx, img, bx, by, bw, bh) {
+        const r = bw / bh;
+        let dw, dh;
+        if (THUMB_RATIO > r) {
+          dw = bw;
+          dh = bw / THUMB_RATIO;
+        } else {
+          dh = bh;
+          dw = bh * THUMB_RATIO;
+        }
+        ctx.drawImage(img, bx + (bw - dw) / 2, by + (bh - dh) / 2, dw, dh);
       }
       function contain(ctx, img, x, y, w, h) {
         const ir = img.width / img.height,
