@@ -360,7 +360,7 @@
       }
       #tplList {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
         gap: 10px;
       }
       .tplcard {
@@ -440,9 +440,35 @@
         opacity: 0.8;
         margin-top: 4px;
       }
+      .colorpick {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .cchip {
+        padding: 9px 14px;
+        border: 1.5px solid var(--line);
+        border-radius: 999px;
+        background: #fff;
+        font: inherit;
+        font-size: 13px;
+        color: var(--ink-soft);
+        cursor: pointer;
+        transition: 0.12s;
+        white-space: nowrap;
+      }
+      .cchip:hover {
+        border-color: #cfc7ee;
+      }
+      .cchip.on {
+        border-color: var(--accent);
+        background: var(--accent-weak);
+        color: var(--accent);
+        font-weight: 600;
+      }
       .herogrid {
         display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
         gap: 6px;
         margin-bottom: 8px;
       }
@@ -464,7 +490,8 @@
       .hero img {
         display: block;
         width: 100%;
-        height: 120px;
+        height: auto;
+        aspect-ratio: 4 / 5;
         object-fit: contain;
         background: #f2f0f6;
       }
@@ -862,7 +889,7 @@
     <div class="app">
       <header class="top">
         <div class="logo">CC <b>배너</b> 제너레이터</div>
-        <span class="tag" id="tplTag">밤부500</span>
+        <span class="tag" id="tplTag">뱀부500</span>
         <div class="spacer"></div>
         <span id="statusline">폰트 로딩 중…</span>
       </header>
@@ -911,6 +938,13 @@
                   value="HeroMaster"
                   style="margin-top: 6px"
                 />
+                <input
+                  type="text"
+                  id="tabC"
+                  placeholder="ColorMaster (선택)"
+                  value="ColorMaster"
+                  style="margin-top: 6px"
+                />
               </div>
               <div id="csvManualBox" hidden>
                 <input
@@ -928,6 +962,12 @@
                   type="url"
                   id="urlH"
                   placeholder="HeroMaster 게시 CSV URL (선택)"
+                  style="margin-top: 6px"
+                />
+                <input
+                  type="url"
+                  id="urlC"
+                  placeholder="ColorMaster 게시 CSV URL (선택)"
                   style="margin-top: 6px"
                 />
               </div>
@@ -1025,6 +1065,8 @@
           <input type="text" id="series" maxlength="30" />
         </div>
 
+        <div id="nvBlocks"></div>
+
         <div class="block">
           <label class="h"
             ><span class="num">7</span> 가격 카드
@@ -1066,6 +1108,7 @@
           <input type="file" id="heroFile" accept="image/*" hidden />
           <div class="hint" id="imgHint"></div>
         </div>
+
       </aside>
 
       <div
@@ -1177,6 +1220,10 @@
           user: "등록되지 않은 템플릿이 지정됐습니다.",
           admin: "templateId가 design.md에 없음",
         },
+        E303: {
+          user: "색상 데이터에 문제가 있습니다.",
+          admin: "ColorMaster 행 확인 필요",
+        },
       };
       function mkErr(code, detail, row) {
         const e = ERR[code] || { user: "알 수 없는 오류", admin: code };
@@ -1212,6 +1259,13 @@
               optional: true,
               default: "혜택가",
             }, // 특가 / 라리홈 특가 등
+            // 이 제품이 어느 색상 줄을 쓰는지 (ColorMaster.line 과 같은 값).
+            // 지정하면 옵션 카드의 Color 줄이 "선택한 색상"으로 자동 채워진다.
+            colorLine: { type: "string", optional: true },
+            // ── 누볼라 계열 전용(선택) ──
+            noticeText: { type: "string", group: true, optional: true }, // 옵션 하단 안내 문구
+            sizeInfoUrl: { type: "url", group: true, optional: true }, // 사이즈 안내 이미지
+            colorTitle: { type: "string", group: true, optional: true }, // 컬러 섹션 제목(그룹 공통 폴백) — 템플릿별은 TemplateMaster 사용
             sortOrder: { type: "number", optional: true },
             // 제품명 = 텍스트 노드 1개. 피그마에서 폭 안에서 자동 줄바꿈됨.
             // name 권장. 구 시트 호환을 위해 name1/name2 가 있으면 공백으로 합침.
@@ -1245,6 +1299,11 @@
             heroTitle: { type: "lines", optional: true },
             bottomCopy: { type: "string", optional: true }, // 02 하단 카피 바
             bottomCopyBold: { type: "string", optional: true }, // 굵게 처리할 뒷부분
+            gridUrls: { type: "list", optional: true }, // 03 상단 이미지 4컷 (쉼표 구분)
+            noticeText: { type: "string", optional: true }, // 옵션 하단 안내 문구
+            sizeInfoUrl: { type: "url", optional: true }, // 사이즈 안내 이미지
+            optionTitle: { type: "string", optional: true }, // 옵션 섹션 제목 (템플릿마다 다름)
+            colorTitle: { type: "string", optional: true }, // 컬러 섹션 제목 (템플릿마다 다름)
             previewUrl: { type: "url", optional: true },
             enabled: { type: "bool", optional: true, default: true },
             sortOrder: { type: "number", optional: true },
@@ -1252,6 +1311,23 @@
         },
         /* 히어로 이미지 라이브러리 — 템플릿마다 필요한 이미지 성격이 다름
      01 = 연출컷(화면 전체 cover) / 02 = 누끼컷(그라데이션 위에 얹힘) */
+        /* 색상 라이브러리 — 제품군별 선택 가능한 색상 목록
+           line: 줄 구분 키(자유값). 같은 값끼리 한 줄로 묶인다.
+                 비워두면 전부 한 줄. 예) kids/adult, 또는 그냥 비움
+           lineLabel: 줄 앞에 굵게 붙는 이름. 비우면 kids→키즈, adult→성인 자동 */
+        ColorMaster: {
+          required: ["groupKey", "colorKey", "label", "url"],
+          columns: {
+            groupKey: { type: "string" },
+            line: { type: "string", optional: true },
+            lineLabel: { type: "string", optional: true },
+            colorKey: { type: "string" },
+            label: { type: "string" },
+            url: { type: "url" },
+            enabled: { type: "bool", optional: true, default: true },
+            sortOrder: { type: "number", optional: true },
+          },
+        },
         HeroMaster: {
           required: ["groupKey", "url"],
           columns: {
@@ -1456,7 +1532,7 @@
       }
 
       /* ---- §1.1.2 제품군 기준 조회 ---- */
-      function buildGroups(products, templates, knownTemplateIds, heroes) {
+      function buildGroups(products, templates, knownTemplateIds, heroes, colors) {
         const errs = [],
           groups = {};
         for (const p of products) {
@@ -1470,9 +1546,13 @@
               heroUrl: "",
               normalLabel: "",
               saleLabel: "",
+              noticeText: "",
+              sizeInfoUrl: "",
+              colorTitle: "",
               templates: [],
               rows: [],
               heroes: [],
+              colors: [],
             };
           const g = groups[k];
           // group 레벨 필드: 첫 비어있지 않은 값 채택 (시트 비정규화 허용)
@@ -1483,6 +1563,9 @@
             "heroUrl",
             "normalLabel",
             "saleLabel",
+            "noticeText",
+            "sizeInfoUrl",
+            "colorTitle",
           ]) {
             const t = f === "groupLabel" ? "label" : f;
             if (!g[t] && p[f]) g[t] = p[f];
@@ -1530,6 +1613,23 @@
         }
         for (const g of Object.values(groups)) {
           g.heroes.sort(
+            (a, b) =>
+              (a.sortOrder || 0) - (b.sortOrder || 0) || a._row - b._row,
+          );
+        }
+        /* 색상 라이브러리 매핑 — line 은 자유값(빈칸 허용) */
+        for (const c of colors || []) {
+          const g = groups[c.groupKey];
+          if (!g) continue;
+          if (c.enabled === false) continue;
+          g.colors.push({
+            ...c,
+            line: String(c.line || "").trim(),
+            lineLabel: String(c.lineLabel || "").trim(),
+          });
+        }
+        for (const g of Object.values(groups)) {
+          g.colors.sort(
             (a, b) =>
               (a.sortOrder || 0) - (b.sortOrder || 0) || a._row - b._row,
           );
@@ -1814,7 +1914,7 @@
    ============================================================ */
       const GROUPS = {
         bamboo500: {
-          label: "밤부500",
+          label: "뱀부500",
           templates: ["01", "02"],
           seller: "wtable_official",
           t1: "Bamboo500 Premium",
@@ -1975,6 +2075,55 @@
           ],
         },
       };
+      /* ── 누볼라 패밀리 테마 ──────────────────────────────────────
+         .fig 실측(green): accent #65812d · badgeBorder #d0dfb1
+                          noticeBg #e1e5c6 · colorBg #b9ca7d
+         나머지 5색은 뱀부 02 팔레트와 같은 톤으로 파생. */
+      const THEMES_NUVOLA = {
+        green: { label: "그린", accent: "#65812d", badgeBorder: "#d0dfb1",
+                 noticeBg: "#e1e5c6", colorBg: "#b9ca7d", colorBgLight: "#f0f3dd",
+                 pillBg: "#91a36e", titleColor: "#448122", mainBg: "#f8fbe1" },
+        blue: { label: "블루", accent: "#2d6181", badgeBorder: "#b3c7da",
+                noticeBg: "#dbe6ee", colorBg: "#7d9eca", colorBgLight: "#eaf3f6",
+                pillBg: "#6e89a3", titleColor: "#1d5a80", mainBg: "#f6f9fe" },
+        pink: { label: "핑크", accent: "#7c6055", badgeBorder: "#d4bab4",
+                noticeBg: "#f0dedb", colorBg: "#edcac4", colorBgLight: "#f6ecea",
+                pillBg: "#d8b8ab", titleColor: "#6b4a3e", mainBg: "#fffdfd" },
+        yellow: { label: "옐로우", accent: "#b08a1e", badgeBorder: "#e6d38f",
+                  noticeBg: "#f0e5bd", colorBg: "#e3cf7e", colorBgLight: "#faf3dc",
+                  pillBg: "#c9ae5a", titleColor: "#96731a", mainBg: "#fdfbef" },
+        orange: { label: "오렌지", accent: "#c26a2b", badgeBorder: "#eec3a0",
+                  noticeBg: "#f5ddc5", colorBg: "#e8a86f", colorBgLight: "#fbeadb",
+                  pillBg: "#d99a68", titleColor: "#a85520", mainBg: "#fff9f3" },
+        mint: { label: "민트", accent: "#2f8a76", badgeBorder: "#a6d8ca",
+                noticeBg: "#cfe9e1", colorBg: "#8fcbbb", colorBgLight: "#e3f4ef",
+                pillBg: "#6cb3a2", titleColor: "#1f7562", mainBg: "#f2fbf8" },
+      };
+      /* 템플릿 ID → { fam, key }.  "nuvolafamily_03" → {fam:"nuvola", key:"03"} */
+      function tplParts(id) {
+        const m = String(id || "").match(/^(.*)_(\d+)$/);
+        if (!m) return { fam: "bamboo", key: "01" };
+        return { fam: /^nuvola/i.test(m[1]) ? "nuvola" : "bamboo", key: m[2] };
+      }
+      function tplIdToFam(id) { return tplParts(id).fam; }
+      /* 패밀리별 테마 표 */
+      function themeTable(fam, key) {
+        return fam === "nuvola" ? THEMES_NUVOLA : THEMES[key] || {};
+      }
+      /* 현재 제품군의 패밀리 */
+      function curFam() {
+        const g = G()[state.group];
+        return (g && g.family) || "bamboo";
+      }
+      const TPL_META_NUVOLA = {
+        "01": { label: "01 · 사진형", desc: "배경 사진 + 중앙 타이틀 + 날짜 바" },
+        "02": { label: "02 · 사진형(큰 타이틀)", desc: "배경 사진 + 3줄 타이틀" },
+        "03": { label: "03 · 그리드형", desc: "타이틀 + 제품 이미지 4컷" },
+      };
+      function tplMeta(fam, key) {
+        const t = (fam === "nuvola" ? TPL_META_NUVOLA : TPL_META)[key];
+        return t || { label: key, desc: "" };
+      }
       const TPL_META = {
         "01": { label: "01 · 사진형", desc: "영문 세리프 타이틀 + 날짜 바" },
         "02": {
@@ -2001,6 +2150,9 @@
         copyBold: "",
         series: "",
         rows: [],
+        colorPick: {}, // { 줄키: [선택된 colorKey, ...] }
+        notice: "", // 옵션 하단 안내 문구 (비우면 미표시)
+        sizeInfoOn: true, // 사이즈 안내 이미지 표시 여부
       };
 
       /* ---------- 유틸 ---------- */
@@ -2030,7 +2182,11 @@
       }
       const disc = (n, s) =>
         !n || n <= 0 ? null : s > n ? 0 : Math.round(((n - s) / n) * 100);
-      const TH = () => (state.tpl ? THEMES[state.tpl][state.theme] : null);
+      const TH = () =>
+        state.tpl
+          ? themeTable(curFam(), state.tpl)[state.theme] ||
+            Object.values(themeTable(curFam(), state.tpl))[0]
+          : null;
       function loadImg(src, up) {
         return new Promise((res, rej) => {
           const i = new Image();
@@ -2106,7 +2262,13 @@
       /* ============================================================
    시트 연동 (§1.1 조회/캐시/동기화)
    ============================================================ */
-      const KNOWN_TPL = ["bamboo500_01", "bamboo500_02"];
+      /* 렌더러가 구현된 템플릿 ID 목록.
+         여기 없는 templateId 는 E302 로 걸러진다(잘못된 레이아웃 방지).
+         누볼라 02·03 은 렌더러 구현 후 추가할 것. */
+      const KNOWN_TPL = [
+        "bamboo500_01", "bamboo500_02",
+        "nuvolafamily_01", "nuvolafamily_02", "nuvolafamily_03",
+      ];
       const src = { mode: "sample", csv: "auto", syncedAt: null };
 
       /* ---- 접속 설정 저장 (§1.1.1 환경설정) ----
@@ -2126,6 +2288,8 @@
             "https://docs.google.com/spreadsheets/d/e/2PACX-1vRS9uzvpv-1yBGogWe_DJ00ym_-SGMzrfuSSa0Boyk1-fbIcArIa0PCScW4WICvm6K-DTLYVUOEvQMd/pub?gid=915184877&single=true&output=csv",
           HeroMaster:
             "https://docs.google.com/spreadsheets/d/e/2PACX-1vRS9uzvpv-1yBGogWe_DJ00ym_-SGMzrfuSSa0Boyk1-fbIcArIa0PCScW4WICvm6K-DTLYVUOEvQMd/pub?gid=1232198&single=true&output=csv",
+          ColorMaster:
+            "https://docs.google.com/spreadsheets/d/e/2PACX-1vRS9uzvpv-1yBGogWe_DJ00ym_-SGMzrfuSSa0Boyk1-fbIcArIa0PCScW4WICvm6K-DTLYVUOEvQMd/pub?gid=885730504&single=true&output=csv",
         },
         proxy:
           "https://script.google.com/macros/s/AKfycbxKjJ78pLc7Pj1VYNPCGwJ0eRC_AsEAo6-aBNDpEgYGcCjGEa9wwTTeJtK8rRJwcVr8/exec",
@@ -2137,9 +2301,11 @@
         "tabP",
         "tabT",
         "tabH",
+        "tabC",
         "urlP",
         "urlT",
         "urlH",
+        "urlC",
         "gasUrl",
         "proxyUrl",
       ];
@@ -2206,6 +2372,24 @@
             const el = $("#" + f);
             if (el && o[f] != null) el.value = o[f];
           });
+          /* 저장된 설정에 없는 항목은 배포 기본값(PRESET)으로 채운다.
+             새 탭(ColorMaster 등)이 추가돼도 기존 사용자가 자동으로 받아가게 하기 위함. */
+          if (PRESET && PRESET.csv) {
+            const fill = {
+              urlP: PRESET.csv.ProductMaster,
+              urlT: PRESET.csv.TemplateMaster,
+              urlH: PRESET.csv.HeroMaster,
+              urlC: PRESET.csv.ColorMaster,
+              proxyUrl: PRESET.proxy,
+            };
+            for (const [id, v] of Object.entries(fill)) {
+              const el = $("#" + id);
+              if (el && !el.value && v) {
+                el.value = v;
+                o[id] = v;
+              }
+            }
+          }
           return o;
         } catch (e) {
           return null;
@@ -2218,7 +2402,7 @@
       }
 
       function tplIdToKey(id) {
-        return id.endsWith("_02") ? "02" : "01";
+        return tplParts(id).key;
       }
 
       /* 시트 레코드 → 제너레이터 GROUPS 형태로 변환 */
@@ -2226,21 +2410,31 @@
         const out = {};
         for (const g of Object.values(sheetGroups)) {
           const tpls = g.templates
-            .map((t) => ({
-              key: tplIdToKey(t.templateId),
-              label:
-                t.templateLabel || TPL_META[tplIdToKey(t.templateId)].label,
-              themes:
-                t.themes && t.themes.length
-                  ? t.themes.filter((x) => THEMES[tplIdToKey(t.templateId)][x])
-                  : null,
-              heroTitle: t.heroTitle || [],
-              bottomCopy: t.bottomCopy || "",
-              bottomCopyBold: t.bottomCopyBold || "",
-            }))
-            .filter((t) => THEMES[t.key]);
+            .map((t) => {
+              const pt = tplParts(t.templateId);
+              const tbl = themeTable(pt.fam, pt.key);
+              return {
+                key: pt.key,
+                fam: pt.fam,
+                label: t.templateLabel || tplMeta(pt.fam, pt.key).label,
+                themes:
+                  t.themes && t.themes.length
+                    ? t.themes.filter((x) => tbl[x])
+                    : null,
+                heroTitle: t.heroTitle || [],
+                bottomCopy: t.bottomCopy || "",
+                bottomCopyBold: t.bottomCopyBold || "",
+                gridUrls: t.gridUrls || [],
+                noticeText: t.noticeText || "",
+                sizeInfoUrl: t.sizeInfoUrl || "",
+                optionTitle: t.optionTitle || "",
+                colorTitle: t.colorTitle || "",
+              };
+            })
+            .filter((t) => Object.keys(themeTable(t.fam, t.key)).length);
           out[g.key] = {
             label: g.label,
+            family: (tpls[0] && tpls[0].fam) || "bamboo",
             templates: tpls.map((t) => t.key),
             themeFilter: Object.fromEntries(tpls.map((t) => [t.key, t.themes])),
             labelOverride: Object.fromEntries(
@@ -2255,10 +2449,29 @@
                 { c: t.bottomCopy, b: t.bottomCopyBold },
               ]),
             ),
+            gridByTpl: Object.fromEntries(
+              tpls.map((t) => [t.key, t.gridUrls]),
+            ),
+            noticeByTpl: Object.fromEntries(
+              tpls.map((t) => [t.key, t.noticeText]),
+            ),
+            sizeInfoByTpl: Object.fromEntries(
+              tpls.map((t) => [t.key, t.sizeInfoUrl]),
+            ),
+            optionTitleByTpl: Object.fromEntries(
+              tpls.map((t) => [t.key, t.optionTitle]),
+            ),
+            colorTitleByTpl: Object.fromEntries(
+              tpls.map((t) => [t.key, t.colorTitle]),
+            ),
             seriesTitle: g.seriesTitle,
             optionTitleEn: g.optionTitleEn,
             heroUrl: g.heroUrl,
             heroes: g.heroes || [],
+            colors: g.colors || [],
+            noticeText: g.noticeText || "",
+            sizeInfoUrl: g.sizeInfoUrl || "",
+            colorTitle: g.colorTitle || "",
             series: g.seriesTitle,
             seller: "",
             t1: "",
@@ -2273,6 +2486,7 @@
               normal: r.normalPrice,
               sale: r.salePrice,
               badge: r.badge || "none",
+              colorLine: r.colorLine || "",
               thumbUrl: r.thumbUrl || "",
               thumb: null,
               thumbSrc: "",
@@ -2404,11 +2618,13 @@
         try {
           let pCsv,
             tCsv,
-            hCsv = "";
+            hCsv = "",
+            cCsv = "";
           if (src.mode === "csv" && src.csv === "manual") {
             const uP = $("#urlP").value.trim(),
               uT = $("#urlT").value.trim(),
-              uH = $("#urlH").value.trim();
+              uH = $("#urlH").value.trim(),
+              uC = $("#urlC").value.trim();
             if (!uP || !uT)
               throw mkErr(
                 "E101",
@@ -2423,12 +2639,20 @@
                 hCsv = "";
               }
             }
+            if (uC) {
+              try {
+                cCsv = await fetchCsv(uC);
+              } catch (e) {
+                cCsv = "";
+              }
+            }
           } else if (src.mode === "csv") {
             const inp = parseSheetInput($("#docId").value);
             if (!inp) throw mkErr("E101", "문서 ID 또는 게시 URL을 입력하세요");
             const nP = $("#tabP").value.trim() || "ProductMaster";
             const nT = $("#tabT").value.trim() || "TemplateMaster";
             const nH = $("#tabH").value.trim() || "HeroMaster";
+            const nC = $("#tabC").value.trim() || "ColorMaster";
             if (inp.mode === "pub") {
               const tabs = await fetchPubTabs(inp.id);
               pCsv = await fetchPubTabCsv(inp.id, tabs, nP);
@@ -2438,6 +2662,11 @@
               } catch (e) {
                 hCsv = "";
               }
+              try {
+                cCsv = await fetchPubTabCsv(inp.id, tabs, nC);
+              } catch (e) {
+                cCsv = "";
+              }
             } else {
               pCsv = await fetchCsv(sheetCsvUrl(inp.id, nP));
               tCsv = await fetchCsv(sheetCsvUrl(inp.id, nT));
@@ -2445,6 +2674,11 @@
                 hCsv = await fetchCsv(sheetCsvUrl(inp.id, nH));
               } catch (e) {
                 hCsv = "";
+              }
+              try {
+                cCsv = await fetchCsv(sheetCsvUrl(inp.id, nC));
+              } catch (e) {
+                cCsv = "";
               }
             }
           } else {
@@ -2463,14 +2697,25 @@
             tCsv = rowsToCsv(j.TemplateMaster.header, j.TemplateMaster.rows);
             if (j.HeroMaster && j.HeroMaster.header.length)
               hCsv = rowsToCsv(j.HeroMaster.header, j.HeroMaster.rows);
+            if (j.ColorMaster && j.ColorMaster.header.length)
+              cCsv = rowsToCsv(j.ColorMaster.header, j.ColorMaster.rows);
           }
           const P = parseSheet(pCsv, "ProductMaster");
           const T = parseSheet(tCsv, "TemplateMaster");
           const H = hCsv
             ? parseSheet(hCsv, "HeroMaster")
             : { rows: [], errors: [] };
-          const B = buildGroups(P.rows, T.rows, KNOWN_TPL, H.rows);
-          const errs = [...P.errors, ...T.errors, ...H.errors, ...B.errors];
+          const C = cCsv
+            ? parseSheet(cCsv, "ColorMaster")
+            : { rows: [], errors: [] };
+          const B = buildGroups(P.rows, T.rows, KNOWN_TPL, H.rows, C.rows);
+          const errs = [
+            ...P.errors,
+            ...T.errors,
+            ...H.errors,
+            ...C.errors,
+            ...B.errors,
+          ];
           if (!Object.keys(B.groups).length) {
             showSheetErrors(
               errs.length ? errs : [mkErr("E103", "유효한 제품 행 없음")],
@@ -2483,14 +2728,15 @@
           cfgHint();
           srcState();
           const first = Object.keys(SHEET_GROUPS)[0];
-          initGroups();
+          initGroups(false);
           selectGroup(first);
           const hard = errs.filter((e) => e.code !== "E301");
           showSheetErrors(
             errs,
             hard.length
               ? null
-              : `동기화 완료 — 제품군 ${Object.keys(SHEET_GROUPS).length}개 · 옵션 ${P.rows.length}행`,
+              : `동기화 완료 — 제품군 ${Object.keys(SHEET_GROUPS).length}개 · 옵션 ${P.rows.length}행` +
+                (C.rows.length ? ` · 색상 ${C.rows.length}개` : " · 색상 없음"),
           );
           srcHint();
         } catch (e) {
@@ -2531,7 +2777,7 @@
       function srcHint() {
         const h = $("#srcHint");
         if (src.mode === "sample") {
-          h.innerHTML = "코드에 내장된 밤부500 데이터로 동작합니다.";
+          h.innerHTML = "코드에 내장된 뱀부500 데이터로 동작합니다.";
           return;
         }
         const t = src.syncedAt
@@ -2559,7 +2805,7 @@
               if (src.mode === "sample") {
                 SHEET_GROUPS = null;
                 showSheetErrors([]);
-                initGroups();
+                initGroups(false);
                 selectGroup("bamboo500");
               }
               srcHint();
@@ -2788,19 +3034,183 @@
       };
 
       /* ---- 히어로 이미지 라이브러리 (HeroMaster) ---- */
+      /* ───────── 색상 선택 ─────────
+         line 은 시트 자유값. 같은 값끼리 한 줄로 묶이고, 등장 순서대로 표시된다.
+         line 을 비워두면 전부 한 줄로 나온다. */
+      const LINE_LABEL_DEFAULT = { kids: "키즈", adult: "성인" };
+      function allColors() {
+        const g = G()[state.group];
+        return (g && g.colors) || [];
+      }
+      /* 시트 등장 순서대로 고유 줄 목록 */
+      function colorLines() {
+        const out = [];
+        for (const c of allColors()) {
+          const k = c.line || "";
+          if (out.some((l) => l.key === k)) continue;
+          out.push({
+            key: k,
+            label: c.lineLabel || LINE_LABEL_DEFAULT[k.toLowerCase()] || "",
+          });
+        }
+        return out;
+      }
+      function colorsOf(line) {
+        return allColors().filter((c) => (c.line || "") === line);
+      }
+      function hasColors() {
+        return allColors().length > 0;
+      }
+      function pickedColors(line) {
+        const sel = state.colorPick[line] || [];
+        return colorsOf(line).filter((c) => sel.includes(c.colorKey));
+      }
+      /* 제품군 전환 시 전체 선택으로 초기화 */
+      function resetColorPick() {
+        state.colorPick = {};
+        colorLines().forEach((l) => {
+          state.colorPick[l.key] = colorsOf(l.key).map((c) => c.colorKey);
+        });
+      }
+      /* 옵션 카드에 표시할 속성 목록.
+         colorLine 이 지정된 행은 Color 줄을 "현재 선택한 색상"으로 자동 생성한다.
+         (시트 optionInfo 에 Color 줄이 남아 있어도 중복되지 않게 걸러낸다) */
+      const COLOR_LABEL_RE = /^(color|colour|컬러|색상)$/i;
+      function cardAttrs(r) {
+        const base = rowAttrs(r);
+        const line = (r.colorLine || "").trim();
+        if (!line) return base;
+        const picked = pickedColors(line);
+        if (!picked.length) return base;
+        const rest = base.filter((a) => !COLOR_LABEL_RE.test((a.label || "").trim()));
+        const keep = base.find((a) => COLOR_LABEL_RE.test((a.label || "").trim()));
+        return [
+          { label: keep ? keep.label : "Color", value: picked.map((c) => c.label).join(", ") },
+          ...rest,
+        ];
+      }
+
+      /* 사이즈 안내 이미지 URL: 템플릿별 → 그룹 공통 */
+      function nvSizeInfoUrl() {
+        const g = G()[state.group];
+        if (!g) return "";
+        return (g.sizeInfoByTpl && g.sizeInfoByTpl[state.tpl]) || g.sizeInfoUrl || "";
+      }
+      const SIZE_IMG = {}; // url → Image 캐시
+      const GRID_IMG = {}; // 03 상단 4컷 이미지 캐시
+      function nvGridUrls() {
+        const g = G()[state.group];
+        if (!g) return [];
+        return (g.gridByTpl && g.gridByTpl[state.tpl]) || [];
+      }
+      function nvGridImgs() {
+        return nvGridUrls().map((u) => GRID_IMG[u] || null);
+      }
+      function nvSizeInfoImg() {
+        const u = nvSizeInfoUrl();
+        return u ? SIZE_IMG[u] : null;
+      }
+
+      /* 누볼라 전용 편집 블록: 안내 문구 + 사이즈 안내 + 컬러 선택 */
+      function renderNvBlocks() {
+        const wrap = $("#nvBlocks");
+        if (!wrap) return;
+        if (!nvIsOn()) { wrap.innerHTML = ""; renumberBlocks(); return; }
+        let html = "";
+        // 안내 문구 (비우면 배너에서 제거됨)
+        html +=
+          `<div class="block"><label class="h"><span class="num"></span> 안내 문구</label>` +
+          `<input type="text" id="nvNotice" maxlength="60" value="${(state.notice || "").replace(/"/g, "&quot;")}" />` +
+          `<div class="hint">옵션 카드 아래 띠. <b>비우면 배너에서 빠집니다.</b></div></div>`;
+        // 사이즈 안내 이미지 on/off
+        if (nvSizeInfoUrl()) {
+          html +=
+            `<div class="block"><label class="h"><span class="num"></span> 사이즈 안내</label>` +
+            `<div class="seg"><button id="nvSizeOn" class="${state.sizeInfoOn ? "on" : ""}">넣기</button>` +
+            `<button id="nvSizeOff" class="${state.sizeInfoOn ? "" : "on"}">빼기</button></div>` +
+            `<div class="hint">템플릿에 등록된 사이즈 안내 이미지</div></div>`;
+        }
+        // 컬러 선택 (줄 단위)
+        if (hasColors()) {
+          for (const l of colorLines()) {
+            const list = colorsOf(l.key);
+            const sel = state.colorPick[l.key] || [];
+            const title = l.label ? `${l.label} 컬러` : "컬러 선택";
+            html +=
+              `<div class="block"><label class="h"><span class="num"></span> ${title} ` +
+              `<span class="cnt">${sel.length}/${list.length}</span></label>` +
+              `<div class="colorpick" data-line="${l.key}">` +
+              list
+                .map(
+                  (c) =>
+                    `<button class="cchip ${sel.includes(c.colorKey) ? "on" : ""}" data-k="${c.colorKey}">${c.label}</button>`,
+                )
+                .join("") +
+              `</div><div class="hint">이미지에 넣을 색상을 고르세요. 최소 1개.</div></div>`;
+          }
+        }
+        wrap.innerHTML = html;
+        const ni = $("#nvNotice");
+        if (ni)
+          ni.oninput = (e) => {
+            state.notice = e.target.value;
+            draw();
+          };
+        const on = $("#nvSizeOn"), off = $("#nvSizeOff");
+        if (on) on.onclick = () => { state.sizeInfoOn = true; renderNvBlocks(); draw(); };
+        if (off) off.onclick = () => { state.sizeInfoOn = false; renderNvBlocks(); draw(); };
+        wrap.querySelectorAll(".colorpick").forEach((box) => {
+          const line = box.dataset.line;
+          box.querySelectorAll(".cchip").forEach(
+            (b) => (b.onclick = () => toggleColor(line, b.dataset.k)),
+          );
+        });
+        renumberBlocks();
+      }
+      /* 편집 패널 블록 번호를 화면 순서대로 다시 매긴다.
+         (누볼라 컬러 블록이 중간에 끼거나 숨은 블록이 있어도 번호가 이어진다) */
+      function renumberBlocks() {
+        const panel = document.querySelector(".col.left");
+        if (!panel) return;
+        let n = 1;
+        panel.querySelectorAll(".block").forEach((b) => {
+          if (b.hidden || b.offsetParent === null) {
+            const s0 = b.querySelector("label.h > .num");
+            if (s0 && !b.hidden) s0.textContent = n; // 숨김 아님(레이아웃 미측정) 대비
+            return;
+          }
+          const sp = b.querySelector("label.h > .num");
+          if (sp) sp.textContent = n++;
+        });
+      }
+      function toggleColor(line, key) {
+        const sel = state.colorPick[line] || (state.colorPick[line] = []);
+        const i = sel.indexOf(key);
+        if (i >= 0) {
+          if (sel.length <= 1) {
+            status("최소 한 가지 색상은 선택해야 합니다.", 1);
+            return;
+          }
+          sel.splice(i, 1);
+        } else sel.push(key);
+        renderNvBlocks();
+        draw();
+      }
       function heroesForTpl() {
         const g = G()[state.group];
         if (!g || !g.heroes || !state.tpl) return [];
         const tplId = `${state.group}_${state.tpl}`;
-        const known = ["bamboo500_01", "bamboo500_02"];
-        return g.heroes.filter((h) => {
+        const hit = g.heroes.filter((h) => {
           if (!h.templateId) return true; // 공용
           if (h.templateId === tplId) return true;
-          // 제품군 전용 템플릿이 아직 없으면 밤부 템플릿을 빌려 쓰는 중 → suffix로 매칭
+          // 이 제품군 전용 템플릿이 아직 등록 전이면 suffix 로 매칭(임시 대여).
           return (
-            h.templateId.endsWith("_" + state.tpl) && !known.includes(tplId)
+            h.templateId.endsWith("_" + state.tpl) && !KNOWN_TPL.includes(tplId)
           );
         });
+        // 이 템플릿용으로 지정된 게 하나도 없으면 같은 제품군 히어로를 모두 쓴다.
+        // (HeroMaster 에 templateId 를 01 로만 채워둔 경우에도 02·03 에서 이미지가 뜬다)
+        return hit.length ? hit : g.heroes;
       }
       function renderHeroList() {
         const box = $("#heroList"),
@@ -2874,9 +3284,13 @@
           (b) => (b.onclick = () => selectGroup(b.dataset.g)),
         );
       }
-      function initGroups() {
+      /* select=false 면 버튼만 다시 그린다. 호출부에서 selectGroup 을 따로 부르는 경우
+         제품군 선택이 두 번 실행돼 랜덤(템플릿·컬러·히어로)이 두 번 돌던 문제를 막는다. */
+      function initGroups(select) {
         renderGroupButtons();
-        selectGroup("bamboo500");
+        if (select === false) return;
+        const keys = Object.keys(G());
+        selectGroup(keys.includes("bamboo500") ? "bamboo500" : keys[0]);
       }
       /* 히어로 상태 완전 초기화 (템플릿 전환·제품군 전환 시) */
       function clearHero() {
@@ -2900,7 +3314,7 @@
       }
       /* 처음 진입 시 히어로도 랜덤 (현재 템플릿의 히어로 중에서만, 수정 가능).
          async 로딩 중 템플릿이 바뀌면 적용하지 않아 01/02 히어로가 섞이지 않는다. */
-      async function applyRandomHero() {
+      async function applyRandomHero(gen) {
         const tplAtPick = state.tpl;
         const list = heroesForTpl();
         if (!list.length) return;
@@ -2908,6 +3322,7 @@
         if (!h || !h.url) return;
         try {
           const r = await loadImgSmart(h.url);
+          if (gen !== undefined && gen !== SEL_GEN) return; // 제품군이 바뀌었으면 폐기
           if (state.tpl !== tplAtPick) return; // 로딩 후에도 같은 템플릿일 때만 적용
           state.hero = r.img;
           state.heroTainted = r.tainted;
@@ -2920,7 +3335,9 @@
           /* 실패 시 히어로 없이 진행 */
         }
       }
+      let SEL_GEN = 0; // 제품군 선택 세대 — 비동기 로딩 경합 방지
       function selectGroup(key) {
+        const gen = ++SEL_GEN;
         state.group = key;
         const g = G()[key];
         // 하위 선택 초기화 (§2.1.1)
@@ -2942,19 +3359,26 @@
         $("#seller").value = state.seller;
         $("#copy").value = state.copy;
         $("#copyBold").value = state.copyBold;
+        // 누볼라 계열: 안내 문구·사이즈 이미지는 템플릿별 → 그룹 공통 순
+        state.notice =
+          (g.noticeByTpl && g.noticeByTpl[state.tpl]) || g.noticeText || "";
+        state.sizeInfoOn = !!nvSizeInfoUrl();
+        renderNvBlocks();
         $("#series").value = state.series;
         renderTplList();
         renderThemes();
         renderRows();
         syncTplUI();
+        resetColorPick();
+        renderNvBlocks();
         renderHeroList();
         draw();
-        loadSheetImages();
-        applyRandomHero();
+        loadSheetImages(gen);
+        applyRandomHero(gen);
       }
       function themesForKey(gk, tpl) {
         const g = G()[gk],
-          all = THEMES[tpl];
+          all = themeTable((g && g.family) || "bamboo", tpl);
         const f = g && g.themeFilter && g.themeFilter[tpl];
         if (!f || !f.length) return all;
         const out = {};
@@ -2964,7 +3388,7 @@
         return Object.keys(out).length ? out : all;
       }
       /* 시트의 thumbUrl / heroUrl 자동 로드 (§리스크: URL 만료·CORS) */
-      async function loadSheetImages() {
+      async function loadSheetImages(gen) {
         const g = G()[state.group];
         if (!g) return;
         const fails = [];
@@ -2991,11 +3415,56 @@
             fails.push("히어로");
           }
         }
+        /* 색상 칩 이미지 (누볼라 등) */
+        await Promise.all(
+          ((g.colors) || []).map(async (c) => {
+            if (!c.url || c.img) return;
+            try {
+              const x = await loadImgSmart(c.url);
+              c.img = x.img;
+              c.imgTainted = x.tainted;
+            } catch (e) {
+              fails.push("색상 " + (c.label || c.colorKey));
+            }
+          }),
+        );
+        /* 03 상단 4컷 이미지 */
+        const gUrls = new Set();
+        Object.values(g.gridByTpl || {}).forEach((arr) =>
+          (arr || []).forEach((u) => u && gUrls.add(u)),
+        );
+        await Promise.all(
+          [...gUrls].map(async (u) => {
+            if (GRID_IMG[u]) return;
+            try {
+              const x = await loadImgSmart(u);
+              GRID_IMG[u] = x.img;
+            } catch (e) {
+              fails.push("상단 이미지");
+            }
+          }),
+        );
+        /* 사이즈 안내 이미지 — 템플릿마다 다를 수 있어 URL 단위로 캐시 */
+        const sUrls = new Set();
+        if (g.sizeInfoUrl) sUrls.add(g.sizeInfoUrl);
+        Object.values(g.sizeInfoByTpl || {}).forEach((u) => u && sUrls.add(u));
+        await Promise.all(
+          [...sUrls].map(async (u) => {
+            if (SIZE_IMG[u]) return;
+            try {
+              const x = await loadImgSmart(u);
+              SIZE_IMG[u] = x.img;
+            } catch (e) {
+              fails.push("사이즈 안내");
+            }
+          }),
+        );
         if (fails.length)
           status(
             `이미지 ${fails.length}건 로드 실패: ${fails.slice(0, 2).join(", ")}`,
             1,
           );
+        if (gen !== undefined && gen !== SEL_GEN) return; // 이미 다른 제품군으로 넘어감
         renderRows();
         draw();
       }
@@ -3005,8 +3474,10 @@
         // 히어로 타이틀: 시트(TemplateMaster.heroTitle) 우선 → 내장 샘플 → 기존 입력 유지
         const st = g.titleByTpl && g.titleByTpl[state.tpl];
         if (st && st.length) {
+          // 1줄 = 윗줄, 2줄 이후는 모두 아랫줄로 합친다(줄바꿈 유지).
+          // 3줄 이상 입력해도 잘리지 않는다.
           state.t1 = st[0] || "";
-          state.t2 = st[1] || "";
+          state.t2 = st.slice(1).filter(Boolean).join("\n");
         } else if (state.tpl === "02") {
           state.t1 = g.t1_02 || g.t1 || state.t1 || "";
           state.t2 = g.t2_02 || g.t2 || state.t2 || "";
@@ -3033,6 +3504,13 @@
         if (lab)
           lab.textContent =
             state.tpl === "02" ? "옵션 제목 (영문)" : "시리즈 제목 (한글)";
+        // 누볼라 계열: 안내 문구·사이즈 이미지는 템플릿마다 다르므로 전환 시 다시 반영
+        if (nvIsOn()) {
+          state.notice =
+            (g.noticeByTpl && g.noticeByTpl[state.tpl]) || g.noticeText || "";
+          state.sizeInfoOn = !!nvSizeInfoUrl();
+        }
+        renderNvBlocks();
       }
       /* 템플릿 목록 — 프리뷰 카드 (§2.1.2) */
       function renderTplList() {
@@ -3049,8 +3527,8 @@
             (t) => `
     <div class="tplcard ${t === state.tpl ? "on" : ""}" data-t="${t}">
       <canvas class="tplprev" data-prev="${t}" width="240" height="302"></canvas>
-      <div class="tplmeta"><div class="tplname">${TPL_META[t].label}</div>
-        <div class="tpldesc">${TPL_META[t].desc}</div></div>
+      <div class="tplmeta"><div class="tplname">${(G()[state.group]?.labelOverride?.[t]) || tplMeta(curFam(), t).label}</div>
+        <div class="tpldesc">${tplMeta(curFam(), t).desc}</div></div>
     </div>`,
           )
           .join("");
@@ -3104,15 +3582,16 @@
       function syncTplUI() {
         const has = !!state.tpl;
         $("#themeBlock").hidden = !has;
-        $("#copyBlock").hidden = state.tpl !== "02";
+        $("#copyBlock").hidden = nvIsOn() || state.tpl !== "02";
         $("#tplTag").textContent =
           G()[state.group].label +
-          (has ? " · " + TPL_META[state.tpl].label : "");
+          (has ? " · " + tplMeta(curFam(), state.tpl).label : "");
         $("#tplHint").innerHTML = !has
           ? ""
           : state.tpl === "01"
             ? "<b>셀러명은 영문만</b> 가능합니다 (High Summit)."
             : "셀러명 한글 가능 (Pretendard).";
+        renumberBlocks();
         $("#imgLabel").textContent =
           state.tpl === "02"
             ? "제품 이미지 (누끼컷)"
@@ -3406,7 +3885,1009 @@
         }
         return { tops: out, total: y };
       }
+      /* ══════════════ 누볼라 패밀리 렌더러 ══════════════
+         .fig(CC자동화-배너_템플릿_nuvola) auto-layout 실측.
+         뱀부 렌더러와 완전히 분리 — 서로 영향을 주지 않는다.
+         구조: section-main(1080) + section-option(가변) + section-color(1080) */
+      const NV = {
+        MAIN_H: 1080,
+        main: {
+          tx: 55, ty: 101, tw: 751, gap: 8,
+          subH: 63, subGap: 16, sellerSize: 44, xSize: 40, logoW: 116, logoH: 19,
+          titleSize: 80, titleLineH: 100,
+          barY: 1000, barH: 80, dateSize: 40,
+        },
+        opt: {
+          padTop: 150, padBottom: 80, bodyX: 60, bodyW: 740,
+          eyebrowSize: 36, eyebrowLineH: 40, headGap: 28, headingSize: 56,
+          headToList: 80, listGap: 20,
+          // .fig 기본 360 → 위아래 여유를 위해 410 (이미지도 함께 확대)
+          cardH: 410, imgX: 10, imgY: 10, imgW: 320, imgH: 390,
+          optX: 366, optW: 342, optGap: 36,
+          badgeH: 36, badgeW: 120, badgeSize: 20, nameGap: 16,
+          nameSize: 32, nameLineH: 40, txtOptW: 250, txtOptGap: 24,
+          vlLabelW: 48, vlColGap: 8, vlValW: 194, vlRowH: 48, vlRowGap: 8, vlSize: 18,
+          discD: 80, discSize: 28,
+          priceH: 82, priceRowH: 36, priceGap: 10,
+          normalSize: 20, saleSize: 28,
+          noticeH: 80, noticeSize: 24, sizeInfoH: 552,
+        },
+        color: {
+          H: 1080, txtY: 120, txtGap: 28,
+          eyebrowSize: 36, eyebrowLineH: 40, headingSize: 56,
+          listLineH: 40, listGap: 4, listSize: 28, listLabelGap: 10,
+          optY: 416, optW: 780, rowGap: 38, chipGap: 12,
+          chipMaxW: 120, chipLabelH: 40, chipLabelGap: 4, chipLabelSize: 24,
+        },
+      };
+      /* 템플릿별 헤딩 서체 (.fig 실측) — 01 검증 완료, 02·03 은 해당 템플릿 작업 시 확정 */
+      const NV_TPL = {
+        // main: photo(01) / grad(02) / grid(03)
+        // optDark: 옵션 섹션이 진한 배경인가 · colorDark: 컬러 섹션이 진한 배경인가
+        // colorBox: 컬러 칩을 흰 컨테이너로 감싸는가 · chipLabel: 칩 이름 색
+        "01": { main: "photo", optDark: false, colorDark: true, colorBox: false,
+                chipLabel: "#ffffff", noticeKey: "noticeBg",
+                optEyebrow: 36, optEyebrowLH: 40, optHeading: 56,
+                colEyebrow: 36, colEyebrowLH: 40, colHeading: 56 },
+        "02": { main: "grad", optDark: true, colorDark: false, colorBox: false,
+                chipLabel: "accent", noticeKey: "white",
+                optEyebrow: 48, optEyebrowLH: 53, optHeading: 56,
+                colEyebrow: 48, colEyebrowLH: 53, colHeading: 56 },
+        "03": { main: "grid", optDark: true, colorDark: false, colorBox: true,
+                chipLabel: "#666666", noticeKey: "colorBgLight",
+                optEyebrow: 48, optEyebrowLH: 53, optHeading: 80,
+                colEyebrow: 48, colEyebrowLH: 53, colHeading: 72 },
+      };
+      /* 섹션 배경 헬퍼 */
+      function nvOptBg(th) {
+        const C = nvCfg();
+        return C.optDark ? th.colorBg : th.colorBgLight;
+      }
+      function nvColorBg(th) {
+        const C = nvCfg();
+        return C.colorDark ? th.colorBg : th.colorBgLight;
+      }
+      function nvOnDark(which) {
+        const C = nvCfg();
+        return which === "color" ? C.colorDark : C.optDark;
+      }
+      function nvChipLabel(th) {
+        const c = nvCfg().chipLabel;
+        return c === "accent" ? th.accent : c;
+      }
+      function nvNoticeBg(th) {
+        const k = nvCfg().noticeKey;
+        return k === "white" ? "#f4f4f4" : th[k] || "#eee";
+      }
+      function nvCfg() { return NV_TPL[state.tpl] || NV_TPL["01"]; }
+      /* 섹션 제목: 템플릿별(TemplateMaster) → 그룹 공통 → 폴백 */
+      function nvTitle(kind) {
+        const g = nvG();
+        const byTpl = kind === "option" ? g.optionTitleByTpl : g.colorTitleByTpl;
+        return (
+          (byTpl && byTpl[state.tpl]) ||
+          (kind === "option" ? state.series || g.seriesTitle : g.colorTitle) ||
+          (kind === "option" ? "" : `${g.label || ""} 컬러 안내`)
+        );
+      }
+      function nvIsOn() { return curFam() === "nuvola"; }
+      function nvG() { return G()[state.group] || {}; }
+
+      /* ── 높이 계산 (auto-layout 합산) ── */
+      function nvOptionListH() {
+        const O = NV.opt;
+        let n = state.rows.length, h = n * O.cardH;
+        if (state.notice) { h += O.noticeH; n++; }
+        if (state.sizeInfoOn && nvSizeInfoImg()) { h += O.sizeInfoH; n++; }
+        if (n > 1) h += (n - 1) * O.listGap;
+        return h;
+      }
+      function nvOptionH() {
+        const O = NV.opt, C = nvCfg();
+        const head = C.optEyebrowLH + O.headGap + C.optHeading; // 01 = 124
+        return O.padTop + head + O.headToList + nvOptionListH() + O.padBottom;
+      }
+      function nvCanvasH() { return NV.MAIN_H + nvOptionH() + nvColorMetrics().H; }
+
+      /* ── section-main : 01 사진형 / 02 그라데이션형 / 03 그리드형 ── */
+      const NVM = {
+        // 공통 타이틀 블록 위치
+        tx: 55, ty: 100, tw: 751,
+        // 02·03 공통 pill
+        pill: { h: 48, r: 24, padL: 20, padR: 20, gap: 16,
+                sellerSize: 28, xSize: 36, logoW: 114, logoH: 19 },
+        blockGap: 40, titleGap: 8, dateSize: 34,
+        t02: { size: 80, lineH: 80 },
+        t03: { size1: 60, size2: 80, lineH: 80 },
+        bar: { y: 1000, h: 80, copySize: 32 },
+        grid: { x: 65, y: 397, w: 740, h: 600, pad: 20, cw: 345, ch: 260, gx: 10, gy: 10 },
+      };
+      /* pill (셀러 × 로고) — 02·03 공용. 그린 배경 알약 */
+      function nvPill(ctx, x, y, th) {
+        const P = NVM.pill;
+        const seller = state.seller || "seller";
+        ctx.font = `400 ${P.sellerSize}px Pretendard`;
+        const sw = ctx.measureText(seller).width;
+        ctx.font = `400 ${P.xSize}px 'Playfair Display'`;
+        const xw = ctx.measureText("×").width;
+        const w = P.padL + sw + P.gap + xw + P.gap + P.logoW + P.padR;
+        ctx.fillStyle = th.pillBg || th.accent;
+        roundRect(ctx, x, y, w, P.h, P.h / 2);
+        ctx.fill();
+        ctx.textBaseline = "middle"; ctx.textAlign = "left"; ctx.fillStyle = "#fff";
+        let cx = x + P.padL, cy = y + P.h / 2;
+        ctx.font = `400 ${P.sellerSize}px Pretendard`;
+        ctx.fillText(seller, cx, cy); cx += sw + P.gap;
+        ctx.font = `400 ${P.xSize}px 'Playfair Display'`;
+        ctx.fillText("×", cx, cy); cx += xw + P.gap;
+        drawLogo(ctx, cx, cy, P.logoW, P.logoH);
+        ctx.textBaseline = "alphabetic";
+        return P.h;
+      }
+      function nvMain(ctx, W, th) {
+        const H = NV.MAIN_H, C = nvCfg();
+        if (C.main === "photo") return nvMain01(ctx, W, H, th);
+        if (C.main === "grad") return nvMain02(ctx, W, H, th);
+        return nvMain03(ctx, W, H, th);
+      }
+      /* 01 — 배경 사진 + 중앙 흰 타이틀 + 날짜 바 */
+      function nvMain01(ctx, W, H, th) {
+        const M = NV.main;
+        if (state.hero)
+          clipRect(ctx, 0, 0, W, H, () => cover(ctx, state.hero, 0, 0, W, H));
+        else { ctx.fillStyle = "#c9c9c9"; ctx.fillRect(0, 0, W, H); }
+        const og = ctx.createLinearGradient(0, 0, 0, H);
+        og.addColorStop(0, "rgba(0,0,0,.30)");
+        og.addColorStop(0.5, "rgba(0,0,0,.06)");
+        og.addColorStop(1, "rgba(0,0,0,.02)");
+        ctx.fillStyle = og; ctx.fillRect(0, 0, W, H);
+
+        const cx = M.tx + M.tw / 2;
+        ctx.textBaseline = "middle"; ctx.fillStyle = "#fff";
+        const seller = state.seller || "seller";
+        ctx.font = `400 ${M.sellerSize}px 'High Summit'`;
+        const sw = ctx.measureText(seller).width;
+        ctx.font = `400 ${M.xSize}px 'Playfair Display'`;
+        const xw = ctx.measureText("×").width;
+        const subW = sw + M.subGap + xw + M.subGap + M.logoW;
+        let sx = cx - subW / 2;
+        const scy = M.ty + M.subH / 2;
+        ctx.textAlign = "left";
+        ctx.font = `400 ${M.sellerSize}px 'High Summit'`;
+        ctx.fillText(seller, sx, scy); sx += sw + M.subGap;
+        ctx.font = `400 ${M.xSize}px 'Playfair Display'`;
+        ctx.fillText("×", sx, scy); sx += xw + M.subGap;
+        drawLogo(ctx, sx, scy, M.logoW, M.logoH);
+
+        const ty = M.ty + M.subH + M.gap;
+        ctx.textAlign = "center";
+        ctx.font = `400 ${M.titleSize}px 'Playfair Display'`;
+        [state.t1, state.t2].filter(Boolean).forEach((l, i) =>
+          trk(ctx, l, cx, ty + M.titleLineH / 2 + i * M.titleLineH, -1.6, "center"),
+        );
+        ctx.fillStyle = th.accent;
+        ctx.fillRect(0, M.barY, W, M.barH);
+        ctx.fillStyle = "#fff"; ctx.textAlign = "center";
+        ctx.font = `400 ${M.dateSize}px 'Playfair Display'`;
+        trk(ctx, range01(state.d1, state.d2), W / 2, M.barY + M.barH / 2, -0.8, "center");
+        ctx.textBaseline = "alphabetic";
+      }
+      /* 02 — 사진 + 그라데이션 타이틀 + 하단 카피 바 */
+      function nvMain02(ctx, W, H, th) {
+        const M = NVM;
+        // .fig: main-img 는 그라데이션 + 사진. 사진이 없으면 그라데이션만 보인다.
+        const a = (141.81 * Math.PI) / 180,
+          len = Math.abs(W * Math.cos(a)) + Math.abs(H * Math.sin(a));
+        const bg = ctx.createLinearGradient(
+          W / 2 - (Math.cos(a) * len) / 2, H / 2 - (Math.sin(a) * len) / 2,
+          W / 2 + (Math.cos(a) * len) / 2, H / 2 + (Math.sin(a) * len) / 2);
+        bg.addColorStop(0, th.colorBgLight || "#f0f3dd");
+        bg.addColorStop(1, th.mainBg || "#ffffff");
+        ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+        if (state.hero)
+          clipRect(ctx, 0, 0, W, H, () => cover(ctx, state.hero, 0, 0, W, H));
+        let y = M.ty;
+        y += nvPill(ctx, M.tx, y, th) + M.blockGap;
+        // 타이틀: 1줄(Regular) + gap8 + 나머지(Bold), 그라데이션
+        ctx.textAlign = "left"; ctx.textBaseline = "middle";
+        const g = ctx.createLinearGradient(M.tx, 0, M.tx + M.tw, 0);
+        g.addColorStop(0, th.titleColor || th.accent);
+        g.addColorStop(1, th.accent);
+        const L1 = String(state.t1 || "").split(/\r?\n/).filter(Boolean);
+        const L2 = String(state.t2 || "").split(/\r?\n/).filter(Boolean);
+        L1.forEach((l, i) => {
+          ctx.fillStyle = g; ctx.font = `400 ${M.t02.size}px Pretendard`;
+          trk(ctx, l, M.tx, y + M.t02.lineH / 2 + i * M.t02.lineH, -1.6, "left");
+        });
+        y += L1.length * M.t02.lineH + (L1.length ? M.titleGap : 0);
+        L2.forEach((l, i) => {
+          ctx.fillStyle = g; ctx.font = `700 ${M.t02.size}px Pretendard`;
+          trk(ctx, l, M.tx, y + M.t02.lineH / 2 + i * M.t02.lineH, -1.6, "left");
+        });
+        y += L2.length * M.t02.lineH + M.blockGap;
+        ctx.fillStyle = th.accent;
+        ctx.font = `400 ${M.dateSize}px Pretendard`;
+        trk(ctx, range02(state.d1, state.d2), M.tx, y + M.dateSize / 2, -0.68, "left");
+        // 하단 카피 바
+        ctx.fillStyle = th.accent;
+        ctx.fillRect(0, M.bar.y, W, M.bar.h);
+        ctx.fillStyle = "#fff"; ctx.textAlign = "center";
+        ctx.font = `400 ${M.bar.copySize}px Pretendard`;
+        const c1 = trkWidth(ctx, state.copy, -0.64);
+        ctx.font = `700 ${M.bar.copySize}px Pretendard`;
+        const c2 = trkWidth(ctx, state.copyBold, -0.64);
+        let bx = (W - (c1 + c2)) / 2, bcy = M.bar.y + M.bar.h / 2;
+        ctx.textAlign = "left";
+        ctx.font = `400 ${M.bar.copySize}px Pretendard`;
+        trk(ctx, state.copy, bx, bcy, -0.64, "left");
+        ctx.font = `700 ${M.bar.copySize}px Pretendard`;
+        trk(ctx, state.copyBold, bx + c1, bcy, -0.64, "left");
+        ctx.textBaseline = "alphabetic";
+      }
+      /* 03 — 밝은 배경 + 타이틀 + 제품 이미지 4컷 그리드 */
+      function nvMain03(ctx, W, H, th) {
+        const M = NVM, G = NVM.grid;
+        ctx.fillStyle = th.mainBg || "#f8fbe1";
+        ctx.fillRect(0, 0, W, H);
+        if (state.hero) clipRect(ctx, 0, 0, W, H, () => cover(ctx, state.hero, 0, 0, W, H));
+        let y = M.ty;
+        y += nvPill(ctx, M.tx, y, th) + M.blockGap;
+        ctx.textAlign = "left"; ctx.textBaseline = "middle";
+        ctx.fillStyle = th.titleColor || th.accent;
+        const L1 = String(state.t1 || "").split(/\r?\n/).filter(Boolean);
+        const L2 = String(state.t2 || "").split(/\r?\n/).filter(Boolean);
+        L1.forEach((l, i) => {
+          ctx.font = `400 ${M.t03.size1}px Pretendard`;
+          trk(ctx, l, M.tx, y + M.t03.lineH / 2 + i * M.t03.lineH, -1.2, "left");
+        });
+        y += L1.length * M.t03.lineH + (L1.length ? M.titleGap : 0);
+        L2.forEach((l, i) => {
+          ctx.font = `700 ${M.t03.size2}px Pretendard`;
+          trk(ctx, l, M.tx, y + M.t03.lineH / 2 + i * M.t03.lineH, -1.6, "left");
+        });
+        y += L2.length * M.t03.lineH + M.blockGap;
+        ctx.fillStyle = th.pillBg || th.accent;
+        ctx.font = `400 ${M.dateSize}px Pretendard`;
+        trk(ctx, range01(state.d1, state.d2), M.tx, y + M.dateSize / 2, -0.68, "left");
+        // 이미지 4컷 그리드
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(G.x, G.y, G.w, G.h);
+        const imgs = nvGridImgs();
+        const pos = [
+          [G.x + G.pad, G.y + G.pad],
+          [G.x + G.pad + G.cw + G.gx, G.y + G.pad],
+          [G.x + G.pad, G.y + G.pad + G.ch + G.gy],
+          [G.x + G.pad + G.cw + G.gx, G.y + G.pad + G.ch + G.gy],
+        ];
+        pos.forEach(([px, py], i) => {
+          ctx.fillStyle = "#f4f2ee";
+          ctx.fillRect(px, py, G.cw, G.ch);
+          const im = imgs[i];
+          if (im) clipRect(ctx, px, py, G.cw, G.ch, () => cover(ctx, im, px, py, G.cw, G.ch));
+        });
+        ctx.textBaseline = "alphabetic";
+      }
+
+      /* ── 옵션 카드 (740×360) ── */
+      function nvCard(ctx, r, x, top, th) {
+        const O = NV.opt;
+        ctx.fillStyle = "#fff"; ctx.fillRect(x, top, O.bodyW, O.cardH);
+        ctx.fillStyle = "#f8f8f8";
+        ctx.fillRect(x + O.imgX, top + O.imgY, O.imgW, O.imgH);
+        if (r.thumb)
+          drawThumbCover(ctx, r.thumb, x + O.imgX, top + O.imgY, O.imgW, O.imgH);
+
+        const ix = x + O.optX;
+        const badgeOn = r.badge !== "none";
+        // 내용 측정 → 높이 계산
+        _mc.font = `600 ${O.nameSize}px Pretendard`;
+        const lns = [];
+        for (const para of String(rowName(r)).split(/\r?\n/)) {
+          const t = para.trim();
+          if (t) lns.push(...wrapText(_mc, t, O.txtOptW, -0.64));
+        }
+        const attrs = cardAttrs(r);
+        const rowHs = attrs.map((a) => {
+          _mc.font = `400 ${O.vlSize}px Pretendard`;
+          const vl = wrapText(_mc, String(a.value || ""), O.vlValW, -0.36);
+          return Math.max(O.vlRowH, vl.length * 24);
+        });
+        const vlH = rowHs.length
+          ? rowHs.reduce((a, b) => a + b, 0) + (rowHs.length - 1) * O.vlRowGap
+          : 0;
+        const txtOptH = lns.length * O.nameLineH + (vlH ? O.txtOptGap + vlH : 0);
+        const boxTopH = Math.max(txtOptH, O.discD);
+        const nameWrapH = (badgeOn ? O.badgeH + O.nameGap : 0) + boxTopH;
+        const infoH = nameWrapH + O.optGap + O.priceH;
+        const iy = top + (O.cardH - infoH) / 2;
+
+        ctx.textAlign = "left"; ctx.textBaseline = "middle";
+        let ny = iy;
+        if (badgeOn) {
+          const bt = r.badge === "renewal" ? "RENEWAL!" : "NEW!";
+          ctx.font = `600 ${O.badgeSize}px Pretendard`;
+          const bw = Math.max(O.badgeW, trkWidth(ctx, bt, -0.4) + 36);
+          ctx.strokeStyle = th.badgeBorder || th.accent;
+          ctx.lineWidth = 2;
+          roundRect(ctx, ix, ny, bw, O.badgeH, O.badgeH / 2);
+          ctx.stroke();
+          ctx.fillStyle = th.accent;
+          trk(ctx, bt, ix + bw / 2, ny + O.badgeH / 2, -0.4, "center");
+          ny += O.badgeH + O.nameGap;
+        }
+        // box-top: [txt_option 250] gap12 [discount 80] — 둘 다 세로 중앙
+        const btY = ny;
+        const tY = btY + (boxTopH - txtOptH) / 2;
+        ctx.fillStyle = "#333333";
+        ctx.font = `600 ${O.nameSize}px Pretendard`;
+        ctx.textAlign = "left";
+        lns.forEach((l, i) =>
+          trk(ctx, l, ix, tY + O.nameLineH / 2 + i * O.nameLineH, -0.64, "left"),
+        );
+        let vy = tY + lns.length * O.nameLineH + O.txtOptGap;
+        attrs.forEach((a, i) => {
+          // .fig: 라벨 18px Bold #666666 / 값 18px Regular #888888
+          ctx.font = `700 ${O.vlSize}px Pretendard`;
+          ctx.fillStyle = "#666666";
+          trk(ctx, a.label || "", ix, vy + 12, -0.36, "left");
+          ctx.fillStyle = "#888888";
+          ctx.font = `400 ${O.vlSize}px Pretendard`; // 값은 Regular
+          _mc.font = `400 ${O.vlSize}px Pretendard`;
+          const vl = wrapText(_mc, String(a.value || ""), O.vlValW, -0.36);
+          vl.forEach((t, k) =>
+            trk(ctx, t, ix + O.vlLabelW + O.vlColGap, vy + 12 + k * 24, -0.36, "left"),
+          );
+          vy += rowHs[i] + O.vlRowGap;
+        });
+        // 할인율 원
+        const d = disc(r.normal, r.sale);
+        // .fig: discount_rate @(262,0) → box-top 상단 정렬 (제품명 첫 줄과 맞춤)
+        const dx = ix + O.txtOptW + 12, dy = btY;
+        ctx.fillStyle = th.accent;
+        ctx.beginPath();
+        ctx.arc(dx + O.discD / 2, dy + O.discD / 2, O.discD / 2, 0, 7);
+        ctx.fill();
+        ctx.fillStyle = "#fff";
+        ctx.font = `700 ${O.discSize}px GmarketSans, Pretendard`;
+        ctx.textAlign = "center";
+        trk(ctx, d != null ? d + "%" : "—", dx + O.discD / 2, dy + O.discD / 2, -0.5, "center");
+        // 가격
+        const G0 = nvG();
+        const py = iy + nameWrapH + O.optGap;
+        const pcy = py + O.priceRowH / 2;
+        ctx.textAlign = "left";
+        ctx.fillStyle = "#666666";
+        // .fig: 정상가 라벨 SemiBold / 값 Regular + 취소선
+        ctx.font = `600 ${O.normalSize}px Pretendard`;
+        trk(ctx, G0.normalLabel || "정상가", ix, pcy, -0.4, "left");
+        ctx.font = `400 ${O.normalSize}px Pretendard`;
+        const npTxt = won(r.normal);
+        trk(ctx, npTxt, ix + O.optW, pcy, -0.4, "right");
+        const npW = trkWidth(ctx, npTxt, -0.4);
+        ctx.strokeStyle = "#666666";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(ix + O.optW - npW, pcy);
+        ctx.lineTo(ix + O.optW, pcy);
+        ctx.stroke();
+        const py2 = py + O.priceRowH + O.priceGap;
+        ctx.fillStyle = "#333333";
+        ctx.font = `600 ${O.saleSize}px Pretendard`;
+        trk(ctx, G0.saleLabel || "혜택가", ix, py2 + O.priceRowH / 2, -0.56, "left");
+        ctx.font = `700 ${O.saleSize}px Pretendard`;
+        trk(ctx, won(r.sale), ix + O.optW, py2 + O.priceRowH / 2, -0.56, "right");
+        ctx.textBaseline = "alphabetic";
+      }
+
+      /* ── section-option ── */
+      function nvOption(ctx, W, oy, th) {
+        const O = NV.opt, g = nvG();
+        // 배경: 01=연한 톤 / 02·03=진한 톤 (.fig 실측)
+        ctx.fillStyle = nvOptBg(th) || "#f0f3dd";
+        ctx.fillRect(0, oy, W, nvOptionH());
+        const cx = W / 2;
+        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        const C = nvCfg();
+        const optInk = nvOnDark("option") ? "#ffffff" : th.accent;
+        ctx.fillStyle = optInk;
+        ctx.font = `400 ${C.optEyebrow}px 'Playfair Display'`;
+        ctx.fillText("option info.", cx, oy + O.padTop + C.optEyebrowLH / 2);
+        ctx.font = `600 ${C.optHeading}px Pretendard`;
+        ctx.fillText(
+          nvTitle("option"),
+          cx,
+          oy + O.padTop + C.optEyebrowLH + O.headGap + C.optHeading / 2,
+        );
+        ctx.textBaseline = "alphabetic";
+        let y = oy + O.padTop + C.optEyebrowLH + O.headGap + C.optHeading + O.headToList;
+        const x = O.bodyX;
+        state.rows.forEach((r) => { nvCard(ctx, r, x, y, th); y += O.cardH + O.listGap; });
+        if (state.notice) {
+          ctx.fillStyle = nvNoticeBg(th);
+          ctx.fillRect(x, y, O.bodyW, O.noticeH);
+          ctx.fillStyle = th.accent;
+          ctx.font = `400 ${O.noticeSize}px Pretendard`;
+          ctx.textAlign = "center"; ctx.textBaseline = "middle";
+          trk(ctx, state.notice, x + O.bodyW / 2, y + O.noticeH / 2, -0.48, "center");
+          ctx.textBaseline = "alphabetic";
+          y += O.noticeH + O.listGap;
+        }
+        const sImg = state.sizeInfoOn ? nvSizeInfoImg() : null;
+        if (sImg) {
+          clipRect(ctx, x, y, O.bodyW, O.sizeInfoH, () =>
+            cover(ctx, sImg, x, y, O.bodyW, O.sizeInfoH),
+          );
+          y += O.sizeInfoH + O.listGap;
+        }
+      }
+
+      /* ── section-color 치수 계산 (줄 수·색 개수에 따라 가변) ── */
+      function nvColorMetrics() {
+        const K = NV.color;
+        const lines = colorLines();
+        const rows = lines
+          .map((l) => ({ label: l.label, list: pickedColors(l.key) }))
+          .filter((r) => r.list.length);
+        const L = Math.max(1, rows.length);
+        const n = Math.max(1, ...rows.map((r) => r.list.length));
+        const chipW = Math.min(K.chipMaxW, (K.optW - K.chipGap * (n - 1)) / n);
+        const imgH = chipW / COLOR_RATIO;
+        const chipH = imgH + K.chipLabelGap + K.chipLabelH;
+        const C = nvCfg();
+        const headH = C.colEyebrowLH + K.txtGap + C.colHeading; // 01 = 124
+        const nameH = L * K.listLineH + (L - 1) * K.listGap;
+        const txtEnd = K.txtY + headH + K.txtGap + nameH;
+        const optY = txtEnd + 60; // .fig: txt-wrap 끝 → color_option 간격 60
+        const optH = L * chipH + (L - 1) * K.rowGap;
+        const H = Math.max(K.H, optY + optH + 98); // .fig 하단 여백 98
+        return { rows, L, chipW, imgH, chipH, headH, nameH, txtEnd, optY, optH, H };
+      }
+
+      /* ── section-color (선택한 색만 출력) ── */
+      function nvColor(ctx, W, top, th) {
+        const K = NV.color, g = nvG(), M = nvColorMetrics();
+        const onDark = nvOnDark("color");
+        const ink = onDark ? "#ffffff" : th.accent;
+        ctx.fillStyle = nvColorBg(th) || "#ddd";
+        ctx.fillRect(0, top, W, M.H);
+        // 03: 칩을 흰 컨테이너로 감싼다 (.fig color_option #ffffff)
+        if (nvCfg().colorBox) {
+          const bw = 800, bx = (W - bw) / 2;
+          const bh = M.optH + 100;
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(bx, top + M.optY - 40, bw, bh);
+        }
+        const cx = W / 2;
+        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillStyle = ink;
+        const C = nvCfg();
+        ctx.fillStyle = ink;
+        ctx.font = `400 ${C.colEyebrow}px 'Playfair Display'`;
+        ctx.fillText("color info.", cx, top + K.txtY + C.colEyebrowLH / 2);
+        ctx.font = `600 ${C.colHeading}px Pretendard`;
+        ctx.fillText(
+          nvTitle("color"),
+          cx,
+          top + K.txtY + C.colEyebrowLH + K.txtGap + C.colHeading / 2,
+        );
+        // 줄별 색상명
+        let ly = top + K.txtY + M.headH + K.txtGap;
+        for (const r of M.rows) {
+          const names = r.list.map((c) => c.label).join(", ");
+          ctx.font = `700 ${K.listSize}px Pretendard`;
+          const lw = r.label ? ctx.measureText(r.label).width : 0;
+          ctx.font = `400 ${K.listSize}px Pretendard`;
+          const nw = ctx.measureText(names).width;
+          const gap = r.label ? K.listLabelGap : 0;
+          let lx = cx - (lw + gap + nw) / 2;
+          ctx.textAlign = "left"; ctx.fillStyle = ink;
+          if (r.label) {
+            ctx.font = `700 ${K.listSize}px Pretendard`;
+            ctx.fillText(r.label, lx, ly + K.listLineH / 2);
+          }
+          ctx.font = `400 ${K.listSize}px Pretendard`;
+          ctx.fillText(names, lx + lw + gap, ly + K.listLineH / 2);
+          ly += K.listLineH + K.listGap;
+        }
+        // 칩 그리드 — 모든 줄의 칩 폭을 같이 맞춘다
+        let ry = top + M.optY;
+        for (const r of M.rows) {
+          const rowW = r.list.length * M.chipW + (r.list.length - 1) * K.chipGap;
+          let rx = cx - rowW / 2;
+          for (const c of r.list) {
+            if (c.img) drawRatioFit(ctx, c.img, rx, ry, M.chipW, M.imgH, COLOR_RATIO);
+            ctx.fillStyle = nvChipLabel(th);
+            ctx.textAlign = "center"; ctx.textBaseline = "middle";
+            ctx.font = `400 ${K.chipLabelSize}px Pretendard`;
+            trk(ctx, c.label, rx + M.chipW / 2,
+                ry + M.imgH + K.chipLabelGap + K.chipLabelH / 2, -0.48, "center");
+            rx += M.chipW + K.chipGap;
+          }
+          ry += M.chipH + K.rowGap;
+        }
+        ctx.textBaseline = "alphabetic";
+      }
+
+      /* ══════ 누볼라 썸네일(1080²) · 인스타 피드(1080×1350) ══════
+         .fig auto-layout 실측. 피드는 4장: 히어로 / 옵션 / 사이즈안내 / 컬러 */
+      const NVF = {
+        // 공통 타이틀 블록 (썸네일·피드 히어로 동일)
+        title: { x: 77, y: 110, w: 926, gap: 10,
+                 subH: 80, subGap: 20, sellerSize: 56, xSize: 48, logoW: 140, logoH: 23,
+                 size: 96, lineH: 124 },
+        thumbH: 1080,
+        feedH: 1350,
+        bar: { y: 1250, h: 100, dateSize: 44 },
+        // 옵션 슬라이드
+        opt: { headX: 60, headY: 100, headW: 960,
+               eyebrow: 40, eyebrowLH: 53, headGap: 20, heading: 72, headingLH: 76,
+               listX: 60, listY: 309, listW: 960, cardH: 468, listGap: 20,
+               imgX: 10, imgY: 10, imgW: 416, imgH: 448,
+               optX: 474, optW: 448, optGap: 47,
+               badgeH: 49, badgeSize: 28, nameGap: 20, boxTopGap: 16,
+               txtW: 324, txtGap: 24, nameSize: 40, nameLineH: 52,
+               vlLabelW: 60, vlColGap: 8, vlValW: 256, vlSize: 24, vlRowH: 32, vlRowGap: 8,
+               discD: 104, discSize: 36,
+               priceRowH: 47, priceGap: 12, normalSize: 28, saleSize: 40 },
+        // 사이즈 안내 슬라이드
+        // boxX: .fig 는 40 이라 20px 틀어져 있어 가운데(60)로 보정
+        size: { headY: 90, boxX: 60, boxY: 309, boxW: 960, boxH: 956,
+                imgY: 20, imgH: 717, ntW: 880, ntH: 115, ntY: 801, ntSize: 32 },
+        // 02·03 전용
+        t02: { titleX: 88, titleY: 130, titleW: 900, blockGap: 48,
+               pillH: 60, pillPadL: 24, pillGap: 20, sellerSize: 32, xSize: 44,
+               logoW: 136, logoH: 23,
+               size: 96, lineH: 104, titleGap: 8, dateSize: 40,
+               barY: 1250, barH: 100, copySize: 44 },
+        t03: { titleX: 60, titleY: 140, titleW: 960, blockGap: 48,
+               pillH: 48, pillPadL: 20, pillGap: 16, sellerSize: 28, xSize: 36,
+               logoW: 114, logoH: 19,
+               size1: 60, size2: 120, lineH: 92, dateSize: 48,
+               grid: { x: 60, y: 450, w: 960, h: 764, pad: 20, cw: 455, ch: 357, gx: 10, gy: 10 } },
+        // 썸네일(1080²) 전용 좌표
+        th02: { titleX: 59, titleY: 87, titleW: 900, blockGap: 48,
+                pillH: 60, pillPadL: 24, pillGap: 20, sellerSize: 32, xSize: 44,
+                logoW: 136, logoH: 23,
+                size: 96, lineH: 104, titleGap: 8, dateSize: 40,
+                barY: 980, barH: 100, copySize: 44 },
+        th03: { titleX: 60, titleY: 120, titleW: 960, blockGap: 48,
+                pillH: 48, pillPadL: 20, pillGap: 16, sellerSize: 28, xSize: 36,
+                logoW: 114, logoH: 19,
+                size1: 60, size2: 120, lineH: 92, dateSize: 48,
+                grid: { x: 60, y: 430, w: 960, h: 570, pad: 20, cw: 455, ch: 260, gx: 10, gy: 10 } },
+        // 02·03 옵션 슬라이드: 흰 컨테이너로 카드 감쌈
+        optBox: { x: 60, y: 330, w: 960, pad: 20, cardW: 920, cardH: 460, gap: 20 },
+        // 컬러 슬라이드
+        color: { txtX: 40, txtY: 115, txtW: 1000, txtGap: 36,
+                 eyebrow: 40, eyebrowLH: 53, headGap: 20, heading: 72, headingLH: 76,
+                 listLineH: 48, listGap: 4, listSize: 36, listLabelGap: 12,
+                 optY: 431, optPadTop: 75, optW: 1000, rowW: 938, rowGap: 48,
+                 chipGap: 10, chipMaxW: 148, chipLabelH: 48, chipLabelSize: 30 },
+      };
+
+      /* 피드·썸네일용 pill (02·03) */
+      function nvfPill(ctx, x, y, th, C) {
+        const seller = state.seller || "seller";
+        ctx.font = `400 ${C.sellerSize}px Pretendard`;
+        const sw = ctx.measureText(seller).width;
+        ctx.font = `400 ${C.xSize}px 'Playfair Display'`;
+        const xw = ctx.measureText("×").width;
+        const w = C.pillPadL * 2 + sw + C.pillGap + xw + C.pillGap + C.logoW;
+        ctx.fillStyle = th.pillBg || th.accent;
+        roundRect(ctx, x, y, w, C.pillH, C.pillH / 2);
+        ctx.fill();
+        ctx.textBaseline = "middle"; ctx.textAlign = "left"; ctx.fillStyle = "#fff";
+        let cx = x + C.pillPadL, cy = y + C.pillH / 2;
+        ctx.font = `400 ${C.sellerSize}px Pretendard`;
+        ctx.fillText(seller, cx, cy); cx += sw + C.pillGap;
+        ctx.font = `400 ${C.xSize}px 'Playfair Display'`;
+        ctx.fillText("×", cx, cy); cx += xw + C.pillGap;
+        drawLogo(ctx, cx, cy, C.logoW, C.logoH);
+        ctx.textBaseline = "alphabetic";
+        return C.pillH;
+      }
+      /* 4컷 그리드 (03 썸네일·피드) */
+      function nvfGrid(ctx, G) {
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(G.x, G.y, G.w, G.h);
+        const imgs = nvGridImgs();
+        const pos = [
+          [G.x + G.pad, G.y + G.pad],
+          [G.x + G.pad + G.cw + G.gx, G.y + G.pad],
+          [G.x + G.pad, G.y + G.pad + G.ch + G.gy],
+          [G.x + G.pad + G.cw + G.gx, G.y + G.pad + G.ch + G.gy],
+        ];
+        pos.forEach(([px, py], i) => {
+          ctx.fillStyle = "#f4f2ee";
+          ctx.fillRect(px, py, G.cw, G.ch);
+          const im = imgs[i];
+          if (im) clipRect(ctx, px, py, G.cw, G.ch, () => cover(ctx, im, px, py, G.cw, G.ch));
+        });
+      }
+      /* 히어로 + 타이틀 — 템플릿별 (01 사진 / 02 그라데이션 / 03 그리드) */
+      function nvfHero(ctx, W, H, th, withBar, mode) {
+        const kind = nvCfg().main;
+        const isThumb = mode === "thumb";
+        if (kind === "grad")
+          return nvfHero02(ctx, W, H, th, withBar, isThumb ? NVF.th02 : NVF.t02);
+        if (kind === "grid")
+          return nvfHero03(ctx, W, H, th, isThumb ? NVF.th03 : NVF.t03);
+        return nvfHero01(ctx, W, H, th, withBar);
+      }
+      function nvfHero01(ctx, W, H, th, withBar) {
+        const T = NVF.title;
+        if (state.hero)
+          clipRect(ctx, 0, 0, W, H, () => cover(ctx, state.hero, 0, 0, W, H));
+        else { ctx.fillStyle = "#c9c9c9"; ctx.fillRect(0, 0, W, H); }
+        const og = ctx.createLinearGradient(0, 0, 0, H);
+        og.addColorStop(0, "rgba(0,0,0,.30)");
+        og.addColorStop(0.5, "rgba(0,0,0,.06)");
+        og.addColorStop(1, "rgba(0,0,0,.02)");
+        ctx.fillStyle = og; ctx.fillRect(0, 0, W, H);
+        const cx = T.x + T.w / 2;
+        ctx.textBaseline = "middle"; ctx.fillStyle = "#fff";
+        const seller = state.seller || "seller";
+        ctx.font = `400 ${T.sellerSize}px 'High Summit'`;
+        const sw = ctx.measureText(seller).width;
+        ctx.font = `400 ${T.xSize}px 'Playfair Display'`;
+        const xw = ctx.measureText("×").width;
+        const subW = sw + T.subGap + xw + T.subGap + T.logoW;
+        let sx = cx - subW / 2;
+        const scy = T.y + T.subH / 2;
+        ctx.textAlign = "left";
+        ctx.font = `400 ${T.sellerSize}px 'High Summit'`;
+        ctx.fillText(seller, sx, scy); sx += sw + T.subGap;
+        ctx.font = `400 ${T.xSize}px 'Playfair Display'`;
+        ctx.fillText("×", sx, scy); sx += xw + T.subGap;
+        drawLogo(ctx, sx, scy, T.logoW, T.logoH);
+        const ty = T.y + T.subH + T.gap;
+        ctx.textAlign = "center";
+        ctx.font = `400 ${T.size}px 'Playfair Display'`;
+        [state.t1, state.t2].filter(Boolean).forEach((l, i) =>
+          trk(ctx, l, cx, ty + T.lineH / 2 + i * T.lineH, -1.9, "center"),
+        );
+        if (withBar) {
+          const B = NVF.bar;
+          ctx.fillStyle = th.accent;
+          ctx.fillRect(0, B.y, W, B.h);
+          ctx.fillStyle = "#fff"; ctx.textAlign = "center";
+          ctx.font = `400 ${B.dateSize}px 'Playfair Display'`;
+          trk(ctx, range01(state.d1, state.d2), W / 2, B.y + B.h / 2, -0.8, "center");
+        }
+        ctx.textBaseline = "alphabetic";
+      }
+      /* 02 — 그라데이션 배경 + 사진 + 알약 + 그라데이션 타이틀 + 카피 바 */
+      function nvfHero02(ctx, W, H, th, withBar, CFG) {
+        const C = CFG || NVF.t02;
+        const a = (141.81 * Math.PI) / 180,
+          len = Math.abs(W * Math.cos(a)) + Math.abs(H * Math.sin(a));
+        const g = ctx.createLinearGradient(
+          W / 2 - (Math.cos(a) * len) / 2, H / 2 - (Math.sin(a) * len) / 2,
+          W / 2 + (Math.cos(a) * len) / 2, H / 2 + (Math.sin(a) * len) / 2);
+        g.addColorStop(0, th.colorBgLight || "#f0f3dd");
+        g.addColorStop(1, th.mainBg || "#ffffff");
+        ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+        if (state.hero) clipRect(ctx, 0, 0, W, H, () => cover(ctx, state.hero, 0, 0, W, H));
+        let y = C.titleY;
+        y += nvfPill(ctx, C.titleX, y, th, C) + C.blockGap;
+        ctx.textAlign = "left"; ctx.textBaseline = "middle";
+        const tg = ctx.createLinearGradient(C.titleX, 0, C.titleX + C.titleW, 0);
+        tg.addColorStop(0, th.titleColor || th.accent);
+        tg.addColorStop(1, th.accent);
+        const L1 = String(state.t1 || "").split(/\r?\n/).filter(Boolean);
+        const L2 = String(state.t2 || "").split(/\r?\n/).filter(Boolean);
+        L1.forEach((l, i) => {
+          ctx.fillStyle = tg; ctx.font = `400 ${C.size}px Pretendard`;
+          trk(ctx, l, C.titleX, y + C.lineH / 2 + i * C.lineH, -1.9, "left");
+        });
+        y += L1.length * C.lineH + (L1.length ? C.titleGap : 0);
+        L2.forEach((l, i) => {
+          ctx.fillStyle = tg; ctx.font = `700 ${C.size}px Pretendard`;
+          trk(ctx, l, C.titleX, y + C.lineH / 2 + i * C.lineH, -1.9, "left");
+        });
+        y += L2.length * C.lineH + C.blockGap;
+        ctx.fillStyle = th.accent;
+        ctx.font = `400 ${C.dateSize}px Pretendard`;
+        trk(ctx, range02(state.d1, state.d2), C.titleX, y + C.dateSize / 2, -0.8, "left");
+        if (withBar) {
+          ctx.fillStyle = th.accent;
+          ctx.fillRect(0, C.barY, W, C.barH);
+          ctx.fillStyle = "#fff";
+          ctx.textBaseline = "middle";
+          ctx.font = `400 ${C.copySize}px Pretendard`;
+          const c1 = trkWidth(ctx, state.copy, -0.88);
+          ctx.font = `700 ${C.copySize}px Pretendard`;
+          const c2 = trkWidth(ctx, state.copyBold, -0.88);
+          let bx = (W - (c1 + c2)) / 2, bcy = C.barY + C.barH / 2;
+          ctx.textAlign = "left";
+          ctx.font = `400 ${C.copySize}px Pretendard`;
+          trk(ctx, state.copy, bx, bcy, -0.88, "left");
+          ctx.font = `700 ${C.copySize}px Pretendard`;
+          trk(ctx, state.copyBold, bx + c1, bcy, -0.88, "left");
+        }
+        ctx.textBaseline = "alphabetic";
+      }
+      /* 03 — 사진 배경 + 알약 + 큰 타이틀 + 4컷 그리드 */
+      function nvfHero03(ctx, W, H, th, CFG) {
+        const C = CFG || NVF.t03;
+        ctx.fillStyle = th.mainBg || "#f8fbe1";
+        ctx.fillRect(0, 0, W, H);
+        if (state.hero) clipRect(ctx, 0, 0, W, H, () => cover(ctx, state.hero, 0, 0, W, H));
+        let y = C.titleY;
+        y += nvfPill(ctx, C.titleX, y, th, C) + C.blockGap;
+        ctx.textAlign = "left"; ctx.textBaseline = "middle";
+        ctx.fillStyle = th.titleColor || th.accent;
+        const L1 = String(state.t1 || "").split(/\r?\n/).filter(Boolean);
+        const L2 = String(state.t2 || "").split(/\r?\n/).filter(Boolean);
+        L1.forEach((l, i) => {
+          ctx.font = `400 ${C.size1}px Pretendard`;
+          trk(ctx, l, C.titleX, y + C.lineH / 2 + i * C.lineH, -1.2, "left");
+        });
+        y += L1.length * C.lineH;
+        L2.forEach((l, i) => {
+          ctx.font = `700 ${C.size2}px Pretendard`;
+          trk(ctx, l, C.titleX, y + C.lineH / 2 + i * C.lineH, -2.4, "left");
+        });
+        y += L2.length * C.lineH + C.blockGap;
+        ctx.fillStyle = th.pillBg || th.accent;
+        ctx.font = `400 ${C.dateSize}px Pretendard`;
+        trk(ctx, range01(state.d1, state.d2), C.titleX, y + C.dateSize / 2, -0.9, "left");
+        nvfGrid(ctx, C.grid);
+        ctx.textBaseline = "alphabetic";
+      }
+
+      /* 섹션 헤딩 (option info. / color info.) */
+      function nvfHead(ctx, W, y, kind, th, onDark) {
+        const O = NVF.opt;
+        if (onDark === undefined) onDark = nvOnDark(kind);
+        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillStyle = onDark ? "#ffffff" : th.accent;
+        ctx.font = `400 ${O.eyebrow}px 'Playfair Display'`;
+        ctx.fillText(kind === "color" ? "color info." : "option info.", W / 2, y + O.eyebrowLH / 2);
+        ctx.font = `600 ${O.heading}px Pretendard`;
+        ctx.fillText(nvTitle(kind), W / 2, y + O.eyebrowLH + O.headGap + O.headingLH / 2);
+        ctx.textBaseline = "alphabetic";
+      }
+
+      /* 피드 옵션 카드 (960×468) */
+      function nvfCard(ctx, r, x, top, th, CW, CH) {
+        const O = NVF.opt;
+        CW = CW || O.listW; CH = CH || O.cardH;
+        ctx.fillStyle = "#fff"; ctx.fillRect(x, top, CW, CH);
+        const imgH2 = CH - O.imgY * 2;
+        ctx.fillStyle = "#f8f8f8";
+        ctx.fillRect(x + O.imgX, top + O.imgY, O.imgW, imgH2);
+        if (r.thumb) drawThumbCover(ctx, r.thumb, x + O.imgX, top + O.imgY, O.imgW, imgH2);
+
+        const ix = x + O.optX, IW = CW - O.optX - 38;
+        const badgeOn = r.badge !== "none";
+        // 내용 측정
+        _mc.font = `600 ${O.nameSize}px Pretendard`;
+        const lns = [];
+        for (const para of String(rowName(r)).split(/\r?\n/)) {
+          const t = para.trim();
+          if (t) lns.push(...wrapText(_mc, t, O.txtW, -0.8));
+        }
+        const attrs = cardAttrs(r);
+        const rowHs = attrs.map((a) => {
+          _mc.font = `400 ${O.vlSize}px Pretendard`;
+          const vl = wrapText(_mc, String(a.value || ""), O.vlValW, -0.48);
+          return Math.max(O.vlRowH, vl.length * O.vlRowH);
+        });
+        const vlH = rowHs.length
+          ? rowHs.reduce((a, b) => a + b, 0) + (rowHs.length - 1) * O.vlRowGap
+          : 0;
+        const txtH = lns.length * O.nameLineH + (vlH ? O.txtGap + vlH : 0);
+        const boxTopH = Math.max(txtH, O.discD);
+        const nameWrapH = (badgeOn ? O.badgeH + O.nameGap : 0) + boxTopH;
+        const priceH = O.priceRowH * 2 + O.priceGap;
+        const infoH = nameWrapH + O.optGap + priceH;
+        const iy = top + Math.max(8, (CH - infoH) / 2);
+
+        ctx.textAlign = "left"; ctx.textBaseline = "middle";
+        let ny = iy;
+        if (badgeOn) {
+          const bt = r.badge === "renewal" ? "RENEWAL!" : "NEW!";
+          ctx.font = `600 ${O.badgeSize}px Pretendard`;
+          const bw = Math.max(188, trkWidth(ctx, bt, -0.4) + 32);
+          ctx.strokeStyle = th.badgeBorder || th.accent;
+          ctx.lineWidth = 2;
+          roundRect(ctx, ix, ny, bw, O.badgeH, O.badgeH / 2);
+          ctx.stroke();
+          ctx.fillStyle = th.accent;
+          trk(ctx, bt, ix + bw / 2, ny + O.badgeH / 2, -0.4, "center");
+          ny += O.badgeH + O.nameGap;
+        }
+        // box-top: 좌 제품명블록 ┄ 우 할인원
+        const btY = ny;
+        const tY = btY + (boxTopH - txtH) / 2;
+        ctx.fillStyle = "#333333";
+        ctx.font = `600 ${O.nameSize}px Pretendard`;
+        lns.forEach((l, i) =>
+          trk(ctx, l, ix, tY + O.nameLineH / 2 + i * O.nameLineH, -0.8, "left"),
+        );
+        let vy = tY + lns.length * O.nameLineH + O.txtGap;
+        attrs.forEach((a, i) => {
+          ctx.font = `700 ${O.vlSize}px Pretendard`;
+          ctx.fillStyle = "#666666";
+          trk(ctx, a.label || "", ix, vy + O.vlRowH / 2, -0.48, "left");
+          ctx.fillStyle = "#888888";
+          ctx.font = `400 ${O.vlSize}px Pretendard`;
+          _mc.font = `400 ${O.vlSize}px Pretendard`;
+          const vl = wrapText(_mc, String(a.value || ""), O.vlValW, -0.48);
+          vl.forEach((t, k) =>
+            trk(ctx, t, ix + O.vlLabelW + O.vlColGap, vy + O.vlRowH / 2 + k * O.vlRowH, -0.48, "left"),
+          );
+          vy += rowHs[i] + O.vlRowGap;
+        });
+        // 할인원
+        const d = disc(r.normal, r.sale);
+        // .fig: discount_rate 상단 정렬
+        const dcx = ix + IW - O.discD / 2, dcy = btY + O.discD / 2;
+        ctx.fillStyle = th.accent;
+        ctx.beginPath(); ctx.arc(dcx, dcy, O.discD / 2, 0, 7); ctx.fill();
+        ctx.fillStyle = "#fff";
+        ctx.font = `700 ${O.discSize}px GmarketSans, Pretendard`;
+        ctx.textAlign = "center";
+        trk(ctx, d != null ? d + "%" : "—", dcx, dcy, -0.5, "center");
+        // 가격
+        const G0 = nvG();
+        const py = iy + nameWrapH + O.optGap;
+        const pcy = py + O.priceRowH / 2;
+        ctx.textAlign = "left"; ctx.fillStyle = "#666666";
+        ctx.font = `600 ${O.normalSize}px Pretendard`;
+        trk(ctx, G0.normalLabel || "정상가", ix, pcy, -0.56, "left");
+        ctx.font = `400 ${O.normalSize}px Pretendard`;
+        const npT = won(r.normal);
+        trk(ctx, npT, ix + IW, pcy, -0.56, "right");
+        const npW = trkWidth(ctx, npT, -0.56);
+        ctx.strokeStyle = "#666666"; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(ix + IW - npW, pcy); ctx.lineTo(ix + IW, pcy); ctx.stroke();
+        const pcy2 = py + O.priceRowH + O.priceGap + O.priceRowH / 2;
+        ctx.fillStyle = "#333333";
+        ctx.font = `600 ${O.saleSize}px Pretendard`;
+        trk(ctx, G0.saleLabel || "혜택가", ix, pcy2, -0.8, "left");
+        ctx.font = `700 ${O.saleSize}px Pretendard`;
+        trk(ctx, won(r.sale), ix + IW, pcy2, -0.8, "right");
+        ctx.textBaseline = "alphabetic";
+      }
+
+      /* 피드 컬러 슬라이드 */
+      function nvfColor(ctx, W, H, th) {
+        const K = NVF.color;
+        const onDark = nvOnDark("color");
+        const ink = onDark ? "#ffffff" : th.accent;
+        ctx.fillStyle = nvColorBg(th) || "#b9ca7d";
+        ctx.fillRect(0, 0, W, H);
+        nvfHead(ctx, W, K.txtY, "color", th, onDark);
+        // 줄별 색상명
+        const rows = colorLines()
+          .map((l) => ({ label: l.label, list: pickedColors(l.key) }))
+          .filter((r) => r.list.length);
+        let ly = K.txtY + K.eyebrowLH + K.headGap + K.headingLH + K.txtGap;
+        ctx.textBaseline = "middle";
+        for (const r of rows) {
+          const names = r.list.map((c) => c.label).join(", ");
+          ctx.font = `700 ${K.listSize}px Pretendard`;
+          const lw = r.label ? ctx.measureText(r.label).width : 0;
+          ctx.font = `400 ${K.listSize}px Pretendard`;
+          const nw = ctx.measureText(names).width;
+          const gap = r.label ? K.listLabelGap : 0;
+          let lx = W / 2 - (lw + gap + nw) / 2;
+          ctx.textAlign = "left"; ctx.fillStyle = ink;
+          if (r.label) {
+            ctx.font = `700 ${K.listSize}px Pretendard`;
+            ctx.fillText(r.label, lx, ly + K.listLineH / 2);
+          }
+          ctx.font = `400 ${K.listSize}px Pretendard`;
+          ctx.fillText(names, lx + lw + gap, ly + K.listLineH / 2);
+          ly += K.listLineH + K.listGap;
+        }
+        // 칩
+        const n = Math.max(1, ...rows.map((r) => r.list.length));
+        const chipW = Math.min(K.chipMaxW, (K.rowW - K.chipGap * (n - 1)) / n);
+        const imgH = chipW / COLOR_RATIO;
+        const chipH = imgH + K.chipLabelH;
+        let ry = K.optY + K.optPadTop;
+        for (const r of rows) {
+          const rw = r.list.length * chipW + (r.list.length - 1) * K.chipGap;
+          let rx = W / 2 - rw / 2;
+          for (const c of r.list) {
+            if (c.img) drawRatioFit(ctx, c.img, rx, ry, chipW, imgH, COLOR_RATIO);
+            ctx.fillStyle = nvChipLabel(th);
+            ctx.textAlign = "center"; ctx.textBaseline = "middle";
+            ctx.font = `400 ${K.chipLabelSize}px Pretendard`;
+            trk(ctx, c.label, rx + chipW / 2, ry + imgH + K.chipLabelH / 2, -0.6, "center");
+            rx += chipW + K.chipGap;
+          }
+          ry += chipH + K.rowGap;
+        }
+        ctx.textBaseline = "alphabetic";
+      }
+
+      /* 누볼라 썸네일 */
+      function nvThumb(ctx, th) {
+        const W = 1080, H = NVF.thumbH;
+        ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, W, H);
+        // 01 썸네일은 하단 바 없음 / 02 는 카피 바 있음 / 03 은 그리드
+        nvfHero(ctx, W, H, th, nvCfg().main === "grad", "thumb");
+      }
+
+      /* 누볼라 피드 슬라이드 구성: [히어로, 옵션…, 사이즈?, 컬러?] */
+      function nvFeedPlan() {
+        const plan = [{ t: "hero" }];
+        const per = 2;
+        for (let i = 0; i < state.rows.length; i += per)
+          plan.push({ t: "opt", rows: state.rows.slice(i, i + per) });
+        if (state.sizeInfoOn && nvSizeInfoImg()) plan.push({ t: "size" });
+        if (hasColors()) plan.push({ t: "color" });
+        return plan;
+      }
+      function nvFeedCount() { return nvFeedPlan().length; }
+
+      function nvFeedSlide(ctx, idx, th) {
+        const W = 1080, H = NVF.feedH;
+        const p = nvFeedPlan()[idx];
+        if (!p) return;
+        if (p.t === "hero") { nvfHero(ctx, W, H, th, true); return; }
+        if (p.t === "color") { nvfColor(ctx, W, H, th); return; }
+        ctx.fillStyle = nvOptBg(th) || "#f0f3dd";
+        ctx.fillRect(0, 0, W, H);
+        const O = NVF.opt, S = NVF.size;
+        if (p.t === "opt") {
+          nvfHead(ctx, W, O.headY, "option", th);
+          if (nvCfg().optDark) {
+            // 02·03: 진한 배경 위에 흰 컨테이너, 그 안에 카드
+            const B = NVF.optBox;
+            const bh = B.pad * 2 + p.rows.length * B.cardH + (p.rows.length - 1) * B.gap;
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(B.x, B.y, B.w, bh);
+            let y = B.y + B.pad;
+            for (const r of p.rows) {
+              nvfCard(ctx, r, B.x + B.pad, y, th, B.cardW, B.cardH);
+              y += B.cardH + B.gap;
+            }
+          } else {
+            let y = O.listY;
+            for (const r of p.rows) { nvfCard(ctx, r, O.listX, y, th); y += O.cardH + O.listGap; }
+          }
+          return;
+        }
+        // 사이즈 안내
+        nvfHead(ctx, W, S.headY, "option", th);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(S.boxX, S.boxY, S.boxW, S.boxH);
+        const sImg = nvSizeInfoImg();
+        if (sImg)
+          clipRect(ctx, S.boxX, S.boxY + S.imgY, S.boxW, S.imgH, () =>
+            cover(ctx, sImg, S.boxX, S.boxY + S.imgY, S.boxW, S.imgH),
+          );
+        if (state.notice) {
+          const nx = S.boxX + (S.boxW - S.ntW) / 2, ny = S.boxY + S.ntY;
+          ctx.fillStyle = nvNoticeBg(th);
+          ctx.fillRect(nx, ny, S.ntW, S.ntH);
+          ctx.fillStyle = th.accent;
+          ctx.font = `400 ${S.ntSize}px Pretendard`;
+          ctx.textAlign = "center"; ctx.textBaseline = "middle";
+          trk(ctx, state.notice, W / 2, ny + S.ntH / 2, -0.64, "center");
+          ctx.textBaseline = "alphabetic";
+        }
+      }
+
+      /* ── 누볼라 상세페이지 전체 ── */
+      function nvDetail(ctx, W, th) {
+        const H = nvCanvasH();
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = th.colorBgLight || "#ffffff";
+        ctx.fillRect(0, 0, W, H);
+        nvMain(ctx, W, th);
+        const oy = NV.MAIN_H;
+        nvOption(ctx, W, oy, th);
+        nvColor(ctx, W, oy + nvOptionH(), th);
+      }
+
       function canvasH() {
+        if (nvIsOn()) return nvCanvasH();
         const O = OPT[state.tpl] || OPT["01"];
         return (
           SHARED.HERO_H +
@@ -3461,6 +4942,7 @@
       /* 상세페이지 본체 — 미리보기·ZIP 공용. ctx 는 이미 배율 적용된 상태로 받는다. */
       function drawDetailTo(ctx, W, th) {
         th = th || TH();
+        if (nvIsOn()) { nvDetail(ctx, W, th); return; }
         const H = canvasH();
         ctx.clearRect(0, 0, W, H);
         ctx.fillStyle = th.sectionBg || "#fff";
@@ -3727,6 +5209,7 @@
 
       /* ---- 썸네일 1080×1080 : 상세 히어로를 정사각으로, 타이틀 96px ---- */
       function drawThumb(ctx, th) {
+        if (nvIsOn()) { nvThumb(ctx, th); return; }
         const W = 1080,
           H = 1080;
         if (state.tpl === "01") {
@@ -3881,6 +5364,7 @@
         return groups; // 각 원소가 옵션면 1장
       }
       function feedCount() {
+        if (nvIsOn()) return nvFeedCount();
         return 1 + feedSlides().length;
       } // 히어로 1 + 옵션면 N
 
@@ -3901,15 +5385,7 @@
             imgY = (CH - imgH) / 2; // 카드 안 세로 중앙 (468-440)/2=14
           ctx.fillStyle = "#ffffff";
           ctx.fillRect(x, top + imgY, imgW, imgH);
-          if (r.thumb)
-            drawThumbFit(
-              ctx,
-              r.thumb,
-              x + imgW * 0.08,
-              top + imgY + imgH * 0.08,
-              imgW * 0.84,
-              imgH * 0.84,
-            );
+          if (r.thumb) drawThumbCover(ctx, r.thumb, x, top + imgY, imgW, imgH);
 
           // info 좌측 x = box-img(426) + gap36 = 462, 폭 456
           const ix = x + 462,
@@ -4016,25 +5492,43 @@
           imgY = (CH - imgH) / 2;
         ctx.fillStyle = "#f8f8f8";
         ctx.fillRect(x + 10, top + imgY, imgW, imgH);
-        if (r.thumb)
-          drawThumbFit(
-            ctx,
-            r.thumb,
-            x + 10 + imgW * 0.08,
-            top + imgY + imgH * 0.08,
-            imgW * 0.84,
-            imgH * 0.84,
-          );
+        if (r.thumb) drawThumbCover(ctx, r.thumb, x + 10, top + imgY, imgW, imgH);
 
         // option 영역 x = 10(카드좌패딩) + 416 + gap48 = 474, 폭 448
         const ix = x + 474,
           IW = 448;
-        // option = 세로 flex gap47, P:SPACE_EVENLY → name-wrap(234) + price-wrap(106)
-        //   SPACE_EVENLY: 카드높이 468 안에서 위/사이/아래 균등. 두 블록(234+106=340), 남은 128을 3등분
-        const nameH = 234,
-          priceH = 106;
-        const evenGap = (CH - nameH - priceH) / 3; // ≈42.7 (위·사이·아래)
-        let ny = top + evenGap;
+        /* option = 세로 flex, P:SPACE_EVENLY → name-wrap + price-wrap
+           name-wrap = [badge 49 + gap20] + box-top
+           box-top   = 가로 flex → 제품명블록(왼) ┄ 할인원 104(오른) 이므로
+                       높이 = max(제품명 n줄 + gap13 + 단위값, 104)
+           ※ 내용을 먼저 측정해 높이를 잡는다(고정값 금지). 제품명이 3줄이어도
+              단위값과 가격줄 사이 간격이 유지된다. */
+        const priceH = 106;
+        const _lines = [];
+        _mc.font = `600 40px Pretendard`;
+        const _nameW = IW - 104 - 20;
+        for (const para of String(rowName(r)).split(/\r?\n/)) {
+          const t = para.trim();
+          if (t) _lines.push(...wrapText(_mc, t, _nameW, -0.8));
+        }
+        const _attrs = rowAttrs(r);
+        const _isSingleAttr = _attrs.length === 1 && !_attrs[0].label;
+        const _attrH = _attrs.length
+          ? _isSingleAttr
+            ? 32
+            : _attrs.length * 32
+          : 0;
+        const boxTopH = Math.max(
+          _lines.length * 52 + (_attrH ? 13 + _attrH : 0),
+          104,
+        );
+        const nameH = (r.badge !== "none" ? 49 + 20 : 0) + boxTopH;
+        // name-wrap 과 price-wrap 사이는 고정 47(.fig gap). 전체를 세로 중앙에 둔다.
+        // SPACE_EVENLY 로 나누면 이름이 3줄일 때 간격이 저절로 좁아지므로 고정으로 둔다.
+        const BLOCK_GAP = 47;
+        const infoH = nameH + BLOCK_GAP + priceH;
+        let ny = top + Math.max(8, (CH - infoH) / 2);
+        const _infoTop = ny;
 
         ctx.textAlign = "left";
         // --- name-wrap (세로 flex gap20, P:MIN) ---
@@ -4072,29 +5566,21 @@
           "center",
         );
         // 제품명 40px lineH52 + 단위 24px (왼쪽, 할인원과 안 겹치게 폭 제한)
-        const nameW = IW - 104 - 20; // 할인원(104) 빼고 여백
         ctx.textAlign = "left";
         ctx.textBaseline = "middle";
         ctx.fillStyle = "#333333";
         ctx.font = `600 40px Pretendard`;
-        const lns = [];
-        _mc.font = `600 40px Pretendard`;
-        for (const para of String(rowName(r)).split(/\r?\n/)) {
-          const t = para.trim();
-          if (t) lns.push(...wrapText(_mc, t, nameW, -0.8));
-        }
-        lns.forEach((l, i) =>
+        _lines.forEach((l, i) =>
           trk(ctx, l, ix, boxTopY + 26 + i * 52, -0.8, "left"),
         );
-        let vy = boxTopY + lns.length * 52 + 13;
-        const attrs = rowAttrs(r);
-        if (attrs.length) {
+        let vy = boxTopY + _lines.length * 52 + 13;
+        if (_attrs.length) {
           ctx.fillStyle = "#605850";
           ctx.font = `400 24px Pretendard`;
-          if (attrs.length === 1 && !attrs[0].label) {
-            trk(ctx, attrs[0].value, ix, vy + 12, -0.48, "left");
+          if (_isSingleAttr) {
+            trk(ctx, _attrs[0].value, ix, vy + 12, -0.48, "left");
           } else
-            attrs.forEach((a) => {
+            _attrs.forEach((a) => {
               trk(
                 ctx,
                 (a.label ? a.label + " " : "") + a.value,
@@ -4107,9 +5593,9 @@
             });
         }
 
-        // --- price-wrap (세로 flex gap12, P:CENTER) @ 하단 ---
+        // --- price-wrap (세로 flex gap12, P:CENTER) — name-wrap 아래 고정 간격 ---
         //   정상가줄(라벨┄값, 취소선) + 혜택가줄(라벨┄값)
-        const py = top + CH - evenGap - priceH;
+        const py = _infoTop + nameH + BLOCK_GAP;
         ctx.textBaseline = "middle";
         // 정상가줄 (28px, muted, 값 취소선) — SPACE_EVENLY: 라벨 왼 ┄ 값 오른
         ctx.fillStyle = SHARED.textMuted;
@@ -4288,6 +5774,7 @@
 
       /* 피드 슬라이드 1장 (idx 0=히어로, 1~=옵션면) */
       function drawFeedSlide(ctx, idx, th) {
+        if (nvIsOn()) { nvFeedSlide(ctx, idx, th); return; }
         const W = 1080,
           H = 1350;
         if (idx === 0) {
@@ -4308,9 +5795,11 @@
 
         if (isLastOdd) {
           if (state.tpl === "01") {
-            // 01: 카드 1장 + 하단 로고 (히어로 이미지·워터마크 제거)
+            // 01: 카드 1장 + 하단 로고 박스 (히어로 box-bottom과 동일: accent색, 0/1250, W×100)
             feedCard(ctx, cards[0], 60, 319, th, 960);
-            drawLogo(ctx, W / 2 - 100, 1270, 200, 32);
+            ctx.fillStyle = th.accent;
+            ctx.fillRect(0, 1250, W, 100);
+            drawLogo(ctx, W / 2 - 100, 1300, 200, 32);
           } else {
             // 02: 진한 배경 + 흰 컨테이너 카드 1장 + 하단 로고
             const listX = 60,
@@ -4422,7 +5911,7 @@
 
       function attrsHeight(attrs) {
         if (!attrs || !attrs.length) return 0;
-        // 라벨 없는 단일 블록 = 밤부500 케이스 (피그마 검증값 36)
+        // 라벨 없는 단일 블록 = 뱀부500 케이스 (피그마 검증값 36)
         if (attrs.length === 1 && !attrs[0].label) return SHARED.unit.lineH;
         return (
           attrs.reduce((a, b) => a + (b.label ? ATTR_LH : 0) + ATTR_LH, 0) +
@@ -4727,6 +6216,39 @@
       }
       /* 제품 썸네일 전용 — 시트 이미지 표준 규격(960×1020) 비율로 항상 동일한 크기로 그린다.
          개별 이미지의 실제 비율을 쓰지 않으므로 제품마다 크기가 들쭉날쭉하지 않는다. */
+      /* 지정 비율로 상자 안에 맞춰 그린다 (원본 비율 무시 → 항상 같은 크기) */
+      function drawRatioFit(ctx, img, bx, by, bw, bh, ratio) {
+        const r = bw / bh;
+        let dw, dh;
+        if (ratio > r) {
+          dw = bw;
+          dh = bw / ratio;
+        } else {
+          dh = bh;
+          dw = bh * ratio;
+        }
+        ctx.drawImage(img, bx + (bw - dw) / 2, by + (bh - dh) / 2, dw, dh);
+      }
+      /* 상자를 꽉 채운다(cover). 표준 비율 기준이라 제품마다 크기가 흔들리지 않고,
+         넘치는 부분만 잘린다. */
+      function drawThumbCover(ctx, img, bx, by, bw, bh) {
+        const r = bw / bh;
+        let dw, dh;
+        if (THUMB_RATIO > r) {
+          dh = bh;
+          dw = bh * THUMB_RATIO; // 좌우 잘림
+        } else {
+          dw = bw;
+          dh = bw / THUMB_RATIO; // 위아래 잘림
+        }
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(bx, by, bw, bh);
+        ctx.clip();
+        ctx.drawImage(img, bx + (bw - dw) / 2, by + (bh - dh) / 2, dw, dh);
+        ctx.restore();
+      }
+      const COLOR_RATIO = 240 / 440; // 색상 칩 이미지 규격
       const THUMB_RATIO = 960 / 1020;
       function drawThumbFit(ctx, img, bx, by, bw, bh) {
         const r = bw / bh;
@@ -5187,6 +6709,7 @@
           $("#urlP").value = PRESET.csv.ProductMaster || "";
           $("#urlT").value = PRESET.csv.TemplateMaster || "";
           $("#urlH").value = PRESET.csv.HeroMaster || "";
+          $("#urlC").value = PRESET.csv.ColorMaster || "";
           $("#proxyUrl").value = PRESET.proxy || "";
           cfg = {
             mode: "csv",
