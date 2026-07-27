@@ -102,26 +102,55 @@
         return await loadImg(`data:${j.mime};base64,${j.data}`, true);
       }
 
-      /* 이미지 로드 우선순위
-   1) CORS 허용 직접 로드      → 오염 없음
-   2) 프록시(설정된 경우)       → 오염 없음
-   3) crossOrigin 없이 직접 로드 → 미리보기는 되나 오염(PNG 저장 불가) */
+      /* URL → Promise<{img,tainted}> 캐시.
+   제품군을 오갈 때 selectGroup 이 row.thumb 를 비우지만, 여기서 바로 돌려주므로
+   네트워크를 다시 타지 않는다. 실패는 캐시하지 않는다(다음에 재시도 가능). */
+      const IMG_CACHE = new Map();
+
+      /* 이미지 로드 우선순위 (2026-07 개편)
+   0) http(s) 가 아니면(업로드 data:/blob:) 그냥 직접 로드
+   1) /api/img  서버 중계  → 같은 출처라 오염 없음 + 브라우저/CDN 캐시가 걸림
+   2) CORS 허용 직접 로드   → 오염 없음
+   3) Apps Script 프록시    → 구버전 폴백(설정돼 있을 때만)
+   4) crossOrigin 없이 직접 → 미리보기는 되나 오염(PNG 저장 불가)
+
+   이전에는 1순위가 (2)여서, CORS 를 안 여는 서버의 이미지는 매번
+   "전부 받아서 버리는" 실패를 기다린 뒤에야 프록시로 넘어갔다. 그게 병목이었다. */
+      const IMG_API = "/api/img?u=";
       async function loadImgSmart(url) {
-        try {
-          const i = await loadImg(url, false);
-          PROXY_ERR = null;
-          return { img: i, tainted: false };
-        } catch (e) {}
-        if (($("#proxyUrl")?.value || "").trim()) {
+        if (!/^https?:/i.test(String(url || "")))
+          return { img: await loadImg(url, true), tainted: false };
+
+        if (IMG_CACHE.has(url)) return IMG_CACHE.get(url);
+
+        const p = (async () => {
           try {
-            const i = await loadViaProxy(url);
+            const i = await loadImg(IMG_API + encodeURIComponent(url), true);
             PROXY_ERR = null;
             return { img: i, tainted: false, viaProxy: true };
           } catch (e) {
-            PROXY_ERR = String(e.message || e);
-          } // 사유 보존 → 경고 패널에 노출
-        }
-        return { img: await loadImg(url, true), tainted: true };
+            PROXY_ERR = `/api/img 실패 @ ${url}`;
+          }
+          try {
+            const i = await loadImg(url, false);
+            PROXY_ERR = null;
+            return { img: i, tainted: false };
+          } catch (e) {}
+          if (($("#proxyUrl")?.value || "").trim()) {
+            try {
+              const i = await loadViaProxy(url);
+              PROXY_ERR = null;
+              return { img: i, tainted: false, viaProxy: true };
+            } catch (e) {
+              PROXY_ERR = String(e.message || e);
+            } // 사유 보존 → 경고 패널에 노출
+          }
+          return { img: await loadImg(url, true), tainted: true };
+        })();
+
+        IMG_CACHE.set(url, p);
+        p.catch(() => IMG_CACHE.delete(url));
+        return p;
       }
       function anyTainted() {
         return !!(state.heroTainted || state.rows.some((r) => r.thumbTainted));

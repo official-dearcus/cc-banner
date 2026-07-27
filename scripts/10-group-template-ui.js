@@ -121,77 +121,75 @@
         return Object.keys(out).length ? out : all;
       }
       /* 시트의 thumbUrl / heroUrl 자동 로드 (§리스크: URL 만료·CORS) */
+      /* 다섯 종류(썸네일·히어로·색상칩·상단4컷·사이즈안내)를 순차로 기다리던 것을
+         한 번에 병렬로 바꿨다. 이제 전체 소요 = 가장 느린 이미지 1장. */
       async function loadSheetImages(gen) {
         const g = G()[state.group];
         if (!g) return;
         const fails = [];
-        await Promise.all(
-          state.rows.map(async (r) => {
-            if (!r.thumbUrl || r.thumb) return;
-            try {
-              const x = await loadImgSmart(r.thumbUrl);
-              r.thumb = x.img;
-              r.thumbTainted = x.tainted;
-              r.thumbSrc = r.thumbUrl;
-            } catch (e) {
-              fails.push(rowName(r));
-            }
-          }),
-        );
-        if (g.heroUrl && !state.hero) {
-          try {
-            const x = await loadImgSmart(g.heroUrl);
+        const jobs = [];
+        const job = (url, label, apply) => {
+          if (!url) return;
+          jobs.push(
+            loadImgSmart(url).then(
+              (x) => apply(x),
+              () => fails.push(label),
+            ),
+          );
+        };
+
+        /* 옵션 카드 썸네일 */
+        state.rows.forEach((r) => {
+          if (r.thumb) return;
+          job(r.thumbUrl, rowName(r), (x) => {
+            r.thumb = x.img;
+            r.thumbTainted = x.tainted;
+            r.thumbSrc = r.thumbUrl;
+          });
+        });
+
+        /* 히어로 */
+        if (!state.hero)
+          job(g.heroUrl, "히어로", (x) => {
             state.hero = x.img;
             state.heroTainted = x.tainted;
             state.heroUpload = false;
-          } catch (e) {
-            fails.push("히어로");
-          }
-        }
-        /* 색상 칩 이미지 (누볼라 등) */
-        await Promise.all(
-          ((g.colors) || []).map(async (c) => {
-            if (!c.url || c.img) return;
-            try {
-              const x = await loadImgSmart(c.url);
-              c.img = x.img;
-              c.imgTainted = x.tainted;
-            } catch (e) {
-              fails.push("색상 " + (c.label || c.colorKey));
-            }
-          }),
-        );
-        /* 03 상단 4컷 이미지 */
+          });
+
+        /* 색상 칩 (누볼라 등) */
+        (g.colors || []).forEach((c) => {
+          if (c.img) return;
+          job(c.url, "색상 " + (c.label || c.colorKey), (x) => {
+            c.img = x.img;
+            c.imgTainted = x.tainted;
+          });
+        });
+
+        /* 03 상단 이미지 4컷 */
         const gUrls = new Set();
         Object.values(g.gridByTpl || {}).forEach((arr) =>
           (arr || []).forEach((u) => u && gUrls.add(u)),
         );
-        await Promise.all(
-          [...gUrls].map(async (u) => {
-            if (GRID_IMG[u]) return;
-            try {
-              const x = await loadImgSmart(u);
-              GRID_IMG[u] = x.img;
-            } catch (e) {
-              fails.push("상단 이미지");
-            }
-          }),
-        );
-        /* 사이즈 안내 이미지 — 템플릿마다 다를 수 있어 URL 단위로 캐시 */
+        gUrls.forEach((u) => {
+          if (GRID_IMG[u]) return;
+          job(u, "상단 이미지", (x) => {
+            GRID_IMG[u] = x.img;
+          });
+        });
+
+        /* 사이즈 안내 — 템플릿마다 다를 수 있어 URL 단위로 캐시 */
         const sUrls = new Set();
         if (g.sizeInfoUrl) sUrls.add(g.sizeInfoUrl);
         Object.values(g.sizeInfoByTpl || {}).forEach((u) => u && sUrls.add(u));
-        await Promise.all(
-          [...sUrls].map(async (u) => {
-            if (SIZE_IMG[u]) return;
-            try {
-              const x = await loadImgSmart(u);
-              SIZE_IMG[u] = x.img;
-            } catch (e) {
-              fails.push("사이즈 안내");
-            }
-          }),
-        );
+        sUrls.forEach((u) => {
+          if (SIZE_IMG[u]) return;
+          job(u, "사이즈 안내", (x) => {
+            SIZE_IMG[u] = x.img;
+          });
+        });
+
+        await Promise.all(jobs);
+
         if (fails.length)
           status(
             `이미지 ${fails.length}건 로드 실패: ${fails.slice(0, 2).join(", ")}`,
