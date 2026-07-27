@@ -105,24 +105,29 @@
       .scalesel button + button {
         border-left: 1px solid var(--line);
       }
+      /* 좌우로 넓게 — 세 버튼이 한 줄에 들어가고 글자가 접히지 않는다 */
       .fmttabs {
         display: flex;
         gap: 4px;
         margin-bottom: 10px;
+        width: 100%;
+        max-width: 620px;
         background: var(--panel);
-        padding: 5px;
+        padding: 6px;
         border: 1px solid var(--line);
-        border-radius: 11px;
+        border-radius: 12px;
       }
       .fmttabs button {
-        flex: 1;
-        padding: 9px 12px;
+        flex: 1 1 0;
+        min-width: 0;
+        padding: 12px 10px;
         border: none;
-        border-radius: 8px;
+        border-radius: 9px;
         background: transparent;
         font: inherit;
-        font-size: 13px;
+        font-size: 15px;
         font-weight: 600;
+        white-space: nowrap;
         cursor: pointer;
         color: var(--ink-soft);
       }

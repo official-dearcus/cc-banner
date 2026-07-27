@@ -105,11 +105,13 @@
         </div>
 
         <div class="setup-step">
-          <div class="h"><span class="num">3</span> 공구 기간</div>
-          <div class="grid2">
-            <div><label class="f" for="suD1">시작</label><input type="date" id="suD1" /></div>
-            <div><label class="f" for="suD2">종료</label><input type="date" id="suD2" /></div>
+          <div class="h">
+            <span class="num">3</span> 공구 기간
+            <span class="opt">시작일 · 종료일 순서로 두 번 클릭</span>
           </div>
+          <div class="cal" id="suCal"></div>
+          <!-- 값은 달력이 채운다. 기존 코드가 이 두 값을 읽는다. -->
+          <input type="hidden" id="suD1" /><input type="hidden" id="suD2" />
         </div>
 
         <div class="setup-step">
@@ -131,10 +133,9 @@
         <span id="statusline">폰트 로딩 중…</span>
       </header>
 
-      <!-- [2] 제품군 탭 — 세션에 제품군이 여럿일 때만 보인다 -->
-      <nav class="gtabs" id="gtabs" hidden></nav>
-
       <aside class="col left">
+        <!-- [2] 제품군 네비게이터 — 좌측 상단 고정 -->
+        <nav class="gnav" id="gnav" hidden></nav>
         <div class="block">
           <label class="h" style="cursor: pointer" id="srcToggle">
             <span class="num">⚙</span> 데이터 소스

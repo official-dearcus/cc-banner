@@ -17,61 +17,62 @@
   display: none;
 }
 .setup-inner {
-  width: min(880px, 100%);
-  padding: 40px 28px 120px;
+  width: min(1040px, 100%);
+  padding: 48px 36px 140px;
 }
 .setup h1 {
-  font-size: 22px;
+  font-size: 30px;
   font-weight: 700;
   letter-spacing: -0.4px;
   margin: 0 0 4px;
 }
 .setup .lead {
-  font-size: 13px;
+  font-size: 15px;
   color: var(--muted, #71717a);
-  margin: 0 0 28px;
+  margin: 0 0 36px;
 }
 .setup-step {
-  margin-bottom: 26px;
+  margin-bottom: 34px;
 }
 .setup-step > .h {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 13px;
+  gap: 10px;
+  font-size: 17px;
   font-weight: 700;
-  margin-bottom: 10px;
+  margin-bottom: 14px;
 }
 .setup-step > .h .num {
   display: inline-grid;
   place-items: center;
-  width: 20px;
-  height: 20px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   background: var(--accent, #18181b);
   color: #fff;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
 }
 .setup-step > .h .opt {
   font-weight: 400;
+  font-size: 13px;
   color: var(--muted, #71717a);
 }
 
 /* 제품군 복수 선택 */
 .pickgrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
 }
 .pickgrid button {
   position: relative;
   text-align: left;
-  padding: 12px 12px 12px 34px;
+  padding: 16px 16px 16px 46px;
   border: 1px solid var(--line, #e4e4e7);
-  border-radius: 10px;
+  border-radius: 12px;
   background: #fff;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 500;
   cursor: pointer;
   transition:
@@ -84,13 +85,13 @@
 .pickgrid button::before {
   content: "";
   position: absolute;
-  left: 12px;
+  left: 16px;
   top: 50%;
   transform: translateY(-50%);
-  width: 15px;
-  height: 15px;
+  width: 20px;
+  height: 20px;
   border: 1.5px solid var(--line, #d4d4d8);
-  border-radius: 4px;
+  border-radius: 5px;
   background: #fff;
 }
 .pickgrid button.on {
@@ -104,10 +105,10 @@
 .pickgrid button.on::after {
   content: "";
   position: absolute;
-  left: 17px;
+  left: 23px;
   top: 50%;
-  width: 4px;
-  height: 8px;
+  width: 5px;
+  height: 10px;
   margin-top: -1px;
   border: solid #fff;
   border-width: 0 2px 2px 0;
@@ -115,7 +116,7 @@
 }
 .pickgrid button .sub {
   display: block;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 400;
   color: var(--muted, #71717a);
   margin-top: 2px;
@@ -128,21 +129,22 @@
 .setup .grid2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 14px;
 }
 .setup label.f {
   display: block;
-  font-size: 11px;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--muted, #71717a);
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 .setup input[type="text"],
 .setup input[type="date"] {
   width: 100%;
-  padding: 9px 10px;
+  padding: 14px 14px;
   border: 1px solid var(--line, #e4e4e7);
-  border-radius: 8px;
-  font-size: 13px;
+  border-radius: 10px;
+  font-size: 17px;
   background: #fff;
 }
 .setup input:focus {
@@ -150,7 +152,7 @@
   outline-offset: -1px;
 }
 .setup .hint {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--muted, #71717a);
   margin-top: 6px;
 }
@@ -168,16 +170,16 @@
   display: flex;
   align-items: center;
   gap: 7px;
-  padding: 7px 12px 7px 8px;
+  padding: 11px 20px 11px 13px;
   border: 1px solid var(--line, #e4e4e7);
   border-radius: 999px;
   background: #fff;
-  font-size: 12px;
+  font-size: 15px;
   cursor: pointer;
 }
 .themepick button .dot {
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   border: 1px solid rgba(0, 0, 0, 0.08);
 }
@@ -197,25 +199,25 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 14px 28px;
+  padding: 18px 36px;
   background: rgba(255, 255, 255, 0.94);
   backdrop-filter: blur(8px);
   border-top: 1px solid var(--line, #e4e4e7);
 }
 .setup-bar .sum {
-  font-size: 12px;
+  font-size: 15px;
   color: var(--muted, #71717a);
 }
 .setup-bar .spacer {
   flex: 1;
 }
 .setup-bar .go {
-  padding: 10px 22px;
+  padding: 15px 38px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--accent, #18181b);
   color: #fff;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
 }
@@ -224,60 +226,100 @@
   cursor: not-allowed;
 }
 
-/* ---------- [2] 제품군 탭 ---------- */
-.gtabs {
+/* ---------- [2] 제품군 네비게이터 (좌측 상단 고정) ---------- */
+.gnav {
+  position: sticky;
+  top: -22px;
+  z-index: 5;
+  margin: -22px -24px 18px;
+  padding: 14px 24px 12px;
+  background: var(--panel, #fff);
+  border-bottom: 1px solid var(--line, #e4e4e7);
+}
+.gnav[hidden] {
+  display: none;
+}
+.gnav .cap {
   display: flex;
   align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  padding: 8px 14px;
-  border-bottom: 1px solid var(--line, #e4e4e7);
-  background: #fff;
-}
-.gtabs .gt {
-  position: relative;
-  padding: 7px 13px;
-  border: 1px solid var(--line, #e4e4e7);
-  border-radius: 8px;
-  background: #fff;
   font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  white-space: nowrap;
+  font-weight: 700;
+  color: var(--muted, #71717a);
+  margin-bottom: 9px;
 }
-.gtabs .gt.on {
+.gnav .cap .spacer {
+  flex: 1;
+}
+.gnav .list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.gnav .gt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--line, #e4e4e7);
+  border-radius: 10px;
+  background: #fff;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+.gnav .gt:hover {
+  border-color: var(--muted, #a1a1aa);
+}
+.gnav .gt.on {
   background: var(--accent, #18181b);
   border-color: var(--accent, #18181b);
   color: #fff;
-  font-weight: 600;
+  font-weight: 700;
 }
-.gtabs .gt .warn {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #dc2626;
-  margin-left: 6px;
-  vertical-align: middle;
+.gnav .gt .idx {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  flex: none;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.06);
+  font-size: 12px;
+  font-weight: 700;
 }
-.gtabs .gt .off {
-  font-size: 10px;
-  opacity: 0.7;
-  margin-left: 5px;
+.gnav .gt.on .idx {
+  background: rgba(255, 255, 255, 0.22);
 }
-.gtabs .spacer {
+.gnav .gt .nm {
   flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.gtabs .reset {
-  padding: 6px 11px;
+.gnav .gt .off {
+  font-size: 12px;
+  opacity: 0.75;
+}
+.gnav .acts {
+  display: flex;
+  gap: 6px;
+  margin-top: 9px;
+}
+.gnav .acts button {
+  flex: 1;
+  padding: 9px 8px;
   border: 1px solid var(--line, #e4e4e7);
   border-radius: 8px;
   background: #fff;
-  font-size: 11px;
+  font: inherit;
+  font-size: 12px;
   color: var(--muted, #71717a);
   cursor: pointer;
 }
-.gtabs .reset:hover {
+.gnav .acts button:hover {
   border-color: var(--muted, #a1a1aa);
 }
 
@@ -290,4 +332,124 @@
 }
 .dlsum b {
   color: #dc2626;
+}
+
+/* ---------- 공구 기간 달력 (2클릭 범위 선택) ---------- */
+.cal {
+  border: 1px solid var(--line, #e4e4e7);
+  border-radius: 14px;
+  background: #fff;
+  padding: 18px 20px 20px;
+}
+.cal-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.cal-head .nav {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--line, #e4e4e7);
+  border-radius: 9px;
+  background: #fff;
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--muted, #71717a);
+}
+.cal-head .nav:hover {
+  border-color: var(--muted, #a1a1aa);
+}
+.cal-head .spacer {
+  flex: 1;
+}
+.cal-head .picked {
+  font-size: 15px;
+  font-weight: 600;
+}
+.cal-head .picked .ph {
+  color: var(--muted, #a1a1aa);
+  font-weight: 400;
+}
+.cal-months {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 26px;
+}
+.cal-m .mh {
+  text-align: center;
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+.cal-grid .dw {
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted, #a1a1aa);
+  padding-bottom: 6px;
+}
+.cal-grid .dw.sun {
+  color: #dc2626;
+}
+.cal-grid button {
+  position: relative;
+  height: 42px;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 15px;
+  cursor: pointer;
+  color: var(--ink, #18181b);
+}
+.cal-grid button.out {
+  color: #d4d4d8;
+}
+.cal-grid button:disabled {
+  cursor: default;
+}
+.cal-grid button.in {
+  background: var(--line, #eef0f2);
+}
+.cal-grid button.s1,
+.cal-grid button.s2 {
+  background: var(--accent, #18181b);
+  color: #fff;
+  font-weight: 700;
+  border-radius: 9px;
+}
+.cal-grid button.s1.has-range {
+  border-radius: 9px 0 0 9px;
+}
+.cal-grid button.s2.has-range {
+  border-radius: 0 9px 9px 0;
+}
+.cal-grid button:not(:disabled):hover:not(.s1):not(.s2) {
+  outline: 1.5px solid var(--accent, #18181b);
+  outline-offset: -3px;
+  border-radius: 9px;
+}
+.cal-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--muted, #71717a);
+}
+.cal-foot .spacer {
+  flex: 1;
+}
+.cal-foot button {
+  padding: 8px 14px;
+  border: 1px solid var(--line, #e4e4e7);
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
 }

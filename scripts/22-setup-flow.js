@@ -141,7 +141,7 @@ function gotoGroup(key) {
 }
 
 function renderGroupTabs() {
-  const el = $("#gtabs");
+  const el = $("#gnav");
   if (!el) return;
   if (!SESSION.started || SESSION.groups.length === 0) {
     el.hidden = true;
@@ -149,23 +149,27 @@ function renderGroupTabs() {
   }
   el.hidden = false;
   const gs = G();
+  const items = SESSION.groups
+    .map((k, i) => {
+      const s = k === state.group ? slotSnap() : SESSION.slots[k];
+      const th = s && s.theme;
+      const off = th && SESSION.theme && th !== SESSION.theme;
+      return (
+        `<button class="gt ${k === state.group ? "on" : ""}" data-g="${k}">` +
+        `<span class="idx">${i + 1}</span>` +
+        `<span class="nm">${(gs[k] && gs[k].label) || k}</span>` +
+        (off ? `<span class="off">${th}</span>` : "") +
+        `</button>`
+      );
+    })
+    .join("");
   el.innerHTML =
-    SESSION.groups
-      .map((k) => {
-        const s = k === state.group ? slotSnap() : SESSION.slots[k];
-        const th = s && s.theme;
-        const off = th && SESSION.theme && th !== SESSION.theme;
-        return (
-          `<button class="gt ${k === state.group ? "on" : ""}" data-g="${k}">` +
-          `${(gs[k] && gs[k].label) || k}` +
-          (off ? `<span class="off">${th}</span>` : "") +
-          `</button>`
-        );
-      })
-      .join("") +
-    `<span class="spacer"></span>` +
-    `<button class="reset" id="gtReset">테마 통일 (${SESSION.theme || "-"})</button>` +
-    `<button class="reset" id="gtBack">행사 정보 다시 설정</button>`;
+    `<div class="cap">제품군 <span class="spacer"></span>${SESSION.groups.length}개</div>` +
+    `<div class="list">${items}</div>` +
+    `<div class="acts">` +
+    `<button id="gtReset">테마 통일 (${SESSION.theme || "-"})</button>` +
+    `<button id="gtBack">행사 정보 수정</button>` +
+    `</div>`;
 
   el.querySelectorAll(".gt").forEach(
     (b) => (b.onclick = () => gotoGroup(b.dataset.g)),
@@ -196,6 +200,127 @@ function themeOkFor(tpl, key) {
   } catch (e) {
     return false;
   }
+}
+
+
+/* ============================================================
+   공구 기간 — 2클릭 범위 달력
+   첫 클릭 = 시작일, 둘째 클릭 = 종료일. 시작보다 앞을 누르면 시작이 옮겨간다.
+   숨은 #suD1/#suD2 에 값을 넣어 기존 코드와 그대로 맞물린다.
+   ============================================================ */
+const DOW = ["일", "월", "화", "수", "목", "금", "토"];
+let CAL_BASE = new Date();
+let CAL = { d1: "", d2: "", half: false };
+
+function ymd(d) {
+  return (
+    d.getFullYear() +
+    "-" +
+    String(d.getMonth() + 1).padStart(2, "0") +
+    "-" +
+    String(d.getDate()).padStart(2, "0")
+  );
+}
+function fromYmd(s) {
+  const m = String(s || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null;
+}
+function monthCells(y, m) {
+  const first = new Date(y, m, 1);
+  const start = new Date(y, m, 1 - first.getDay());
+  const out = [];
+  for (let i = 0; i < 42; i++) {
+    const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+    out.push(d);
+  }
+  return out;
+}
+function calPick(s) {
+  if (!CAL.half || !CAL.d1 || s < CAL.d1) {
+    CAL.d1 = s;
+    CAL.d2 = "";
+    CAL.half = true;
+  } else {
+    CAL.d2 = s;
+    CAL.half = false;
+  }
+  $("#suD1").value = CAL.d1;
+  $("#suD2").value = CAL.d2;
+  renderCal();
+  updateSetupBar();
+}
+function monthHtml(y, m) {
+  const cells = monthCells(y, m);
+  const has = CAL.d1 && CAL.d2;
+  const body = cells
+    .map((d) => {
+      const s = ymd(d);
+      const out = d.getMonth() !== m;
+      const isS1 = s === CAL.d1;
+      const isS2 = s === CAL.d2;
+      const inR = has && s > CAL.d1 && s < CAL.d2;
+      const cls = [
+        out ? "out" : "",
+        isS1 ? "s1" : "",
+        isS2 ? "s2" : "",
+        inR ? "in" : "",
+        has ? "has-range" : "",
+      ]
+        .filter(Boolean)
+        .join(" ");
+      return `<button class="${cls}" data-d="${s}"${out ? " disabled" : ""}>${out ? "" : d.getDate()}</button>`;
+    })
+    .join("");
+  return (
+    `<div class="cal-m"><div class="mh">${y}년 ${m + 1}월</div><div class="cal-grid">` +
+    DOW.map((w, i) => `<div class="dw${i === 0 ? " sun" : ""}">${w}</div>`).join("") +
+    body +
+    `</div></div>`
+  );
+}
+function renderCal() {
+  const el = $("#suCal");
+  if (!el) return;
+  const y = CAL_BASE.getFullYear(),
+    m = CAL_BASE.getMonth();
+  const n = new Date(y, m + 1, 1);
+  const label = CAL.d1
+    ? `${CAL.d1} ~ ${CAL.d2 || "<span class='ph'>종료일 선택</span>"}`
+    : `<span class="ph">시작일을 클릭하세요</span>`;
+  el.innerHTML =
+    `<div class="cal-head">` +
+    `<button class="nav" id="calPrev" type="button">‹</button>` +
+    `<button class="nav" id="calNext" type="button">›</button>` +
+    `<span class="picked">${label}</span><span class="spacer"></span></div>` +
+    `<div class="cal-months">${monthHtml(y, m)}${monthHtml(n.getFullYear(), n.getMonth())}</div>` +
+    `<div class="cal-foot"><span>날짜 두 번이면 끝납니다.</span><span class="spacer"></span>` +
+    `<button type="button" id="calClear">지우기</button></div>`;
+  el.querySelectorAll(".cal-grid button:not([disabled])").forEach(
+    (b) => (b.onclick = () => calPick(b.dataset.d)),
+  );
+  $("#calPrev").onclick = () => {
+    CAL_BASE = new Date(y, m - 1, 1);
+    renderCal();
+  };
+  $("#calNext").onclick = () => {
+    CAL_BASE = new Date(y, m + 1, 1);
+    renderCal();
+  };
+  $("#calClear").onclick = () => {
+    CAL = { d1: "", d2: "", half: false };
+    $("#suD1").value = "";
+    $("#suD2").value = "";
+    renderCal();
+    updateSetupBar();
+  };
+}
+function calSet(d1, d2) {
+  CAL = { d1: d1 || "", d2: d2 || "", half: false };
+  $("#suD1").value = CAL.d1;
+  $("#suD2").value = CAL.d2;
+  const b = fromYmd(CAL.d1);
+  if (b) CAL_BASE = new Date(b.getFullYear(), b.getMonth(), 1);
+  renderCal();
 }
 
 /* ============================================================
@@ -339,9 +464,11 @@ function openSetup(reset) {
     SETUP_THEME = SESSION.theme;
     $("#suSellerKo").value = SESSION.sellerKo || "";
     $("#suSellerEn").value = SESSION.sellerEn || "";
-    $("#suD1").value = SESSION.d1 || state.d1 || "";
-    $("#suD2").value = SESSION.d2 || state.d2 || "";
   }
+  calSet(
+    reset ? "" : SESSION.d1 || state.d1 || "",
+    reset ? "" : SESSION.d2 || state.d2 || "",
+  );
   renderSellerList();
   renderSetupGroups();
   renderSetupThemes();
@@ -442,7 +569,7 @@ selectGroup = function (key) {
    ============================================================ */
 (function initSetupFlow() {
   /* 셀러 입력 → 세션에 반영 */
-  ["suSellerKo", "suSellerEn", "suD1", "suD2"].forEach((id) => {
+  ["suSellerKo", "suSellerEn"].forEach((id) => {
     const el = $("#" + id);
     if (el) el.oninput = updateSetupBar;
   });
