@@ -50,11 +50,21 @@
       async function buildAllImages() {
         const th = curTheme(),
           out = [];
+        /* 렌더러가 없는 제품군(템플릿 미등록)에서 눌리면 좌표가 전부 비어
+           엉뚱한 곳에서 터진다. 여기서 먼저 끊고 이유를 알려준다. */
+        if (!state.tpl || !TH())
+          throw new Error(
+            "이 제품군은 아직 템플릿이 등록되지 않았습니다 — 템플릿을 먼저 선택하세요",
+          );
         // 상세: 기존 draw 는 #preview 를 쓰므로 오프스크린으로 재현
+        //  ⚠ drawDetailTo(ctx, W, th) — W 를 빼먹으면 히어로 좌표가 전부 NaN 이 되어
+        //    createLinearGradient 가 non-finite 로 터진다(미리보기는 W 를 넘기므로 멀쩡).
         const detailH = canvasH();
         out.push({
           name: `${baseName()}_상세.png`,
-          canvas: renderOff(860, detailH, (ctx) => drawDetailTo(ctx)),
+          canvas: renderOff(SHARED.W, detailH, (ctx) =>
+            drawDetailTo(ctx, SHARED.W, TH()),
+          ),
         });
         // 썸네일
         out.push({
@@ -123,10 +133,17 @@
           status(`ZIP 다운로드 완료 — ${imgs.length}장 (${EXPORT_SCALE}x)`);
         } catch (e) {
           console.error(e);
-          status(
-            "저장 실패 — 외부 이미지(CORS)이거나 오류: " + (e.message || e),
-            1,
-          );
+          /* 예전에는 무슨 오류든 "외부 이미지(CORS)" 로 뭉뚱그려서
+             엉뚱한 곳을 찾게 만들었다. 원인별로 구분해서 보여준다. */
+          const m = String(e && e.message ? e.message : e);
+          let msg;
+          if (e && (e.name === "SecurityError" || /[Tt]ainted/.test(m)))
+            msg =
+              "저장 실패 — 외부 이미지 보안(CORS) 문제입니다. 이미지가 /api/img 로 불러와졌는지 확인하세요";
+          else if (/non-finite|NaN|Infinity/.test(m))
+            msg = `저장 실패 — 좌표 계산 오류(렌더러 버그). 개발자 콘솔(F12)의 내용과 함께 알려주세요: ${m}`;
+          else msg = `저장 실패 — ${m}`;
+          status(msg, 1);
         } finally {
           btn.disabled = false;
           btn.textContent = old;
