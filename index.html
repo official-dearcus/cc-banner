@@ -37,6 +37,7 @@
     <link rel="stylesheet" href="styles/03-controls.css" />
     <link rel="stylesheet" href="styles/04-panels.css" />
     <link rel="stylesheet" href="styles/05-stage.css" />
+    <link rel="stylesheet" href="styles/06-setup.css" />
 
     <!--
       스크립트: 기능별 분리.
@@ -65,8 +66,63 @@
     <script defer src="scripts/19-export.js"></script>
     <script defer src="scripts/20-history-share.js"></script>
     <script defer src="scripts/21-bindings-boot.js"></script>
+    <script defer src="scripts/22-setup-flow.js"></script>
   </head>
   <body>
+    <!-- ============================================================
+         [1] 행사 정보 — 셀러 1명의 행사 1건을 세팅한다.
+         제품군을 먼저 고르게 해서, 셀러명·기간을 입력하는 동안
+         이미지가 뒤에서 미리 받아지도록 순서를 잡았다.
+         ============================================================ -->
+    <div class="setup" id="setup" hidden>
+      <div class="setup-inner">
+        <h1>행사 정보</h1>
+        <p class="lead">
+          셀러 한 명의 행사 하나를 만듭니다. 제품군은 여러 개 고를 수 있습니다.
+        </p>
+
+        <div class="setup-step">
+          <div class="h"><span class="num">1</span> 제품군 <span class="opt">복수 선택</span></div>
+          <div class="pickgrid" id="suGroups"></div>
+        </div>
+
+        <div class="setup-step">
+          <div class="h"><span class="num">2</span> 셀러</div>
+          <div class="grid2">
+            <div>
+              <label class="f" for="suSellerKo">한글명</label>
+              <input type="text" id="suSellerKo" maxlength="24" list="suSellerList" placeholder="오인스" />
+              <datalist id="suSellerList"></datalist>
+            </div>
+            <div>
+              <label class="f" for="suSellerEn">영문명</label>
+              <input type="text" id="suSellerEn" maxlength="24" placeholder="oins" />
+            </div>
+          </div>
+          <div class="hint">
+            템플릿 01은 셀러명을 영문 서체(High Summit)로 그립니다. 템플릿에 따라 자동으로 골라 씁니다.
+          </div>
+        </div>
+
+        <div class="setup-step">
+          <div class="h"><span class="num">3</span> 공구 기간</div>
+          <div class="grid2">
+            <div><label class="f" for="suD1">시작</label><input type="date" id="suD1" /></div>
+            <div><label class="f" for="suD2">종료</label><input type="date" id="suD2" /></div>
+          </div>
+        </div>
+
+        <div class="setup-step">
+          <div class="h"><span class="num">4</span> 테마 <span class="opt">전체 공통 · 나중에 제품군별로 바꿀 수 있습니다</span></div>
+          <div class="themepick" id="suThemes"></div>
+        </div>
+      </div>
+      <div class="setup-bar">
+        <span class="sum" id="suSum"></span>
+        <span class="spacer"></span>
+        <button class="go" id="suGo" disabled>옵션 편집으로</button>
+      </div>
+    </div>
     <div class="app">
       <header class="top">
         <div class="logo">CC <b>배너</b> 제너레이터</div>
@@ -74,6 +130,9 @@
         <div class="spacer"></div>
         <span id="statusline">폰트 로딩 중…</span>
       </header>
+
+      <!-- [2] 제품군 탭 — 세션에 제품군이 여럿일 때만 보인다 -->
+      <nav class="gtabs" id="gtabs" hidden></nav>
 
       <aside class="col left">
         <div class="block">
@@ -317,6 +376,7 @@
             </div>
             <button class="btn" id="shareBtn">공유 코드</button>
             <button class="btn primary" id="dlBtn">전체 다운로드 (ZIP)</button>
+            <div class="dlsum" id="dlSum"></div>
           </div>
         </div>
         <div class="stage" id="stageDetail"><canvas id="preview"></canvas></div>

@@ -61,26 +61,70 @@
         //    createLinearGradient 가 non-finite 로 터진다(미리보기는 W 를 넘기므로 멀쩡).
         const detailH = canvasH();
         out.push({
-          name: `${baseName()}_상세.png`,
+          channel: "Detail",
+          name: `${baseName()}_Detail.png`,
           canvas: renderOff(SHARED.W, detailH, (ctx) =>
             drawDetailTo(ctx, SHARED.W, TH()),
           ),
         });
         // 썸네일
         out.push({
-          name: `${baseName()}_썸네일.png`,
+          channel: "Detail",
+          name: `${baseName()}_Thumb.png`,
           canvas: renderOff(1080, 1080, (ctx) => drawThumb(ctx, th)),
         });
         // 피드 N장
         const n = feedCount();
         for (let i = 0; i < n; i++) {
-          const label = i === 0 ? "피드1_히어로" : `피드${i + 1}_옵션`;
           out.push({
-            name: `${baseName()}_${label}.png`,
+            channel: "Insta",
+            name: `${baseName()}_Feed${i + 1}.png`,
             canvas: renderOff(1080, 1350, (ctx) => drawFeedSlide(ctx, i, th)),
           });
         }
         return out;
+      }
+
+      /* ---------- 세션(셀러 1명) 전체 빌드 ----------
+   선택한 제품군을 하나씩 열어 이미지를 만든다.
+   ⚠ 검증이 중요하다: warnings() 는 "지금 열려 있는 제품군"만 본다.
+      탭을 안 열어본 제품군은 검증 없이 ZIP 에 들어갈 뻔했다. */
+      function inSession() {
+        return (
+          typeof SESSION !== "undefined" &&
+          SESSION.started &&
+          SESSION.groups.length > 0
+        );
+      }
+      async function buildSessionImages(onStep) {
+        const back = state.group;
+        const files = [];
+        const bad = [];
+        const gs = G();
+        for (let i = 0; i < SESSION.groups.length; i++) {
+          const k = SESSION.groups[i];
+          const label = (gs[k] && gs[k].label) || k;
+          if (onStep) onStep(label, i + 1, SESSION.groups.length);
+          gotoGroup(k);
+          await loadSheetImages(); // 탭을 안 열어봤다면 여기서 이미지가 들어온다
+          if (!warnings()) {
+            bad.push(label);
+            continue;
+          }
+          const imgs = await buildAllImages();
+          imgs.forEach((it) => files.push(it));
+        }
+        gotoGroup(back);
+        return { files, bad };
+      }
+
+      function sessionZipName() {
+        const who = safe(SESSION.sellerKo || SESSION.sellerEn || "seller");
+        const p =
+          SESSION.d1 && SESSION.d2
+            ? `${SESSION.d1.replace(/-/g, "")}-${SESSION.d2.replace(/-/g, "")}`
+            : "nodate";
+        return `${who}_${p}.zip`;
       }
 
       /* JSZip 지연 로드 — 다운로드를 실제로 누를 때만 받아온다.
@@ -105,7 +149,9 @@
       }
 
       $("#dlBtn").onclick = async () => {
-        if (!warnings()) return;
+        /* 단일 제품군일 때만 여기서 미리 막는다.
+           세션 모드는 제품군마다 따로 검증한다. */
+        if (!inSession() && !warnings()) return;
         try {
           await ensureJSZip();
         } catch (_) {
@@ -117,20 +163,49 @@
         const old = btn.textContent;
         btn.textContent = "이미지 생성 중…";
         try {
-          const imgs = await buildAllImages();
+          const multi = inSession();
+          let imgs, bad = [], zipName;
+          if (multi) {
+            const r = await buildSessionImages((label, i, n) => {
+              btn.textContent = `${label} 생성 중… (${i}/${n})`;
+            });
+            imgs = r.files;
+            bad = r.bad;
+            zipName = sessionZipName();
+            if (bad.length) {
+              const sum = $("#dlSum");
+              if (sum)
+                sum.innerHTML =
+                  `<b>${bad.join(", ")}</b> 제품군에 오류가 있어 제외했습니다. ` +
+                  `해당 탭을 열어 경고를 확인하세요.`;
+            }
+            if (!imgs.length) {
+              status("모든 제품군에 오류가 있어 만들 수 있는 이미지가 없습니다", 1);
+              return;
+            }
+          } else {
+            imgs = await buildAllImages();
+            zipName = `${baseName()}_전체.zip`;
+          }
+
           const zip = new JSZip();
           for (const it of imgs) {
             const b64 = it.canvas.toDataURL("image/png").split(",")[1];
-            zip.file(it.name, b64, { base64: true });
+            /* 채널이 바깥 폴더: Detail/ 에 상세·썸네일, Insta/ 에 피드 */
+            const path = it.channel ? `${it.channel}/${it.name}` : it.name;
+            zip.file(path, b64, { base64: true });
           }
           const blob = await zip.generateAsync({ type: "blob" });
           const a = document.createElement("a");
           a.href = URL.createObjectURL(blob);
-          a.download = `${baseName()}_전체.zip`;
+          a.download = zipName;
           a.click();
           setTimeout(() => URL.revokeObjectURL(a.href), 4000);
           pushHist();
-          status(`ZIP 다운로드 완료 — ${imgs.length}장 (${EXPORT_SCALE}x)`);
+          status(
+            `ZIP 다운로드 완료 — ${imgs.length}장 (${EXPORT_SCALE}x)` +
+              (bad.length ? ` · 오류 ${bad.length}건 제외` : ""),
+          );
         } catch (e) {
           console.error(e);
           /* 예전에는 무슨 오류든 "외부 이미지(CORS)" 로 뭉뚱그려서
