@@ -1,0 +1,150 @@
+/* CC 배너 제너레이터 — 03-controls */
+      input[type="text"],
+      input[type="date"],
+      input[type="url"] {
+        width: 100%;
+        padding: 11px 13px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        font: inherit;
+        font-size: 14px;
+        background: #fff;
+        outline: none;
+        color: var(--ink);
+      }
+      input:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px var(--accent-weak);
+      }
+      input.bad {
+        border-color: var(--err);
+        box-shadow: 0 0 0 3px #fdecea;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+      }
+      .row > * {
+        flex: 1;
+        min-width: 0;
+      }
+      .hint {
+        font-size: 12px;
+        color: var(--ink-soft);
+        margin-top: 6px;
+        line-height: 1.55;
+      }
+      .hint.err {
+        color: var(--err);
+      }
+      .seg {
+        display: flex;
+        gap: 6px;
+      }
+      .seg button {
+        flex: 1;
+        padding: 11px;
+        border: 1.5px solid var(--line);
+        border-radius: 10px;
+        background: #fff;
+        font: inherit;
+        font-size: 13px;
+        cursor: pointer;
+        color: var(--ink-soft);
+      }
+      .seg button.on {
+        border-color: var(--accent);
+        background: var(--accent-weak);
+        color: var(--accent);
+        font-weight: 600;
+      }
+      .swatches {
+        display: flex;
+        gap: 8px;
+      }
+      .secdiv {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 26px 0 18px;
+        color: var(--ink-soft);
+      }
+      .secdiv::before,
+      .secdiv::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--line);
+      }
+      .secdiv span {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .scalesel {
+        display: inline-flex;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      .scalesel button {
+        padding: 7px 12px;
+        border: none;
+        background: #fff;
+        font: inherit;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        color: var(--ink-soft);
+      }
+      .scalesel button.on {
+        background: var(--accent);
+        color: #fff;
+      }
+      .scalesel button + button {
+        border-left: 1px solid var(--line);
+      }
+      .fmttabs {
+        display: flex;
+        gap: 4px;
+        margin-bottom: 10px;
+        background: var(--panel);
+        padding: 5px;
+        border: 1px solid var(--line);
+        border-radius: 11px;
+      }
+      .fmttabs button {
+        flex: 1;
+        padding: 9px 12px;
+        border: none;
+        border-radius: 8px;
+        background: transparent;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        color: var(--ink-soft);
+      }
+      .fmttabs button.on {
+        background: var(--accent);
+        color: #fff;
+      }
+      .feedstage {
+        width: 100%;
+      }
+      #feedScroll {
+        display: flex;
+        gap: 14px;
+        overflow-x: auto;
+        padding: 6px 2px 14px;
+        scroll-snap-type: x mandatory;
+      }
+      #feedScroll .feedslide {
+        flex: none;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+        scroll-snap-align: start;
+        background: #fff;
+      }
