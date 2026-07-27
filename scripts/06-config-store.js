@@ -22,21 +22,21 @@
    시트/프록시 주소가 바뀌면 이 블록만 수정하면 된다.
    ============================================================ */
       const PRESET = {
+        /* Vercel 서버 함수(/api/sheet)가 비공개 시트를 읽어 CSV 로 돌려준다.
+           시트를 "웹에 게시"할 필요가 없고, 주소가 노출되지도 않는다.
+           시트가 바뀌면 이 파일이 아니라 Vercel 환경변수 SHEET_ID 를 고친다. */
         csv: {
-          ProductMaster:
-            "https://docs.google.com/spreadsheets/d/e/2PACX-1vRS9uzvpv-1yBGogWe_DJ00ym_-SGMzrfuSSa0Boyk1-fbIcArIa0PCScW4WICvm6K-DTLYVUOEvQMd/pub?gid=802412286&single=true&output=csv",
-          TemplateMaster:
-            "https://docs.google.com/spreadsheets/d/e/2PACX-1vRS9uzvpv-1yBGogWe_DJ00ym_-SGMzrfuSSa0Boyk1-fbIcArIa0PCScW4WICvm6K-DTLYVUOEvQMd/pub?gid=915184877&single=true&output=csv",
-          HeroMaster:
-            "https://docs.google.com/spreadsheets/d/e/2PACX-1vRS9uzvpv-1yBGogWe_DJ00ym_-SGMzrfuSSa0Boyk1-fbIcArIa0PCScW4WICvm6K-DTLYVUOEvQMd/pub?gid=1232198&single=true&output=csv",
-          ColorMaster:
-            "https://docs.google.com/spreadsheets/d/e/2PACX-1vRS9uzvpv-1yBGogWe_DJ00ym_-SGMzrfuSSa0Boyk1-fbIcArIa0PCScW4WICvm6K-DTLYVUOEvQMd/pub?gid=885730504&single=true&output=csv",
+          ProductMaster: "/api/sheet?tab=ProductMaster",
+          TemplateMaster: "/api/sheet?tab=TemplateMaster",
+          HeroMaster: "/api/sheet?tab=HeroMaster",
+          ColorMaster: "/api/sheet?tab=ColorMaster",
         },
         proxy:
           "https://script.google.com/macros/s/AKfycbxKjJ78pLc7Pj1VYNPCGwJ0eRC_AsEAo6-aBNDpEgYGcCjGEa9wwTTeJtK8rRJwcVr8/exec",
       };
 
-      const CFG_KEY = "cc-banner-cfg-v1";
+      /* v2: 게시 CSV → /api/sheet 전환. 옛 저장값을 버리고 새 기본값을 쓰게 한다. */
+      const CFG_KEY = "cc-banner-cfg-v2";
       const CFG_FIELDS = [
         "docId",
         "tabP",
