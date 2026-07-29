@@ -130,28 +130,40 @@
            03 카드 x=70 w=720 · img +380,+20 320×320 · 텍스트  +20 */
         "01": { style: "labels", txtOptW: 250, discGap: 12, priceH: 82,
                 vlLabelW: 48, vlValW: 194, fTxtW: 324,
+                /* 01 은 카드에 선이 없다 (.fig) */
                 cardDX: 0, cardW: 740, imgDX: 10, imgDY: 10, imgH: 340, optDX: 366,
                 textDY: 29, priceDY: 273,
-                fTextDY: 46, fPriceDY: 316, fImgDX: 10, fImgDY: 10, fOptDX: 474 },
+                /* .fig feed(01): 카드 960×468, img card+10,+10 416×448, 텍스트 card+474 */
+                fTextDY: 46, fPriceDY: 316, fImgDX: 10, fImgDY: 10,
+                fImgW: 416, fImgH: 448, fOptDX: 474, fOptW: 448 },
         "02": { style: "inline", txtOptW: 342, priceH: 80,
                 vlLabelW: 53, vlValW: 281, fTxtW: 456,
                 discBgKey: "colorBgLight", discInk: null,
                 saleInk: "#333333", normalInk: "#666666",
+                /* .fig: 카드 아래 1px #d0dfb1 (badgeBorder). 마지막 카드 뒤에는 없다 */
+                divKey: "badgeBorder", divW: 1, divFeedW: 1.33,
                 cardDX: 10, cardW: 720, imgDX: 0, imgDY: 0, imgH: 340, optDX: 356,
                 textDY: 28, priceDY: 232,
-                fTextDY: 28, fPriceDY: 304, fImgDX: 0, fImgDY: 0, fOptDX: 464 },
+                /* .fig feed_02: 카드 920×460, img card+0,+0 426×440, 텍스트 card+464 456 */
+                fTextDY: 28, fPriceDY: 304, fImgDX: 0, fImgDY: 0,
+                fImgW: 426, fImgH: 440, fOptDX: 464, fOptW: 456 },
         /* 03 은 02 와 구조는 같지만 색과 이미지 위치가 다르다 (.fig 2026-07-29)
            - box-img 가 오른쪽(@380), 텍스트가 왼쪽
            - 할인율 배경 accent(#65812d) + 흰 글자   (02 는 연한 배경 + 진한 글자)
            - 혜택가 titleColor(#448122) / 정상가 #999999 */
         "03": { style: "inline", txtOptW: 342, priceH: 100,
                 vlLabelW: 60, vlValW: 274, fTxtW: 456,
+                /* .fig: 카드 사방 20px #f0f3dd 테두리 (선이 아니라 띠) */
+                frameKey: "colorBgLight", frameW: 20,
+                /* .fig: 03 의 discount_rate 는 반경 20 둥근 사각 (02 는 각짐) */
+                discR: 20, fDiscR: 25.56,
                 imgRight: true, discBgKey: "accent", discInk: "#ffffff",
                 saleInk: "titleColor", normalInk: "#999999",
                 cardDX: 10, cardW: 720, imgDX: 380, imgDY: 20, imgH: 320, optDX: 20,
                 textDY: 76, priceDY: 260,
+                /* .fig feed_02(03): 카드 920×460, 텍스트 card+20 437, img card+491,+26 409×409 */
                 fTextDY: 96, fPriceDY: 334, fImgDX: 491, fImgDY: 26, fOptDX: 20,
-                fImgW: 409, fImgH: 409 },
+                fImgW: 409, fImgH: 409, fOptW: 437 },
       };
       function nvCard5() { return NV_CARD[state.tpl] || NV_CARD["02"]; }
 
@@ -282,6 +294,10 @@
         ctx.fillStyle = og; ctx.fillRect(0, 0, W, H);
 
         const cx = M.tx + M.tw / 2;
+        /* .fig: txt-title 블록에 DROP_SHADOW blur8 rgba(0,0,0,0.32).
+           배경 사진에는 걸리지 않고 글자에만 걸린다. */
+        ctx.shadowColor = "rgba(0,0,0,0.32)";
+        ctx.shadowBlur = 8;
         ctx.textBaseline = "middle"; ctx.fillStyle = "#fff";
         const seller = state.seller || "seller";
         ctx.font = `400 ${M.sellerSize}px 'High Summit'`;
@@ -310,6 +326,7 @@
         ctx.font = `400 ${M.dateSize}px 'Playfair Display'`;
         trk(ctx, range01(state.d1, state.d2), W / 2, M.barY + M.barH / 2, -0.8, "center");
         ctx.textBaseline = "alphabetic";
+        nvClearShadow(ctx);
       }
       /* 02 — 사진 + 그라데이션 타이틀 + 하단 카피 바 */
       function nvMain02(ctx, W, H, th) {
@@ -540,7 +557,8 @@
           /* ── 02 · 03 (.fig 72:53) ── */
           const pcy = py + O.discD / 2;
           ctx.fillStyle = th[CS.discBgKey] || th.colorBgLight || "#f0f3dd";
-          ctx.fillRect(ix, py, O.discD, O.discD);
+          if (CS.discR) roundRect(ctx, ix, py, O.discD, O.discD, CS.discR), ctx.fill();
+          else ctx.fillRect(ix, py, O.discD, O.discD);
           ctx.fillStyle = CS.discInk || th.discInk || th.accent;
           ctx.font = `700 ${O.discSize}px GmarketSans, Pretendard`;
           ctx.textAlign = "center";
@@ -593,6 +611,7 @@
         ctx.textBaseline = "alphabetic";
         /* ── 리스트: 컨테이너 → 패딩 → 항목 순서 (.fig option-list) ── */
         const L = nvList();
+        const CSD = nvCard5();
         const listX = L.bodyX;
         const listY = oy + O.padTop + L.listTop;
         const listH = nvListH();
@@ -603,9 +622,23 @@
         const itemX = listX + L.pad;
         const itemW = L.bodyW - L.pad * 2;
         let y = listY + L.pad;
-        for (const it of nvListItems()) {
+        const items = nvListItems();
+        const lastCard = items.map((v) => v.kind).lastIndexOf("card");
+        for (let i = 0; i < items.length; i++) {
+          const it = items[i];
           if (it.kind === "card") {
+            /* 03: 카드 사방 20px 띠 (.fig strokeAlign OUTSIDE) */
+            if (CSD.frameKey && th[CSD.frameKey]) {
+              const fw = CSD.frameW;
+              ctx.fillStyle = th[CSD.frameKey];
+              ctx.fillRect(itemX - fw, y - fw, itemW + fw * 2, it.h + fw * 2);
+            }
             nvCard(ctx, it.r, itemX, y, th, itemW, !L.listBg);
+            /* 02: 카드 아래 1px 구분선 — 마지막 카드 뒤에는 긋지 않는다 */
+            if (CSD.divKey && th[CSD.divKey] && i !== lastCard) {
+              ctx.fillStyle = th[CSD.divKey];
+              ctx.fillRect(itemX, y + it.h, itemW, CSD.divW);
+            }
           } else if (it.kind === "notice") {
             const nx = L.noticeFull ? listX : itemX;
             const nw = L.noticeFull ? L.bodyW : itemW;
@@ -773,7 +806,11 @@
                 size1: 60, size2: 120, lineH: 92, dateSize: 48,
                 grid: { x: 60, y: 430, w: 960, h: 570, pad: 20, cw: 455, ch: 260, gx: 10, gy: 10 } },
         // 02·03 옵션 슬라이드: 흰 컨테이너로 카드 감쌈
+        /* .fig feed 옵션 슬라이드
+             02 : option-list rel(60,330) 960×960 #ffffff, 카드 920×460 @+20,+20, 간격 20
+             03 : option-list rel(80,320) 920×944  투명,    카드 920×460 @+0,+0,  간격 24 */
         optBox: { x: 60, y: 330, w: 960, h: 960, pad: 20, cardW: 920, cardH: 460, gap: 20 },
+        optBox03: { x: 80, y: 320, w: 920, h: 944, pad: 0, cardW: 920, cardH: 460, gap: 24, bg: null },
         // 컬러 슬라이드
         color: { txtX: 40, txtY: 115, txtW: 1000, txtGap: 36,
                  eyebrow: 40, eyebrowLH: 53, headGap: 20, heading: 72, headingLH: 76,
@@ -981,12 +1018,18 @@
         const CSF = nvCard5();
         CW = CW || O.listW; CH = CH || O.cardH;
         ctx.fillStyle = "#fff"; ctx.fillRect(x, top, CW, CH);
-        const imgH2 = CH - O.imgY * 2;
+        /* 이미지·텍스트 위치는 템플릿마다 다르다 (.fig 실측).
+           예전엔 NVF.opt 하나(01 기준)를 셋이 공유해서 02·03 이 어긋났다. */
+        const fImgX = x + (CSF.fImgDX ?? O.imgX);
+        const fImgY = top + (CSF.fImgDY ?? O.imgY);
+        const fImgW = CSF.fImgW || O.imgW;
+        const imgH2 = CSF.fImgH || CH - O.imgY * 2;
         ctx.fillStyle = "#f8f8f8";
-        ctx.fillRect(x + O.imgX, top + O.imgY, O.imgW, imgH2);
-        if (r.thumb) drawThumbCover(ctx, r.thumb, x + O.imgX, top + O.imgY, O.imgW, imgH2);
+        ctx.fillRect(fImgX, fImgY, fImgW, imgH2);
+        if (r.thumb) drawThumbCover(ctx, r.thumb, fImgX, fImgY, fImgW, imgH2);
 
-        const ix = x + O.optX, IW = CW - O.optX - 38;
+        const ix = x + (CSF.fOptDX ?? O.optX);
+        const IW = CSF.fOptW || CW - O.optX - 38;
         const badgeOn = r.badge !== "none";
         // 내용 측정
         _mc.font = `600 ${O.nameSize}px Pretendard`;
@@ -1194,15 +1237,25 @@
           nvfHead(ctx, W, O.headY, "option", th);
           if (nvCfg().optDark) {
             // 02·03: 진한 배경 위에 흰 컨테이너, 그 안에 카드
-            const B = NVF.optBox;
-            /* .fig 는 960 고정. 카드 수로 계산하면 사이즈 슬라이드(960)와 높이가 달라진다. */
-            ctx.fillStyle = "#ffffff";
-            ctx.fillRect(B.x, B.y, B.w, B.h);
+            const B = state.tpl === "03" ? NVF.optBox03 : NVF.optBox;
+            /* .fig 는 높이 고정. 카드 수로 계산하면 사이즈 슬라이드와 어긋난다.
+               03 은 컨테이너가 투명이라 칠하지 않는다. */
+            if (B.bg !== null) { ctx.fillStyle = "#ffffff"; ctx.fillRect(B.x, B.y, B.w, B.h); }
+            const CSD2 = nvCard5();
             let y = B.y + B.pad;
-            for (const r of p.rows) {
+            p.rows.forEach((r, i) => {
+              if (CSD2.frameKey && th[CSD2.frameKey]) {
+                const fw = CSD2.frameW;
+                ctx.fillStyle = th[CSD2.frameKey];
+                ctx.fillRect(B.x + B.pad - fw, y - fw, B.cardW + fw * 2, B.cardH + fw * 2);
+              }
               nvfCard(ctx, r, B.x + B.pad, y, th, B.cardW, B.cardH);
+              if (CSD2.divKey && th[CSD2.divKey] && i < p.rows.length - 1) {
+                ctx.fillStyle = th[CSD2.divKey];
+                ctx.fillRect(B.x + B.pad, y + B.cardH, B.cardW, CSD2.divFeedW || CSD2.divW);
+              }
               y += B.cardH + B.gap;
-            }
+            });
           } else {
             let y = O.listY;
             for (const r of p.rows) { nvfCard(ctx, r, O.listX, y, th); y += O.cardH + O.listGap; }
