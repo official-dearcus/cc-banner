@@ -95,7 +95,8 @@
                 /* .fig 79:553 — 03 은 Afacad Flux (index.html 에서 로드) */
                 eyeFont: "'Afacad Flux', 'Playfair Display'",
                 headFont: "'Afacad Flux', Pretendard", headWeight: 600,
-                colorEyebrow: "color info.", colorBgKey: "t03Frame" },  // 03 은 소문자 (02 는 "Color info.")
+                colorEyebrow: "color info.", colorBgKey: "t03Frame",
+                optInkKey: "t03OptInk", colorInkKey: "t03Ink", chipLabelKey: "t03ChipLabel" },  // 03 은 소문자 (02 는 "Color info.")
       };
       /* 섹션 배경 헬퍼 */
       function nvOptBg(th) {
@@ -165,7 +166,7 @@
                 /* .fig: 03 의 discount_rate 는 반경 20 둥근 사각 (02 는 각짐) */
                 discR: 20, fDiscR: 25.56,
                 imgRight: true, discBgKey: "accent", discInk: "#ffffff",
-                saleInk: "titleColor", normalInk: "#999999",
+                saleInk: "t03Ink", normalInk: "#999999",
                 cardDX: 10, cardW: 720, imgDX: 380, imgDY: 20, imgH: 320, optDX: 20,
                 textDY: 0, priceDY: 260,
                 /* .fig feed_02(03): 카드 920×460, 텍스트 card+20 437, img card+491,+26 409×409 */
@@ -217,7 +218,9 @@
         return which === "color" ? C.colorDark : C.optDark;
       }
       function nvChipLabel(th) {
-        const c = nvCfg().chipLabel;
+        const C = nvCfg();
+        if (C.chipLabelKey && th[C.chipLabelKey]) return th[C.chipLabelKey];
+        const c = C.chipLabel;
         return c === "accent" ? th.accent : c;
       }
       function nvNoticeBg(th) {
@@ -421,7 +424,7 @@
         ctx.textBaseline = "middle";
 
         /* 1줄 — "{셀러} Pick!" */
-        ctx.fillStyle = th.titleColor || th.accent;
+        ctx.fillStyle = th.t03Ink || th.titleColor || th.accent;
         ctx.font = `400 ${T.sellerSize}px ${T.font}`;
         trk(
           ctx,
@@ -442,7 +445,7 @@
         );
 
         /* 날짜 */
-        ctx.fillStyle = th.pillBg || th.accent;
+        ctx.fillStyle = th.t03Date || th.pillBg || th.accent;
         ctx.font = `400 ${T.dateSize}px ${T.font}`;
         trk(ctx, range03(state.d1, state.d2), cx, T.dateY + T.dateH / 2, T.track, "center");
         ctx.textBaseline = "alphabetic";
@@ -646,7 +649,10 @@
         const cx = W / 2;
         ctx.textAlign = "center"; ctx.textBaseline = "middle";
         const C = nvCfg();
-        const optInk = nvOnDark("option") ? "#ffffff" : th.accent;
+        /* 03 은 테마마다 옵션 섹션 글자색이 다르다 (.fig pink 만 어둡다) */
+        const optInk =
+          (C.optInkKey && th[C.optInkKey]) ||
+          (nvOnDark("option") ? "#ffffff" : th.accent);
         const eyeInk = (C.eyebrowInkKey && th[C.eyebrowInkKey]) || optInk;
         ctx.fillStyle = eyeInk;
         ctx.font = `400 ${C.optEyebrow}px ${C.eyeFont}`;
@@ -742,7 +748,9 @@
       function nvColor(ctx, W, top, th) {
         const K = NV.color, g = nvG(), M = nvColorMetrics();
         const onDark = nvOnDark("color");
-        const ink = onDark ? "#ffffff" : th.accent;
+        const ink =
+          (nvCfg().colorInkKey && th[nvCfg().colorInkKey]) ||
+          (onDark ? "#ffffff" : th.accent);
         ctx.fillStyle = nvColorBg(th) || "#ddd";
         ctx.fillRect(0, top, W, M.H);
         // 03: 칩을 흰 컨테이너로 감싼다 (.fig color_option #ffffff)
@@ -1056,7 +1064,7 @@
         const cx = W / 2;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillStyle = th.titleColor || th.accent;
+        ctx.fillStyle = th.t03Ink || th.titleColor || th.accent;
         ctx.font = `400 ${C.sellerSize}px ${C.font}`;
         trk(ctx, `${state.seller || "Seller_name"} Pick!`, cx, C.sellerY + C.lineH / 2, C.track, "center");
 
@@ -1066,7 +1074,7 @@
           trk(ctx, l, cx, C.titleY2 + C.lineH / 2 + i * C.lineH, C.track, "center"),
         );
 
-        ctx.fillStyle = th.pillBg || th.accent;
+        ctx.fillStyle = th.t03Date || th.pillBg || th.accent;
         ctx.font = `400 ${C.dateSize}px ${C.font}`;
         trk(ctx, range03(state.d1, state.d2), cx, C.dateY + C.dateH / 2, C.track, "center");
         ctx.textBaseline = "alphabetic";
@@ -1238,7 +1246,9 @@
       function nvfColor(ctx, W, H, th) {
         const K = NVF.color;
         const onDark = nvOnDark("color");
-        const ink = onDark ? "#ffffff" : th.accent;
+        const ink =
+          (nvCfg().colorInkKey && th[nvCfg().colorInkKey]) ||
+          (onDark ? "#ffffff" : th.accent);
         ctx.fillStyle = nvColorBg(th) || "#b9ca7d";
         ctx.fillRect(0, 0, W, H);
         nvfHead(ctx, W, K.txtY, "color", th, onDark);

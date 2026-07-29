@@ -15,15 +15,23 @@
                     나머지 5색은 피그마에 02 실물이 없어 제목 색으로 폴백한다. */
                  eyebrowInk: "#31522d", gridShadow: "#d0dfb1",
                  /* 템플릿 03 전용 — 카드 테두리·size_info 선·컬러섹션 배경 / OPTION 배지 */
-                 t03Frame: "#f0f3dd", t03Badge: "#65812d" },
+                 t03Frame: "#f0f3dd", t03Badge: "#65812d",
+                 /* 03 전용 잉크 — 히어로 텍스트 · 혜택가 · 컬러섹션 제목 */
+                 t03Ink: "#448122", t03Date: "#91a36e",
+                 t03OptInk: "#ffffff", t03ChipLabel: "#65812d" },
         blue: { label: "블루", accent: "#2d6181", badgeBorder: "#b3c7da", gridShadow: "#c5cddd",
                 noticeBg: "#dbe6ee", colorBg: "#7d9eca", colorBgLight: "#eaf3f6",
                 pillBg: "#6e89a3", titleColor: "#1d5a80", mainBg: "#f6f9fe",
-                t03Frame: "#eeeeee", t03Badge: "#337fe3" },
+                t03Frame: "#eeeeee", t03Badge: "#337fe3",
+                t03Ink: "#337fe3", t03Date: "#7d9eca",
+                t03OptInk: "#ffffff", t03ChipLabel: "#888888" },
         pink: { label: "핑크", accent: "#7c6055", badgeBorder: "#d4bab4", gridShadow: "#ddc5c6",
                 noticeBg: "#f0dedb", colorBg: "#edcac4", colorBgLight: "#f6ecea",
                 pillBg: "#d8b8ab", titleColor: "#6b4a3e", mainBg: "#fffdfd",
-                t03Frame: "#f3e7e7", t03Badge: "#c57f80" },
+                t03Frame: "#f3e7e7", t03Badge: "#c57f80",
+                /* pink 는 옵션 섹션 배경이 밝아 글자가 어둡다 (.fig) */
+                t03Ink: "#633e3e", t03Date: "#c57f80",
+                t03OptInk: "#633e3e", t03ChipLabel: "#c57f80" },
         yellow: { label: "옐로우", accent: "#b08a1e", badgeBorder: "#e6d38f",
                   noticeBg: "#f0e5bd", colorBg: "#e3cf7e", colorBgLight: "#faf3dc",
                   pillBg: "#c9ae5a", titleColor: "#96731a", mainBg: "#fdfbef" },
