@@ -388,6 +388,8 @@
               (el.onclick = () => {
                 state.theme = el.dataset.k;
                 renderThemes();
+                /* HeroMaster 의 theme 열에 매핑된 히어로가 있으면 자동 교체 */
+                if (typeof applyThemeHero === "function") applyThemeHero();
                 schedTplPreviews(true);
                 draw();
               }),

@@ -126,10 +126,6 @@
 
         try {
           LOGO.img = await loadImg(LOGO.src, true);
-          /* 03 히어로 깅엄 패턴 (.fig main-img 의 30% 오버레이) */
-          try {
-            NV03_PAT.img = await loadImg(NV03_PAT.src, true);
-          } catch (e) {}
         } catch (e) {
           /* 텍스트 폴백 */
         }

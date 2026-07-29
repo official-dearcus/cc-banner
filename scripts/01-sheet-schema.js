@@ -172,6 +172,10 @@
             groupKey: { type: "string" },
             templateId: { type: "string", optional: true }, // 비우면 해당 제품군 전체 템플릿에서 선택 가능
             label: { type: "string", optional: true },
+            /* theme: 테마 키(green/blue/pink/yellow/orange/mint).
+               채우면 그 테마를 고를 때 이 히어로가 자동으로 선택된다.
+               비우면 지금처럼 수동 선택. */
+            theme: { type: "string", optional: true },
             url: { type: "url" },
             enabled: { type: "bool", optional: true, default: true },
             sortOrder: { type: "number", optional: true },

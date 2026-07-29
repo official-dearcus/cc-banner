@@ -158,16 +158,18 @@
                 /* .fig: 카드 사방 20px #f0f3dd 테두리 (선이 아니라 띠) */
                 /* .fig 03: 테두리·선·컬러섹션은 t03Frame, 배지는 t03Badge (테마별) */
                 frameKey: "t03Frame", frameW: 20,
+                /* .fig: 배지 160×52 가 카드 맨 위(+0), 배지→텍스트 간격 24,
+                   name-wrap 220 고정, 가격줄은 아래 고정(+260) = flex justify-between */
                 badgeW: 160, badgeH: 52, badgeSize: 24, badgeBgKey: "t03Badge",
-                badgeText: (i) => `OPTION ${i + 1}.`,
+                badgeGap: 24, badgeText: (i) => `OPTION ${i + 1}.`,
                 /* .fig: 03 의 discount_rate 는 반경 20 둥근 사각 (02 는 각짐) */
                 discR: 20, fDiscR: 25.56,
                 imgRight: true, discBgKey: "accent", discInk: "#ffffff",
                 saleInk: "titleColor", normalInk: "#999999",
                 cardDX: 10, cardW: 720, imgDX: 380, imgDY: 20, imgH: 320, optDX: 20,
-                textDY: 76, priceDY: 260,
+                textDY: 0, priceDY: 260,
                 /* .fig feed_02(03): 카드 920×460, 텍스트 card+20 437, img card+491,+26 409×409 */
-                fTextDY: 96, fPriceDY: 334, fImgDX: 491, fImgDY: 26, fOptDX: 20,
+                fTextDY: 0, fPriceDY: 334, fImgDX: 491, fImgDY: 26, fOptDX: 20,
                 fImgW: 409, fImgH: 409, fOptW: 437 },
       };
       function nvCard5() { return NV_CARD[state.tpl] || NV_CARD["02"]; }
@@ -406,21 +408,13 @@
              Rectangle 2  흰 판 + DROP_SHADOW blur6.5 (테마색 gridShadow)
              셀 345×260 을 (85,417)/(440,417)/(85,687)/(440,687)
          예전 코드는 02 구조(사진 배경 + 알약 + 좌측정렬 Pretendard)를 쓰고 있었다. */
-      /* .fig: main-img 는 fill 이 둘 — 테마 단색 위에 깅엄 패턴을 30% 로 얹는다 */
-      const NV03_PAT = { img: null, src: "assets/nuvola03-pattern.png" };
-      function nvPattern(ctx, W, H) {
-        if (!NV03_PAT.img) return;
-        ctx.save();
-        ctx.globalAlpha = 0.3;
-        const pt = ctx.createPattern(NV03_PAT.img, "repeat");
-        if (pt) { ctx.fillStyle = pt; ctx.fillRect(0, 0, W, H); }
-        ctx.restore();
-      }
       function nvMain03(ctx, W, H, th) {
         const M = NVM, G = NVM.grid, T = NVM.t03;
+        /* 배경은 시트에서 고른 히어로 이미지를 그대로 화면 전체에 채운다.
+           (패턴을 코드에 내장하지 않는다 — 히어로는 데이터다) */
         ctx.fillStyle = th.mainBg || "#f8fbe1";
         ctx.fillRect(0, 0, W, H);
-        nvPattern(ctx, W, H);
+        if (state.hero) clipRect(ctx, 0, 0, W, H, () => cover(ctx, state.hero, 0, 0, W, H));
 
         const cx = W / 2;
         ctx.textAlign = "center";
@@ -530,7 +524,7 @@
             ctx.fillStyle = "#ffffff";
             ctx.font = `600 ${CS0.badgeSize}px 'Afacad Flux', Pretendard`;
             trk(ctx, bt, ix + CS0.badgeW / 2, ny + CS0.badgeH / 2, -2, "center");
-            ny += CS0.badgeH + O.nameGap;
+            ny += CS0.badgeH + (CS0.badgeGap ?? O.nameGap);
           } else {
             const bt = r.badge === "renewal" ? "RENEWAL!" : "NEW!";
             ctx.font = `600 ${O.badgeSize}px Pretendard`;

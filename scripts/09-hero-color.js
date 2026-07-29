@@ -217,6 +217,24 @@
             }),
         );
       }
+      /* 테마에 묶인 히어로 자동 선택.
+         HeroMaster 의 theme 열에 테마 키를 적으면 그 테마를 고를 때 자동 적용된다.
+         theme 열이 비어 있으면 아무 일도 하지 않는다(수동 선택 유지). */
+      function heroForTheme() {
+        const list = heroesForTpl() || [];
+        const k = String(state.theme || "").toLowerCase();
+        if (!k) return null;
+        return (
+          list.find((h) => String(h.theme || "").toLowerCase() === k) || null
+        );
+      }
+      function applyThemeHero() {
+        if (state.heroUpload) return; // 직접 업로드한 이미지는 건드리지 않는다
+        const h = heroForTheme();
+        if (!h || h.url === state.heroUrl) return;
+        pickHero(h.url);
+      }
+
       async function pickHero(url) {
         /* ⚠ 예전에는 로드와 화면갱신이 한 try 안에 있어서,
            그리기 중 난 오류까지 "이미지 로드 실패"로 표시됐다.
