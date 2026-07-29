@@ -44,20 +44,37 @@ function rememberSeller(ko, en) {
   } catch (e) {}
 }
 
-/* 템플릿 01 은 High Summit(영문 전용)로 셀러명을 그린다.
-   그래서 템플릿에 따라 한글/영문을 자동으로 골라 넣는다.
-   (예전에는 한글을 넣으면 검증에서 에러가 났다) */
-function sellerFor(tpl) {
-  const ko = SESSION.sellerKo,
-    en = SESSION.sellerEn;
-  return String(tpl) === "01" ? en || ko : ko || en;
+/* 상단 셀러 알약(pill)은 뱀부·누볼라 모든 템플릿에서 항상 영문이다.
+   (2026-07 요청) 한글은 pill 이 아니라 히어로 타이틀 쪽에 들어간다. */
+function sellerFor() {
+  return SESSION.sellerEn || SESSION.sellerKo;
 }
+
+/* 히어로 타이틀의 "셀러 × 디어커스" 에서 앞부분을 한글 셀러명으로 바꾼다.
+   피그마에서 seller_name 레이어가 "× 디어커스" 와 오토레이아웃으로 묶인 그 자리다.
+   곱셈기호(×)가 없는 제목(예: NUVOLA FAMILY SET)은 건드리지 않는다. */
+function titleWithSeller(s) {
+  const ko = SESSION.sellerKo || SESSION.sellerEn;
+  if (!ko || !s || s.indexOf("×") < 0) return s;
+  return s.replace(/^[^×]*(?=×)/, ko + " ");
+}
+function applySellerToTitles() {
+  if (!SESSION.started) return;
+  state.t1 = titleWithSeller(state.t1);
+  state.t2 = titleWithSeller(state.t2);
+  const e1 = $("#t1"),
+    e2 = $("#t2");
+  if (e1) e1.value = state.t1 || "";
+  if (e2) e2.value = state.t2 || "";
+}
+
 function syncSellerField() {
   if (!SESSION.started) return;
-  const v = sellerFor(state.tpl);
+  const v = sellerFor();
   state.seller = v;
   const el = $("#seller");
   if (el) el.value = v;
+  applySellerToTitles();
   if (typeof checkSeller === "function") checkSeller();
 }
 
@@ -497,6 +514,12 @@ function startSession() {
   $("#d2").value = SESSION.d2;
   rememberSeller(SESSION.sellerKo, SESSION.sellerEn);
 
+  /* 한글 셀러명이 바뀌었으면 이미 열어본 제품군의 제목도 따라가야 한다 */
+  Object.values(SESSION.slots).forEach((s) => {
+    s.t1 = titleWithSeller(s.t1);
+    s.t2 = titleWithSeller(s.t2);
+  });
+
   $("#setup").hidden = true;
   const first = SESSION.groups[0];
   state.group = null; // gotoGroup 이 이전 슬롯을 저장하지 않도록
@@ -588,8 +611,7 @@ selectGroup = function (key) {
   if (sel)
     sel.addEventListener("input", () => {
       if (!SESSION.started) return;
-      if (String(state.tpl) === "01") SESSION.sellerEn = sel.value.trim();
-      else SESSION.sellerKo = sel.value.trim();
+      SESSION.sellerEn = sel.value.trim(); // pill 은 항상 영문
     });
 
   /* 시트 로딩이 끝난 뒤 제품군 목록을 다시 그린다 */

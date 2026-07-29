@@ -32,11 +32,22 @@
         const sel = state.colorPick[line] || [];
         return colorsOf(line).filter((c) => sel.includes(c.colorKey));
       }
-      /* 제품군 전환 시 전체 선택으로 초기화 */
+      /* 제품군 전환 시 기본 선택.
+         전체 선택이던 것을 실제 운영에서 쓰는 색만 켜지도록 바꿨다(2026-07 요청).
+         키즈  → 블랙 · 딥그린 · 핑크 · 화이트
+         성인  → 위 + 그레이 (그레이는 성인 줄에만 존재)
+         버터 · 아이스그레이 · 메론그린 은 꺼진 채로 시작하고 필요할 때 켠다.
+         라벨 완전일치로 비교한다("아이스그레이"가 "그레이"에 걸리지 않도록).
+         이 목록에 걸리는 색이 하나도 없으면(다른 제품군) 예전처럼 전체 선택. */
+      const COLOR_DEFAULT_ON = ["블랙", "딥그린", "핑크", "화이트", "그레이"];
       function resetColorPick() {
         state.colorPick = {};
         colorLines().forEach((l) => {
-          state.colorPick[l.key] = colorsOf(l.key).map((c) => c.colorKey);
+          const all = colorsOf(l.key);
+          const on = all.filter((c) =>
+            COLOR_DEFAULT_ON.includes(String(c.label || "").trim()),
+          );
+          state.colorPick[l.key] = (on.length ? on : all).map((c) => c.colorKey);
         });
       }
       /* 옵션 카드에 표시할 속성 목록.
