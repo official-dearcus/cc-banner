@@ -72,7 +72,6 @@ function flatten(doc) {
   return all;
 }
 const round = (n) => Math.round(n * 100) / 100;
-const pad2 = (n) => String(n).padStart(2, "0");
 
 /* 최상위 섹션(= 템플릿-포맷 단위) 모으기 */
 function sections(all) {
@@ -120,31 +119,18 @@ function structureChecks(all, cfg) {
     }
   }
 
-  /* (c) 슬라이드 번호는 _01 부터 빠짐없이 이어져야 한다.
-         총 장수는 옵션 개수에 따라 달라지므로 검사하지 않는다.
-         피그마의 장수는 "예시"일 뿐, 실제 장수는 시스템이 정한다. */
+  /* (c) 슬라이드 번호 빠짐·중복 (_01 _02 _03 _04) */
   for (const s of named.filter((s) => s.name.endsWith("-feed"))) {
     const nums = s.children
       .map((c) => (String(c.name).match(/_(\d+)$/) || [])[1])
-      .filter(Boolean)
-      .map(Number);
-    if (!nums.length) {
-      issues.push(["슬라이드", `${s.name}: 슬라이드가 하나도 없습니다`]);
-      continue;
-    }
+      .filter(Boolean);
     const dup = nums.filter((n, i) => nums.indexOf(n) !== i);
-    if (dup.length)
-      issues.push([
-        "슬라이드",
-        `${s.name}: _${[...new Set(dup)].map(pad2).join(", _")} 가 중복입니다`,
-      ]);
-    const max = Math.max(...nums);
-    const gaps = [];
-    for (let i = 1; i <= max; i++) if (!nums.includes(i)) gaps.push(pad2(i));
-    if (gaps.length)
-      issues.push(["슬라이드", `${s.name}: _${gaps.join(", _")} 가 없습니다 (_01~_${pad2(max)} 중)`]);
-    else if (!dup.length)
-      issues.push(["슬라이드", `${s.name}: ${max}장 (_01~_${pad2(max)}) — 예시 장수입니다`, "info"]);
+    if (dup.length) issues.push(["슬라이드", `${s.name}: _${dup.join(", _")} 가 중복입니다`]);
+    const want = Number(cfg.feedSlides || 4);
+    for (let i = 1; i <= want; i++) {
+      const k = String(i).padStart(2, "0");
+      if (!nums.includes(k)) issues.push(["슬라이드", `${s.name}: _${k} 가 없습니다`]);
+    }
   }
 
   /* (d) 템플릿 × 포맷 × 테마 커버리지 */
@@ -161,13 +147,13 @@ function structureChecks(all, cfg) {
     const have = cov[tpl]?.detail || [];
     const miss = cfg.themes.filter((t) => !have.includes(t));
     if (have.length && miss.length)
-      issues.push(["테마", `${tpl}-detail: ${miss.join(", ")} 원본이 없습니다 (코드가 파생시킨 색)`, "warn"]);
+      issues.push(["테마", `${tpl}-detail: ${miss.join(", ")} 원본이 없습니다 (코드가 파생시킨 색)`]);
   }
 
   /* (e) 이름이 기본값인 레이어 = 나중에 찾을 수 없다 */
   const generic = all.filter((n) => /^(Frame|Group|Rectangle|Ellipse|Vector)\s*\d*$/.test(n.name));
   if (generic.length)
-    issues.push(["이름", `기본 이름 레이어 ${generic.length}개 — 대조 대상으로 못 씁니다`, "info"]);
+    issues.push(["이름", `기본 이름 레이어 ${generic.length}개 (${[...new Set(generic.map((g) => g.name))].slice(0, 5).join(", ")}…)`]);
 
   return { issues, cov };
 }
@@ -184,22 +170,18 @@ function coordChecks(all, cfg) {
       continue;
     }
     const n = hits[0];
-    const tol = chk.tolerance ?? cfg.tolerance ?? 0.5;
-    /* expect = 값 하나만 맞아야 함
-       oneOf  = 여러 값 중 하나면 통과. 설계상 조건 분기가 있는 항목용.
-                예) 피드 마지막 장 카드 높이는 옵션 개수가 홀수면 520, 짝수면 468 */
-    const want = { ...(chk.expect || {}) };
-    for (const [field, w] of Object.entries(want)) {
+    for (const [field, want] of Object.entries(chk.expect)) {
       const got = n.rel?.[field];
-      const ok = got !== undefined && Math.abs(got - w) <= tol;
-      rows.push({ node: chk.node, field, fig: got ?? "?", code: String(w), ok,
-                  note: chk.note, diff: got === undefined ? "" : round(got - w) });
-    }
-    for (const [field, list] of Object.entries(chk.oneOf || {})) {
-      const got = n.rel?.[field];
-      const ok = got !== undefined && list.some((w) => Math.abs(got - w) <= tol);
-      rows.push({ node: chk.node, field, fig: got ?? "?", code: list.join(" 또는 "), ok,
-                  note: chk.note, diff: ok ? "" : "설계값 아님" });
+      const ok = got !== undefined && Math.abs(got - want) <= (cfg.tolerance ?? 0.5);
+      rows.push({
+        node: chk.node,
+        field,
+        fig: got === undefined ? "?" : String(got),
+        code: String(want),
+        ok,
+        note: chk.note,
+        diff: got === undefined ? "" : round(got - want),
+      });
     }
   }
   return rows;
@@ -216,10 +198,7 @@ function report(struct, coords, cfg) {
   console.log("\n■ 구조 검사");
   if (!struct.issues.length) console.log("  문제 없음 ✅");
   else
-    for (const [kind, msg, sev] of struct.issues) {
-      const mark = sev === "info" ? "ℹ️" : sev === "warn" ? "⚠️" : "❌";
-      console.log(`  ${mark} [${pad(kind, 8)}] ${msg}`);
-    }
+    for (const [kind, msg] of struct.issues) console.log(`  ❌ [${pad(kind, 8)}] ${msg}`);
 
   console.log("\n■ 좌표 대조");
   if (!coords.length) console.log("  (config 에 checks 가 없습니다)");
@@ -237,13 +216,9 @@ function report(struct, coords, cfg) {
     }
   }
 
-  const hard = struct.issues.filter((i) => !i[2]).length;
-  const soft = struct.issues.filter((i) => i[2]).length;
-  const bad = hard + coords.filter((r) => !r.ok).length;
+  const bad = struct.issues.length + coords.filter((r) => !r.ok).length;
   console.log("\n" + "-".repeat(64));
-  console.log(
-    bad ? `  고쳐야 할 것 ${bad}건` + (soft ? ` · 참고 ${soft}건` : "") : `  전부 일치 ✅` + (soft ? ` (참고 ${soft}건)` : ""),
-  );
+  console.log(bad ? `  손볼 곳 ${bad}건` : "  전부 일치 ✅");
   console.log("-".repeat(64) + "\n");
   return bad;
 }
