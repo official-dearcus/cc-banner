@@ -287,27 +287,38 @@
       function drawTplPreviews() {
         const g = G()[state.group];
         if (!g.templates.length) return;
+        /* ⚠ 예전에는 THEMES[t] 를 직접 읽었다.
+           THEMES 에는 "01","02" 밖에 없어서 누볼라 03 에서 undefined 가 되고
+           THEMES["03"][state.theme] 가 TypeError 로 터졌다.
+           그 예외가 pickHero 의 try 안에서 잡혀 "이미지 로드 실패"로 둔갑했다.
+           패밀리에 맞는 테마표(themeTable)와 렌더러(nvMain)를 쓰도록 고쳤다. */
+        const nv = typeof nvIsOn === "function" && nvIsOn();
+        const H = nv && typeof NV !== "undefined" ? NV.MAIN_H : SHARED.HERO_H;
         const off = document.createElement("canvas");
         off.width = 860;
-        off.height = SHARED.HERO_H;
+        off.height = H;
         const octx = off.getContext("2d");
         g.templates.forEach((t) => {
           const cv = document.querySelector(`[data-prev="${t}"]`);
           if (!cv) return;
-          const th =
-            THEMES[t][
-              THEMES[t][state.theme] ? state.theme : Object.keys(THEMES[t])[0]
-            ];
-          octx.clearRect(0, 0, 860, SHARED.HERO_H);
+          const tbl = themeTable(curFam(), t) || {};
+          const keys = Object.keys(tbl);
+          if (!keys.length) return; // 테마표가 없는 템플릿은 미리보기 생략
+          const th = tbl[tbl[state.theme] ? state.theme : keys[0]];
+          octx.clearRect(0, 0, 860, H);
           const saveT = state.tpl;
           state.tpl = t;
           try {
-            t === "01" ? hero01(octx, 860, th) : hero02(octx, 860, th);
-          } catch (e) {}
-          state.tpl = saveT;
+            if (nv) nvMain(octx, 860, th);
+            else t === "01" ? hero01(octx, 860, th) : hero02(octx, 860, th);
+          } catch (e) {
+            console.warn("템플릿 미리보기 실패", t, e);
+          } finally {
+            state.tpl = saveT; // 예외가 나도 현재 템플릿을 되돌린다
+          }
           const c = cv.getContext("2d");
           c.clearRect(0, 0, cv.width, cv.height);
-          c.drawImage(off, 0, 0, 860, SHARED.HERO_H, 0, 0, cv.width, cv.height);
+          c.drawImage(off, 0, 0, 860, H, 0, 0, cv.width, cv.height);
         });
       }
       function syncTplUI() {

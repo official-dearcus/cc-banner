@@ -218,8 +218,22 @@
         );
       }
       async function pickHero(url) {
+        /* ⚠ 예전에는 로드와 화면갱신이 한 try 안에 있어서,
+           그리기 중 난 오류까지 "이미지 로드 실패"로 표시됐다.
+           로드 실패만 잡고, 그리기 오류는 따로 드러나게 분리했다. */
+        let r;
         try {
-          const r = await loadImgSmart(url);
+          r = await loadImgSmart(url);
+        } catch (e) {
+          state.hero = null;
+          state.heroUrl = "";
+          state.heroTainted = false;
+          status("이미지 로드 실패 — URL이 잘못됐거나 만료됐습니다.", 1);
+          renderHeroList();
+          draw();
+          return;
+        }
+        try {
           state.hero = r.img;
           state.heroTainted = r.tainted;
           state.heroUrl = url;
@@ -236,11 +250,8 @@
             r.tainted ? 1 : 0,
           );
         } catch (e) {
-          state.hero = null;
-          state.heroUrl = "";
-          state.heroTainted = false;
-          status("이미지 로드 실패 — URL이 잘못됐거나 만료됐습니다.", 1);
-          renderHeroList();
-          draw();
+          /* 이미지는 멀쩡하다. 그리기에서 난 오류다 — 원인을 그대로 보여준다. */
+          console.error("히어로 적용 후 렌더 오류", e);
+          status(`이미지는 불러왔으나 그리기에서 오류: ${e.message || e}`, 1);
         }
       }
