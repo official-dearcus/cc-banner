@@ -69,9 +69,9 @@
         // colorBox: 컬러 칩을 흰 컨테이너로 감싸는가 · chipLabel: 칩 이름 색
         "01": { main: "photo", optDark: false, colorDark: true, colorBox: false,
                 chipLabel: "#ffffff", noticeKey: "noticeBg",
-                /* 컬러 안내 글자 = 테마 accent (요청 2026-07-29, pink #7c6055)
-                   .fig 01-green 은 흰색이라 그린도 함께 바뀐다 */
-                colorInkKey: "accent",
+                /* 컬러 섹션 글자(제목·키즈/성인·칩 이름)를 테마별 한 값으로 통일.
+                   green/pink/yellow = accent 계열, blue/orange/mint = 흰색 (요청 2026-07-29) */
+                colorInkKey: "t01ColorInk", chipLabelKey: "t01ColorInk",
                 optEyebrow: 36, optEyebrowLH: 40, optHeading: 56, optHeadingLH: 56,
                 colEyebrow: 36, colEyebrowLH: 40, colHeading: 56, colHeadingLH: 56,
                 headToList: 80,
