@@ -5,9 +5,12 @@
                           noticeBg #e1e5c6 · colorBg #b9ca7d
          나머지 5색은 뱀부 02 팔레트와 같은 톤으로 파생. */
       const THEMES_NUVOLA = {
+        /* discInk = 할인율 글자색. green 만 .fig 실측값(#254631)이 있고
+           나머지 5색은 피그마에 실물이 없어 accent 로 폴백한다. */
         green: { label: "그린", accent: "#65812d", badgeBorder: "#d0dfb1",
                  noticeBg: "#e1e5c6", colorBg: "#b9ca7d", colorBgLight: "#f0f3dd",
-                 pillBg: "#91a36e", titleColor: "#448122", mainBg: "#f8fbe1" },
+                 pillBg: "#91a36e", titleColor: "#448122", mainBg: "#f8fbe1",
+                 discInk: "#254631" },
         blue: { label: "블루", accent: "#2d6181", badgeBorder: "#b3c7da",
                 noticeBg: "#dbe6ee", colorBg: "#7d9eca", colorBgLight: "#eaf3f6",
                 pillBg: "#6e89a3", titleColor: "#1d5a80", mainBg: "#f6f9fe" },

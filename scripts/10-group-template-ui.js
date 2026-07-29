@@ -344,16 +344,11 @@
             : "화면 전체를 채웁니다. <b>글자 없는 연출컷</b>을 넣으세요.";
         checkSeller();
       }
+      /* ⚠ 예전에는 THEMES[tpl] 을 직접 읽었다. THEMES 에는 "01","02" 뿐이라
+         누볼라 03 에서 undefined 가 되고 .pink 를 읽다 터졌다.
+         같은 일을 이미 제대로 하는 themesForKey 로 합친다(중복 제거). */
       function themesFor(tpl) {
-        const g = G()[state.group];
-        const all = THEMES[tpl];
-        const f = g.themeFilter && g.themeFilter[tpl];
-        if (!f || !f.length) return all;
-        const out = {};
-        f.forEach((k) => {
-          if (all[k]) out[k] = all[k];
-        });
-        return Object.keys(out).length ? out : all;
+        return themesForKey(state.group, tpl) || {};
       }
       function renderThemes() {
         if (!state.tpl) {

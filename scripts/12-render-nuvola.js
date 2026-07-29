@@ -32,14 +32,23 @@
           padTop: 150, padBottom: 80, bodyX: 60, bodyW: 740,
           eyebrowSize: 36, eyebrowLineH: 40, headGap: 28, headingSize: 56,
           headToList: 80, listGap: 20,
-          // .fig 기본 360 → 위아래 여유를 위해 410 (이미지도 함께 확대)
+          /* .fig 실측 (node 72:42 option_01) — 2026-07 재확인
+             card 720×360 = [box-img 320] gap36 [text 342], pb 20
+             text 열: py28, 위 name-wrap / 아래 price-wrap (justify-between) */
           cardH: 410, imgX: 10, imgY: 10, imgW: 320, imgH: 390,
-          optX: 366, optW: 342, optGap: 36,
+          optX: 356, optW: 342, optGap: 36,
           badgeH: 36, badgeW: 120, badgeSize: 20, nameGap: 16,
-          nameSize: 32, nameLineH: 40, txtOptW: 250, txtOptGap: 24,
-          vlLabelW: 48, vlColGap: 8, vlValW: 194, vlRowH: 48, vlRowGap: 8, vlSize: 18,
+          /* 제품명은 342 전체 폭을 쓴다. 예전엔 250 으로 좁혀놓고 그 옆에
+             할인율 원을 그려서, 이름이 두 줄로 접히고 배지와 겹쳤다. */
+          nameSize: 32, nameLineH: 40, txtOptW: 342, txtOptGap: 24,
+          vlLabelW: 53, vlColGap: 8, vlValW: 281, vlRowH: 24, vlRowGap: 8, vlSize: 18,
+          /* 할인율 — .fig 는 원이 아니라 80×80 정사각형.
+             배경 = 테마 sectionBg(연한색), 글자 = 테마 accent(진한색), Gmarket Sans */
           discD: 80, discSize: 28,
-          priceH: 82, priceRowH: 36, priceGap: 10,
+          /* 가격줄 — .fig 에 "정상가/혜택가" 라벨은 없다.
+             [할인율 80] gap20 [혜택가 Bold28] gap16 [정상가 Regular20 취소선] */
+          priceH: 80, priceGapX: 20, priceNumGap: 16,
+          priceRowH: 36, priceGap: 10,
           normalSize: 20, saleSize: 28,
           noticeH: 80, noticeSize: 24, sizeInfoH: 552,
         },
@@ -244,7 +253,13 @@
         ctx.fillRect(0, M.bar.y, W, M.bar.h);
         ctx.fillStyle = "#fff"; ctx.textAlign = "center";
         ctx.font = `400 ${M.bar.copySize}px Pretendard`;
-        const c1 = trkWidth(ctx, state.copy, -0.64);
+        /* 일반 문구와 볼드 문구가 붙어 나오던 것 수정 —
+           .fig 는 둘 사이에 한 칸 띈다. 시트 값에 공백이 있으면 중복하지 않는다. */
+        const gap1 =
+          /\s$/.test(state.copy || "") || /^\s/.test(state.copyBold || "")
+            ? 0
+            : ctx.measureText(" ").width;
+        const c1 = trkWidth(ctx, state.copy, -0.64) + gap1;
         ctx.font = `700 ${M.bar.copySize}px Pretendard`;
         const c2 = trkWidth(ctx, state.copyBold, -0.64);
         let bx = (W - (c1 + c2)) / 2, bcy = M.bar.y + M.bar.h / 2;
@@ -370,43 +385,42 @@
           );
           vy += rowHs[i] + O.vlRowGap;
         });
-        // 할인율 원
+        /* 가격줄 — .fig node 72:53 option_price-wrap 그대로
+           [discount_rate 80×80 사각] gap20 [혜택가 Bold28 #333] gap16 [정상가 Regular20 #666 취소선]
+           예전 코드는 할인율을 제품명 옆 원으로 그리고 정상가/혜택가 라벨을 붙였는데,
+           .fig 에는 그런 라벨이 없고 할인율도 가격줄 왼쪽 사각형이다. */
         const d = disc(r.normal, r.sale);
-        // .fig: discount_rate @(262,0) → box-top 상단 정렬 (제품명 첫 줄과 맞춤)
-        const dx = ix + O.txtOptW + 12, dy = btY;
-        ctx.fillStyle = th.accent;
-        ctx.beginPath();
-        ctx.arc(dx + O.discD / 2, dy + O.discD / 2, O.discD / 2, 0, 7);
-        ctx.fill();
-        ctx.fillStyle = "#fff";
+        const py = iy + nameWrapH + O.optGap;
+        const pcy = py + O.priceH / 2;
+
+        // 할인율 — 사각형, 배경 연한색 / 글자 진한색
+        ctx.fillStyle = th.colorBgLight || th.sectionBg || "#f0f3dd";
+        ctx.fillRect(ix, py, O.discD, O.discD);
+        ctx.fillStyle = th.discInk || th.accent;
         ctx.font = `700 ${O.discSize}px GmarketSans, Pretendard`;
         ctx.textAlign = "center";
-        trk(ctx, d != null ? d + "%" : "—", dx + O.discD / 2, dy + O.discD / 2, -0.5, "center");
-        // 가격
-        const G0 = nvG();
-        const py = iy + nameWrapH + O.optGap;
-        const pcy = py + O.priceRowH / 2;
+        trk(ctx, d != null ? d + "%" : "—", ix + O.discD / 2, pcy, -0.56, "center");
+
+        // 혜택가 → 정상가(취소선) 순서로 왼쪽부터
         ctx.textAlign = "left";
+        let px2 = ix + O.discD + O.priceGapX;
+        ctx.fillStyle = "#333333";
+        ctx.font = `700 ${O.saleSize}px Pretendard`;
+        const saleTxt = won(r.sale);
+        trk(ctx, saleTxt, px2, pcy, -0.56, "left");
+        px2 += trkWidth(ctx, saleTxt, -0.56) + O.priceNumGap;
+
         ctx.fillStyle = "#666666";
-        // .fig: 정상가 라벨 SemiBold / 값 Regular + 취소선
-        ctx.font = `600 ${O.normalSize}px Pretendard`;
-        trk(ctx, G0.normalLabel || "정상가", ix, pcy, -0.4, "left");
         ctx.font = `400 ${O.normalSize}px Pretendard`;
         const npTxt = won(r.normal);
-        trk(ctx, npTxt, ix + O.optW, pcy, -0.4, "right");
+        trk(ctx, npTxt, px2, pcy, -0.4, "left");
         const npW = trkWidth(ctx, npTxt, -0.4);
         ctx.strokeStyle = "#666666";
         ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.moveTo(ix + O.optW - npW, pcy);
-        ctx.lineTo(ix + O.optW, pcy);
+        ctx.moveTo(px2, pcy);
+        ctx.lineTo(px2 + npW, pcy);
         ctx.stroke();
-        const py2 = py + O.priceRowH + O.priceGap;
-        ctx.fillStyle = "#333333";
-        ctx.font = `600 ${O.saleSize}px Pretendard`;
-        trk(ctx, G0.saleLabel || "혜택가", ix, py2 + O.priceRowH / 2, -0.56, "left");
-        ctx.font = `700 ${O.saleSize}px Pretendard`;
-        trk(ctx, won(r.sale), ix + O.optW, py2 + O.priceRowH / 2, -0.56, "right");
         ctx.textBaseline = "alphabetic";
       }
 
@@ -421,7 +435,7 @@
         const C = nvCfg();
         const optInk = nvOnDark("option") ? "#ffffff" : th.accent;
         ctx.fillStyle = optInk;
-        ctx.font = `400 ${C.optEyebrow}px 'Playfair Display'`;
+        ctx.font = `400 ${C.optEyebrow}px 'High Summit'`; // .fig: 손글씨 스크립트체
         ctx.fillText("option info.", cx, oy + O.padTop + C.optEyebrowLH / 2);
         ctx.font = `600 ${C.optHeading}px Pretendard`;
         ctx.fillText(
@@ -493,8 +507,8 @@
         ctx.fillStyle = ink;
         const C = nvCfg();
         ctx.fillStyle = ink;
-        ctx.font = `400 ${C.colEyebrow}px 'Playfair Display'`;
-        ctx.fillText("color info.", cx, top + K.txtY + C.colEyebrowLH / 2);
+        ctx.font = `400 ${C.colEyebrow}px 'High Summit'`; // .fig: 손글씨 스크립트체
+        ctx.fillText("Color info.", cx, top + K.txtY + C.colEyebrowLH / 2);
         ctx.font = `600 ${C.colHeading}px Pretendard`;
         ctx.fillText(
           nvTitle("color"),
