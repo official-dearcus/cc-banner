@@ -135,11 +135,15 @@
            01 카드 x=60 w=740 · img +10,+10 320×340 · 텍스트 +366
            02 카드 x=70 w=720 · img  +0, +0 320×340 · 텍스트 +356
            03 카드 x=70 w=720 · img +380,+20 320×320 · 텍스트  +20 */
-        "01": { style: "labels", txtOptW: 250, discGap: 12, priceH: 82,
-                vlLabelW: 48, vlValW: 194, fTxtW: 324,
+        /* .fig 2026-07-29 재실측 (이전 값은 7/24 파일 기준이라 어긋나 있었다)
+             option        카드 +(366, 29) 342×302
+             price-wrap    카드 +(366,249) 342×82  → 249+82=331, 카드360 → 하단 29
+             텍스트 블록    가로 324 (Color/Size 값 최대폭 = 324 - 라벨48 - 간격8 = 268) */
+        "01": { style: "labels", txtOptW: 324, discGap: 12, priceH: 82,
+                vlLabelW: 48, vlValW: 268, fTxtW: 324,
                 /* 01 은 카드에 선이 없다 (.fig) */
                 cardDX: 0, cardW: 740, imgDX: 10, imgDY: 10, imgH: 340, optDX: 366,
-                textDY: 29, priceDY: 273,
+                textDY: 29, priceDY: 249,
                 /* .fig feed(01): 카드 960×468, img card+10,+10 416×448, 텍스트 card+474 */
                 fTextDY: 46, fPriceDY: 316, fImgDX: 10, fImgDY: 10,
                 fImgW: 416, fImgH: 448, fOptDX: 474, fOptW: 448 },
