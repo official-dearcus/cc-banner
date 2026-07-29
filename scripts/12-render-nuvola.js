@@ -782,13 +782,13 @@
         ctx.fillText(C.colorEyebrow || "Color info.", cx, top + K.txtY + C.colEyebrowLH / 2);
         ctx.fillStyle = ink;
         ctx.font = `${C.headWeight || 600} ${C.colHeading}px ${C.headFont}`;
-        nvHeadShadow(ctx, C.headShadow);
+        /* .fig: 그림자는 상세의 "NUVOLA OPTION" 한 곳에만 있다.
+           컬러 제목과 피드에는 없다. */
         ctx.fillText(
           nvTitle("color"),
           cx,
           top + K.txtY + C.colEyebrowLH + K.txtGap + (C.colHeadingLH || C.colHeading) / 2,
         );
-        nvClearShadow(ctx);
         // 줄별 색상명
         let ly = top + K.txtY + M.headH + K.txtGap;
         for (const r of M.rows) {
@@ -1123,9 +1123,8 @@
         ctx.fillText(eyebrow, W / 2, y + O.eyebrowLH / 2);
         ctx.fillStyle = headInk;
         ctx.font = `${C.headWeight || 600} ${O.heading}px ${C.headFont}`;
-        nvHeadShadow(ctx, C.headShadow);
+        /* 피드에는 그림자가 없다 (.fig feed_02 / feed_04) */
         ctx.fillText(nvTitle(kind), W / 2, y + O.eyebrowLH + O.headGap + O.headingLH / 2);
-        nvClearShadow(ctx);
         ctx.textBaseline = "alphabetic";
       }
 
