@@ -35,7 +35,9 @@
           /* .fig 실측 (node 72:42 option_01) — 2026-07 재확인
              card 720×360 = [box-img 320] gap36 [text 342], pb 20
              text 열: py28, 위 name-wrap / 아래 price-wrap (justify-between) */
-          cardH: 410, imgX: 10, imgY: 10, imgW: 320, imgH: 390,
+          /* .fig 실측: 카드 360 높이, 세로 간격 380(=360+20).
+             예전엔 410 이라 카드가 50px 씩 부풀고 간격도 벌어져 있었다. */
+          cardH: 360, imgX: 10, imgY: 10, imgW: 320, imgH: 340,
           optX: 356, optW: 342, optGap: 36,
           badgeH: 36, badgeW: 120, badgeSize: 20, nameGap: 16,
           /* 제품명은 342 전체 폭을 쓴다. 예전엔 250 으로 좁혀놓고 그 옆에
@@ -114,12 +116,18 @@
          03          : 02 와 같은 방식
          ⚠ 하나로 통일하면 안 된다. 2026-07 에 02 기준으로 덮었다가 01 이 깨졌다. */
       const NV_CARD = {
+        /* 카드 기하는 .fig 절대좌표에서 뽑았다 (섹션 왼쪽 기준)
+           01 카드 x=60 w=740 · img +10,+10 320×340 · 텍스트 +366
+           02 카드 x=70 w=720 · img  +0, +0 320×340 · 텍스트 +356
+           03 카드 x=70 w=720 · img +380,+20 320×320 · 텍스트  +20 */
         "01": { style: "labels", txtOptW: 250, discGap: 12, priceH: 82,
-                vlLabelW: 48, vlValW: 194, fTxtW: 324 },
+                vlLabelW: 48, vlValW: 194, fTxtW: 324,
+                cardDX: 0, cardW: 740, imgDX: 10, imgDY: 10, imgH: 340, optDX: 366 },
         "02": { style: "inline", txtOptW: 342, priceH: 80,
                 vlLabelW: 53, vlValW: 281, fTxtW: 456,
                 discBgKey: "colorBgLight", discInk: null,
-                saleInk: "#333333", normalInk: "#666666" },
+                saleInk: "#333333", normalInk: "#666666",
+                cardDX: 10, cardW: 720, imgDX: 0, imgDY: 0, imgH: 340, optDX: 356 },
         /* 03 은 02 와 구조는 같지만 색과 이미지 위치가 다르다 (.fig 2026-07-29)
            - box-img 가 오른쪽(@380), 텍스트가 왼쪽
            - 할인율 배경 accent(#65812d) + 흰 글자   (02 는 연한 배경 + 진한 글자)
@@ -127,7 +135,8 @@
         "03": { style: "inline", txtOptW: 342, priceH: 100,
                 vlLabelW: 60, vlValW: 274, fTxtW: 456,
                 imgRight: true, discBgKey: "accent", discInk: "#ffffff",
-                saleInk: "titleColor", normalInk: "#999999" },
+                saleInk: "titleColor", normalInk: "#999999",
+                cardDX: 10, cardW: 720, imgDX: 380, imgDY: 20, imgH: 320, optDX: 20 },
       };
       function nvCard5() { return NV_CARD[state.tpl] || NV_CARD["02"]; }
       function nvOnDark(which) {
@@ -360,16 +369,19 @@
       /* ── 옵션 카드 (740×360) ── */
       function nvCard(ctx, r, x, top, th) {
         const O = NV.opt;
-        ctx.fillStyle = "#fff"; ctx.fillRect(x, top, O.bodyW, O.cardH);
-        ctx.fillStyle = "#f8f8f8";
-        /* 03 은 이미지가 오른쪽, 텍스트가 왼쪽이다 (.fig box-img @380) */
         const CS0 = nvCard5();
-        const imgLeft = CS0.imgRight ? x + O.optX + O.optW + O.optGap - O.imgW : x + O.imgX;
-        ctx.fillRect(imgLeft, top + O.imgY, O.imgW, O.imgH);
+        const cx0 = x + (CS0.cardDX || 0);
+        const cw0 = CS0.cardW || O.bodyW;
+        ctx.fillStyle = "#fff"; ctx.fillRect(cx0, top, cw0, O.cardH);
+        ctx.fillStyle = "#f8f8f8";
+        const imgLeft = cx0 + (CS0.imgDX ?? O.imgX);
+        const imgTop = top + (CS0.imgDY ?? O.imgY);
+        const imgH0 = CS0.imgH || O.imgH;
+        ctx.fillRect(imgLeft, imgTop, O.imgW, imgH0);
         if (r.thumb)
-          drawThumbCover(ctx, r.thumb, imgLeft, top + O.imgY, O.imgW, O.imgH);
+          drawThumbCover(ctx, r.thumb, imgLeft, imgTop, O.imgW, imgH0);
 
-        const ix = CS0.imgRight ? x + O.imgX : x + O.optX;
+        const ix = cx0 + (CS0.optDX ?? O.optX);
         const badgeOn = r.badge !== "none";
         // 내용 측정 → 높이 계산
         _mc.font = `600 ${O.nameSize}px Pretendard`;
@@ -649,8 +661,12 @@
         feedH: 1350,
         bar: { y: 1250, h: 100, dateSize: 44 },
         // 옵션 슬라이드
-        opt: { headX: 60, headY: 100, headW: 960,
-               eyebrow: 40, eyebrowLH: 53, headGap: 20, heading: 72, headingLH: 76,
+        /* .fig feed_02/03 실측 (2026-07-29)
+           txt-section_title @(60,118) 960×152
+             txt-sub  960×52 @(0,0)   High Summit 52px
+             heading  960×72 @(0,80)  Gmarket Sans Bold 72px */
+        opt: { headX: 60, headY: 118, headW: 960,
+               eyebrow: 52, eyebrowLH: 52, headGap: 28, heading: 72, headingLH: 72,
                listX: 60, listY: 309, listW: 960, cardH: 468, listGap: 20,
                imgX: 10, imgY: 10, imgW: 416, imgH: 448,
                optX: 474, optW: 448, optGap: 47,
@@ -663,10 +679,12 @@
                /* 할인율 — .fig 는 108×108 정사각형, Gmarket Sans 36 */
                discD: 108, discSize: 36, priceGapX: 24, priceNumGap: 20,
                priceRowH: 47, priceGap: 12, normalSize: 28, saleSize: 40 },
-        // 사이즈 안내 슬라이드
-        // boxX: .fig 는 40 이라 20px 틀어져 있어 가운데(60)로 보정
-        size: { headY: 90, boxX: 60, boxY: 309, boxW: 960, boxH: 956,
-                imgY: 20, imgH: 717, ntW: 880, ntH: 115, ntY: 801, ntSize: 32 },
+        /* 사이즈 안내 슬라이드 — .fig Frame6 @(60,330) 960×960 (흰 박스)
+             size_info @(0,20)  960×717
+             Frame 7   @(40,805) 880×115  bg #f4f4f4
+           옵션 슬라이드와 박스 위치가 달라 두 장이 어긋나 보였다(309 vs 330). */
+        size: { headY: 118, boxX: 60, boxY: 330, boxW: 960, boxH: 960,
+                imgY: 20, imgH: 717, ntW: 880, ntH: 115, ntY: 805, ntSize: 32 },
         // 02·03 전용
         t02: { titleX: 88, titleY: 130, titleW: 900, blockGap: 48,
                pillH: 60, pillPadL: 24, pillGap: 20, sellerSize: 32, xSize: 44,
@@ -690,7 +708,7 @@
                 size1: 60, size2: 120, lineH: 92, dateSize: 48,
                 grid: { x: 60, y: 430, w: 960, h: 570, pad: 20, cw: 455, ch: 260, gx: 10, gy: 10 } },
         // 02·03 옵션 슬라이드: 흰 컨테이너로 카드 감쌈
-        optBox: { x: 60, y: 330, w: 960, pad: 20, cardW: 920, cardH: 460, gap: 20 },
+        optBox: { x: 60, y: 330, w: 960, h: 960, pad: 20, cardW: 920, cardH: 460, gap: 20 },
         // 컬러 슬라이드
         color: { txtX: 40, txtY: 115, txtW: 1000, txtGap: 36,
                  eyebrow: 40, eyebrowLH: 53, headGap: 20, heading: 72, headingLH: 76,
@@ -875,11 +893,18 @@
         const O = NVF.opt;
         if (onDark === undefined) onDark = nvOnDark(kind);
         ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        const C = nvCfg();
         ctx.fillStyle = onDark ? "#ffffff" : th.accent;
-        ctx.font = `400 ${O.eyebrow}px 'Playfair Display'`;
-        ctx.fillText(kind === "color" ? "color info." : "option info.", W / 2, y + O.eyebrowLH / 2);
-        ctx.font = `600 ${O.heading}px Pretendard`;
+        /* 상세와 같은 템플릿별 글꼴을 쓴다.
+           여기만 Playfair 로 고정돼 있어서 02·03 피드가 01 글꼴로 나왔다. */
+        ctx.font = `400 ${O.eyebrow}px ${C.eyeFont}`;
+        const eyebrow =
+          kind === "color" ? C.colorEyebrow || "Color info." : "option info.";
+        ctx.fillText(eyebrow, W / 2, y + O.eyebrowLH / 2);
+        ctx.font = `${C.headWeight || 600} ${O.heading}px ${C.headFont}`;
+        nvHeadShadow(ctx, C.headShadow);
         ctx.fillText(nvTitle(kind), W / 2, y + O.eyebrowLH + O.headGap + O.headingLH / 2);
+        nvClearShadow(ctx);
         ctx.textBaseline = "alphabetic";
       }
 
@@ -1101,9 +1126,9 @@
           if (nvCfg().optDark) {
             // 02·03: 진한 배경 위에 흰 컨테이너, 그 안에 카드
             const B = NVF.optBox;
-            const bh = B.pad * 2 + p.rows.length * B.cardH + (p.rows.length - 1) * B.gap;
+            /* .fig 는 960 고정. 카드 수로 계산하면 사이즈 슬라이드(960)와 높이가 달라진다. */
             ctx.fillStyle = "#ffffff";
-            ctx.fillRect(B.x, B.y, B.w, bh);
+            ctx.fillRect(B.x, B.y, B.w, B.h);
             let y = B.y + B.pad;
             for (const r of p.rows) {
               nvfCard(ctx, r, B.x + B.pad, y, th, B.cardW, B.cardH);
