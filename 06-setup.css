@@ -1,0 +1,110 @@
+/* CC 배너 제너레이터 — 05-stage */
+      .stage {
+        background: repeating-conic-gradient(#eceaf3 0% 25%, transparent 0% 50%)
+          50%/16px 16px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 12px;
+        box-shadow: var(--shadow);
+        max-height: calc(100vh - 170px);
+        overflow: auto;
+      }
+      #preview {
+        display: block;
+        border-radius: 4px;
+        background: #fff;
+      }
+      .stage-bar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        max-width: 660px;
+        justify-content: space-between;
+      }
+      .zoom {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        color: var(--ink-soft);
+      }
+      .actions {
+        display: flex;
+        gap: 8px;
+      }
+      .btn {
+        font: inherit;
+        font-size: 13px;
+        font-weight: 500;
+        border-radius: 9px;
+        padding: 10px 16px;
+        cursor: pointer;
+        border: 1px solid var(--line);
+        background: #fff;
+        color: var(--ink);
+      }
+      .btn.primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+      }
+      .btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      .warnbox {
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-size: 12px;
+        line-height: 1.5;
+        margin-bottom: 8px;
+      }
+      .warnbox.err {
+        background: #fdecea;
+        color: #8a2015;
+      }
+      .warnbox.warn {
+        background: #fdf3d9;
+        color: #7a5a00;
+      }
+      .warnbox.ok {
+        background: #e7f6ee;
+        color: #155e3b;
+      }
+      .warnbox b {
+        display: block;
+        margin-bottom: 2px;
+      }
+      .hist {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 9px 10px;
+        margin-bottom: 8px;
+        cursor: pointer;
+        font-size: 12px;
+        background: #fff;
+      }
+      .hist:hover {
+        border-color: var(--accent);
+        background: var(--accent-weak);
+      }
+      .hist .s {
+        color: var(--ink-soft);
+        font-size: 11px;
+        margin-top: 2px;
+      }
+      .empty {
+        font-size: 12px;
+        color: var(--ink-soft);
+        line-height: 1.6;
+        padding: 8px 4px;
+      }
+      ::-webkit-scrollbar {
+        width: 10px;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #dcd8e6;
+        border-radius: 8px;
+        border: 3px solid var(--panel);
+      }

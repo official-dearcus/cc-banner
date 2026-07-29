@@ -1,0 +1,43 @@
+/* CC 배너 제너레이터 — 01-tokens */
+      /* High Summit — assets/high-summit.woff2 로 분리 (dafont, 개인·상업 무료, fsType 0)
+   base64 내장을 풀어 별도 파일로 뺐다 → HTML 이 가벼워지고 폰트는 1년 캐시된다. */
+      @font-face {
+        font-family: "High Summit";
+        src: url("../assets/high-summit.woff2") format("woff2");
+        font-weight: 400;
+        font-display: block;
+      }
+      @font-face {
+        font-family: "GmarketSans";
+        font-weight: 700;
+        src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansBold.woff")
+          format("woff");
+        font-display: swap;
+      }
+
+      :root {
+        --ink: #1c1b22;
+        --ink-soft: #54525f;
+        --line: #e5e2ec;
+        --paper: #f6f4f0;
+        --panel: #fff;
+        --accent: #5b3fd6;
+        --accent-weak: #efeafb;
+        --err: #c0392b;
+        --shadow:
+          0 1px 2px rgba(28, 27, 34, 0.04), 0 8px 30px rgba(28, 27, 34, 0.06);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+      }
+      body {
+        font-family: Pretendard, system-ui, sans-serif;
+        color: var(--ink);
+        background: var(--paper);
+        -webkit-font-smoothing: antialiased;
+      }
