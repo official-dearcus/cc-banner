@@ -84,7 +84,8 @@
                 colEyebrow: 48, colEyebrowLH: 53, colHeading: 72,
                 /* .fig 79:553 — 03 은 Afacad Flux (index.html 에서 로드) */
                 eyeFont: "'Afacad Flux', 'Playfair Display'",
-                headFont: "'Afacad Flux', Pretendard", headWeight: 600 },
+                headFont: "'Afacad Flux', Pretendard", headWeight: 600,
+                colorEyebrow: "color info." },  // 03 은 소문자 (02 는 "Color info.")
       };
       /* 섹션 배경 헬퍼 */
       function nvOptBg(th) {
@@ -116,9 +117,17 @@
         "01": { style: "labels", txtOptW: 250, discGap: 12, priceH: 82,
                 vlLabelW: 48, vlValW: 194, fTxtW: 324 },
         "02": { style: "inline", txtOptW: 342, priceH: 80,
-                vlLabelW: 53, vlValW: 281, fTxtW: 456 },
-        "03": { style: "inline", txtOptW: 342, priceH: 80,
-                vlLabelW: 53, vlValW: 281, fTxtW: 456 },
+                vlLabelW: 53, vlValW: 281, fTxtW: 456,
+                discBgKey: "colorBgLight", discInk: null,
+                saleInk: "#333333", normalInk: "#666666" },
+        /* 03 은 02 와 구조는 같지만 색과 이미지 위치가 다르다 (.fig 2026-07-29)
+           - box-img 가 오른쪽(@380), 텍스트가 왼쪽
+           - 할인율 배경 accent(#65812d) + 흰 글자   (02 는 연한 배경 + 진한 글자)
+           - 혜택가 titleColor(#448122) / 정상가 #999999 */
+        "03": { style: "inline", txtOptW: 342, priceH: 100,
+                vlLabelW: 60, vlValW: 274, fTxtW: 456,
+                imgRight: true, discBgKey: "accent", discInk: "#ffffff",
+                saleInk: "titleColor", normalInk: "#999999" },
       };
       function nvCard5() { return NV_CARD[state.tpl] || NV_CARD["02"]; }
       function nvOnDark(which) {
@@ -353,11 +362,14 @@
         const O = NV.opt;
         ctx.fillStyle = "#fff"; ctx.fillRect(x, top, O.bodyW, O.cardH);
         ctx.fillStyle = "#f8f8f8";
-        ctx.fillRect(x + O.imgX, top + O.imgY, O.imgW, O.imgH);
+        /* 03 은 이미지가 오른쪽, 텍스트가 왼쪽이다 (.fig box-img @380) */
+        const CS0 = nvCard5();
+        const imgLeft = CS0.imgRight ? x + O.optX + O.optW + O.optGap - O.imgW : x + O.imgX;
+        ctx.fillRect(imgLeft, top + O.imgY, O.imgW, O.imgH);
         if (r.thumb)
-          drawThumbCover(ctx, r.thumb, x + O.imgX, top + O.imgY, O.imgW, O.imgH);
+          drawThumbCover(ctx, r.thumb, imgLeft, top + O.imgY, O.imgW, O.imgH);
 
-        const ix = x + O.optX;
+        const ix = CS0.imgRight ? x + O.imgX : x + O.optX;
         const badgeOn = r.badge !== "none";
         // 내용 측정 → 높이 계산
         _mc.font = `600 ${O.nameSize}px Pretendard`;
@@ -465,25 +477,25 @@
         } else {
           /* ── 02 · 03 (.fig 72:53) ── */
           const pcy = py + O.discD / 2;
-          ctx.fillStyle = th.colorBgLight || th.sectionBg || "#f0f3dd";
+          ctx.fillStyle = th[CS.discBgKey] || th.colorBgLight || "#f0f3dd";
           ctx.fillRect(ix, py, O.discD, O.discD);
-          ctx.fillStyle = th.discInk || th.accent;
+          ctx.fillStyle = CS.discInk || th.discInk || th.accent;
           ctx.font = `700 ${O.discSize}px GmarketSans, Pretendard`;
           ctx.textAlign = "center";
           trk(ctx, d != null ? d + "%" : "—", ix + O.discD / 2, pcy, -0.56, "center");
           ctx.textAlign = "left";
           let px2 = ix + O.discD + O.priceGapX;
-          ctx.fillStyle = "#333333";
+          ctx.fillStyle = th[CS.saleInk] || CS.saleInk || "#333333";
           ctx.font = `700 ${O.saleSize}px Pretendard`;
           const saleTxt = won(r.sale);
           trk(ctx, saleTxt, px2, pcy, -0.56, "left");
           px2 += trkWidth(ctx, saleTxt, -0.56) + O.priceNumGap;
-          ctx.fillStyle = "#666666";
+          ctx.fillStyle = CS.normalInk || "#666666";
           ctx.font = `400 ${O.normalSize}px Pretendard`;
           const npTxt = won(r.normal);
           trk(ctx, npTxt, px2, pcy, -0.4, "left");
           const npW = trkWidth(ctx, npTxt, -0.4);
-          ctx.strokeStyle = "#666666";
+          ctx.strokeStyle = CS.normalInk || "#666666";
           ctx.lineWidth = 1.5;
           ctx.beginPath();
           ctx.moveTo(px2, pcy);
@@ -579,7 +591,7 @@
         const C = nvCfg();
         ctx.fillStyle = ink;
         ctx.font = `400 ${C.colEyebrow}px ${C.eyeFont}`;
-        ctx.fillText("Color info.", cx, top + K.txtY + C.colEyebrowLH / 2);
+        ctx.fillText(C.colorEyebrow || "Color info.", cx, top + K.txtY + C.colEyebrowLH / 2);
         ctx.font = `${C.headWeight || 600} ${C.colHeading}px ${C.headFont}`;
         nvHeadShadow(ctx, C.headShadow);
         ctx.fillText(
