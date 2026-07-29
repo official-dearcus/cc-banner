@@ -149,3 +149,28 @@ PNG(ZIP)로 내려받는 사내 도구입니다.
 - Pretendard · Playfair Display · GmarketSans 는 외부 CDN 에서 받아옵니다. 오프라인이면 대체 서체로 표시됩니다.
 - 저장소를 Public 으로 두면 `PRESET` 의 시트·프록시 URL 이 공개됩니다.
   민감하면 저장소를 Private 으로 두세요. (Vercel 은 Private 저장소도 무료로 배포합니다)
+
+---
+
+## 6. 피그마 대조 (tools/figma-check.mjs)
+
+피그마와 코드가 어긋난 곳을 찾아 표로 보여줍니다. **고치지는 않습니다.**
+
+```bash
+export FIGMA_TOKEN=figd_xxxxx          # 최초 1회
+node tools/figma-check.mjs
+```
+
+토큰은 figma.com → 프로필 → 설정 → 보안 → 개인 액세스 토큰에서 만듭니다.
+
+- 구조 검사는 설정 없이 자동입니다 (섹션 중복, 이름 오염, 슬라이드 누락, 테마 커버리지)
+- 좌표 대조는 `tools/figma-check.config.json` 의 `checks` 를 봅니다.
+  **`expect` 숫자는 코드가 쓰는 값**이므로, 코드 상수를 고치면 여기도 같이 고쳐야 합니다
+- 어긋난 게 있으면 종료 코드 1 — CI 에 붙일 수 있습니다
+
+오프라인 검사:
+
+```bash
+node tools/figma-check.mjs --json fig.json   # 받아서 저장
+node tools/figma-check.mjs --from fig.json   # 저장한 걸로 검사
+```
