@@ -62,7 +62,6 @@
           state.heroUrl = h.url;
           state.heroUpload = false;
           renderHeroList();
-          schedTplPreviews(true);
           draw();
         } catch (e) {
           /* 실패 시 히어로 없이 진행 */
@@ -308,9 +307,44 @@
           drawTplPreviews(all ? null : state.tpl);
         });
       }
+      /* 템플릿 카드용 히어로 — 그 템플릿에 등록된 첫 히어로.
+         없으면 제품군의 첫 히어로. 현재 선택 상태에 의존하지 않으므로
+         히어로를 바꿔도 카드가 흔들리지 않는다. */
+      const TPL_HERO = {};
+      function tplHeroImg(t) {
+        const g = G()[state.group];
+        if (!g) return null;
+        const save = state.tpl;
+        state.tpl = t;
+        let list = [];
+        try { list = heroesForTpl() || []; } catch (e) {}
+        state.tpl = save;
+        const url = (list[0] || (g.heroes || [])[0] || {}).url;
+        if (!url) return null;
+        if (url in TPL_HERO) return TPL_HERO[url];
+        TPL_HERO[url] = null; // 로딩 중
+        if (typeof loadImgSmart === "function")
+          loadImgSmart(url)
+            .then((r) => {
+              TPL_HERO[url] = r.img;
+              _tplSig = ""; // 캐시 무효화 후 한 번만 다시 그린다
+              schedTplPreviews(false);
+            })
+            .catch(() => {});
+        return null;
+      }
+
+      /* 같은 제품군·템플릿·폭이면 다시 그리지 않는다.
+         예전에는 셀러명 한 글자, 히어로 교체마다 카드를 새로 그려서
+         카드가 계속 바뀌고 렉의 원인이 됐다. */
+      let _tplSig = "";
       function drawTplPreviews(only) {
         const g = G()[state.group];
         if (!g.templates.length) return;
+        const cv0 = document.querySelector("[data-prev]");
+        const sig = [state.group, g.templates.join(","), state.theme, cv0 ? cv0.width : 0].join("|");
+        if (!only && sig === _tplSig) return; // 바뀐 게 없으면 건너뛴다
+        if (!only) _tplSig = sig;
         /* ⚠ 예전에는 THEMES[t] 를 직접 읽었다.
            THEMES 에는 "01","02" 밖에 없어서 누볼라 03 에서 undefined 가 되고
            THEMES["03"][state.theme] 가 TypeError 로 터졌다.
@@ -331,8 +365,11 @@
           if (!keys.length) return; // 테마표가 없는 템플릿은 미리보기 생략
           const th = tbl[tbl[state.theme] ? state.theme : keys[0]];
           octx.clearRect(0, 0, 860, H);
-          const saveT = state.tpl;
+          const saveT = state.tpl,
+            saveHero = state.hero;
           state.tpl = t;
+          const own = tplHeroImg(t);
+          if (own) state.hero = own;
           try {
             if (nv) nvMain(octx, 860, th);
             else t === "01" ? hero01(octx, 860, th) : hero02(octx, 860, th);
@@ -340,6 +377,7 @@
             console.warn("템플릿 미리보기 실패", t, e);
           } finally {
             state.tpl = saveT; // 예외가 나도 현재 템플릿을 되돌린다
+            state.hero = saveHero;
           }
           const c = cv.getContext("2d");
           c.clearRect(0, 0, cv.width, cv.height);
@@ -398,7 +436,7 @@
                 renderThemes();
                 /* HeroMaster 의 theme 열에 매핑된 히어로가 있으면 자동 교체 */
                 if (typeof applyThemeHero === "function") applyThemeHero();
-                schedTplPreviews(true);
+                schedTplPreviews(false); // 테마는 카드 색이 바뀌므로 전체 갱신
                 draw();
               }),
           );

@@ -257,7 +257,6 @@
           state.heroUrl = url;
           state.heroUpload = false;
           renderHeroList();
-          schedTplPreviews(true);
           draw();
           status(
             r.tainted

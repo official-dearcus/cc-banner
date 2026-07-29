@@ -6,18 +6,15 @@
       $("#seller").oninput = (e) => {
         state.seller = e.target.value.trim();
         checkSeller();
-        schedTplPreviews(true);
         draw();
         saveCfg();
       };
       $("#t1").oninput = (e) => {
         state.t1 = e.target.value;
-        schedTplPreviews(true);
         draw();
       };
       $("#t2").oninput = (e) => {
         state.t2 = e.target.value;
-        schedTplPreviews(true);
         draw();
       };
       $("#copy").oninput = (e) => {
@@ -70,8 +67,7 @@
             state.heroUpload = true;
             state.heroTainted = false;
             renderHeroList();
-            schedTplPreviews(true);
-            draw();
+              draw();
           } catch (x) {
             status("이미지 로드 실패", 1);
           }
@@ -85,7 +81,6 @@
         state.heroUpload = false;
         state.heroTainted = false;
         renderHeroList();
-        schedTplPreviews(true);
         draw();
       };
       $("#zoom").oninput = (e) => {
