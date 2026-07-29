@@ -1,110 +1,155 @@
-/* CC 배너 제너레이터 — 05-stage */
-      .stage {
-        background: repeating-conic-gradient(#eceaf3 0% 25%, transparent 0% 50%)
-          50%/16px 16px;
+/* CC 배너 제너레이터 — 03-controls */
+      input[type="text"],
+      input[type="date"],
+      input[type="url"] {
+        width: 100%;
+        padding: 11px 13px;
         border: 1px solid var(--line);
-        border-radius: 14px;
-        padding: 12px;
-        box-shadow: var(--shadow);
-        max-height: calc(100vh - 170px);
-        overflow: auto;
-      }
-      #preview {
-        display: block;
-        border-radius: 4px;
+        border-radius: 10px;
+        font: inherit;
+        font-size: 14px;
         background: #fff;
+        outline: none;
+        color: var(--ink);
       }
-      .stage-bar {
+      input:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px var(--accent-weak);
+      }
+      input.bad {
+        border-color: var(--err);
+        box-shadow: 0 0 0 3px #fdecea;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+      }
+      .row > * {
+        flex: 1;
+        min-width: 0;
+      }
+      .hint {
+        font-size: 12px;
+        color: var(--ink-soft);
+        margin-top: 6px;
+        line-height: 1.55;
+      }
+      .hint.err {
+        color: var(--err);
+      }
+      .seg {
+        display: flex;
+        gap: 6px;
+      }
+      .seg button {
+        flex: 1;
+        padding: 11px;
+        border: 1.5px solid var(--line);
+        border-radius: 10px;
+        background: #fff;
+        font: inherit;
+        font-size: 13px;
+        cursor: pointer;
+        color: var(--ink-soft);
+      }
+      .seg button.on {
+        border-color: var(--accent);
+        background: var(--accent-weak);
+        color: var(--accent);
+        font-weight: 600;
+      }
+      .swatches {
+        display: flex;
+        gap: 8px;
+      }
+      .secdiv {
         display: flex;
         align-items: center;
         gap: 10px;
-        width: 100%;
-        max-width: 660px;
-        justify-content: space-between;
-      }
-      .zoom {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 12px;
+        margin: 26px 0 18px;
         color: var(--ink-soft);
       }
-      .actions {
-        display: flex;
-        gap: 8px;
+      .secdiv::before,
+      .secdiv::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--line);
       }
-      .btn {
-        font: inherit;
-        font-size: 13px;
-        font-weight: 500;
-        border-radius: 9px;
-        padding: 10px 16px;
-        cursor: pointer;
+      .secdiv span {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .scalesel {
+        display: inline-flex;
         border: 1px solid var(--line);
-        background: #fff;
-        color: var(--ink);
+        border-radius: 8px;
+        overflow: hidden;
       }
-      .btn.primary {
+      .scalesel button {
+        padding: 7px 12px;
+        border: none;
+        background: #fff;
+        font: inherit;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        color: var(--ink-soft);
+      }
+      .scalesel button.on {
         background: var(--accent);
-        border-color: var(--accent);
         color: #fff;
       }
-      .btn:disabled {
-        opacity: 0.45;
-        cursor: not-allowed;
+      .scalesel button + button {
+        border-left: 1px solid var(--line);
       }
-      .warnbox {
-        border-radius: 10px;
-        padding: 10px 12px;
-        font-size: 12px;
-        line-height: 1.5;
-        margin-bottom: 8px;
-      }
-      .warnbox.err {
-        background: #fdecea;
-        color: #8a2015;
-      }
-      .warnbox.warn {
-        background: #fdf3d9;
-        color: #7a5a00;
-      }
-      .warnbox.ok {
-        background: #e7f6ee;
-        color: #155e3b;
-      }
-      .warnbox b {
-        display: block;
-        margin-bottom: 2px;
-      }
-      .hist {
+      /* 좌우로 넓게 — 세 버튼이 한 줄에 들어가고 글자가 접히지 않는다 */
+      .fmttabs {
+        display: flex;
+        gap: 4px;
+        margin-bottom: 10px;
+        width: 100%;
+        max-width: 620px;
+        background: var(--panel);
+        padding: 6px;
         border: 1px solid var(--line);
-        border-radius: 10px;
-        padding: 9px 10px;
-        margin-bottom: 8px;
+        border-radius: 12px;
+      }
+      .fmttabs button {
+        flex: 1 1 0;
+        min-width: 0;
+        padding: 12px 10px;
+        border: none;
+        border-radius: 9px;
+        background: transparent;
+        font: inherit;
+        font-size: 15px;
+        font-weight: 600;
+        white-space: nowrap;
         cursor: pointer;
-        font-size: 12px;
-        background: #fff;
-      }
-      .hist:hover {
-        border-color: var(--accent);
-        background: var(--accent-weak);
-      }
-      .hist .s {
         color: var(--ink-soft);
-        font-size: 11px;
-        margin-top: 2px;
       }
-      .empty {
-        font-size: 12px;
-        color: var(--ink-soft);
-        line-height: 1.6;
-        padding: 8px 4px;
+      .fmttabs button.on {
+        background: var(--accent);
+        color: #fff;
       }
-      ::-webkit-scrollbar {
-        width: 10px;
+      .feedstage {
+        width: 100%;
       }
-      ::-webkit-scrollbar-thumb {
-        background: #dcd8e6;
+      #feedScroll {
+        display: flex;
+        gap: 14px;
+        overflow-x: auto;
+        padding: 6px 2px 14px;
+        scroll-snap-type: x mandatory;
+      }
+      #feedScroll .feedslide {
+        flex: none;
+        border: 1px solid var(--line);
         border-radius: 8px;
-        border: 3px solid var(--panel);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+        scroll-snap-align: start;
+        background: #fff;
       }

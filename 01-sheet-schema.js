@@ -1,161 +1,470 @@
-/* CC 배너 제너레이터 — 08-panel-ui
+/* CC 배너 제너레이터 — 07-sheet-sync
    원본 index.html 에서 기능별로 분리. 로드 순서가 곧 실행 순서다. */
-      /* 이미지별 CORS 실측 — 캔버스가 요구하는 것과 동일한 조건(crossOrigin=anonymous)으로 확인 */
-      function probeCors(url) {
-        return new Promise((res) => {
-          const t0 = performance.now();
-          const i = new Image();
-          i.crossOrigin = "anonymous";
-          const done = (ok) =>
-            res({ url, ok, ms: Math.round(performance.now() - t0) });
-          i.onload = () => done(true);
-          i.onerror = () => done(false);
-          i.src = url + (url.includes("?") ? "&" : "?") + "_cc=" + Date.now(); // 캐시 우회
-        });
+      /* 시트 레코드 → 제너레이터 GROUPS 형태로 변환 */
+      function applySheet(sheetGroups) {
+        const out = {};
+        for (const g of Object.values(sheetGroups)) {
+          const tpls = g.templates
+            .map((t) => {
+              const pt = tplParts(t.templateId);
+              const tbl = themeTable(pt.fam, pt.key);
+              return {
+                key: pt.key,
+                fam: pt.fam,
+                label: t.templateLabel || tplMeta(pt.fam, pt.key).label,
+                themes:
+                  t.themes && t.themes.length
+                    ? t.themes.filter((x) => tbl[x])
+                    : null,
+                heroTitle: t.heroTitle || [],
+                bottomCopy: t.bottomCopy || "",
+                bottomCopyBold: t.bottomCopyBold || "",
+                gridUrls: t.gridUrls || [],
+                noticeText: t.noticeText || "",
+                sizeInfoUrl: t.sizeInfoUrl || "",
+                optionTitle: t.optionTitle || "",
+                colorTitle: t.colorTitle || "",
+              };
+            })
+            .filter((t) => Object.keys(themeTable(t.fam, t.key)).length);
+          out[g.key] = {
+            label: g.label,
+            family: (tpls[0] && tpls[0].fam) || "bamboo",
+            templates: tpls.map((t) => t.key),
+            themeFilter: Object.fromEntries(tpls.map((t) => [t.key, t.themes])),
+            labelOverride: Object.fromEntries(
+              tpls.map((t) => [t.key, t.label]),
+            ),
+            titleByTpl: Object.fromEntries(
+              tpls.map((t) => [t.key, t.heroTitle]),
+            ),
+            copyByTpl: Object.fromEntries(
+              tpls.map((t) => [
+                t.key,
+                { c: t.bottomCopy, b: t.bottomCopyBold },
+              ]),
+            ),
+            gridByTpl: Object.fromEntries(
+              tpls.map((t) => [t.key, t.gridUrls]),
+            ),
+            noticeByTpl: Object.fromEntries(
+              tpls.map((t) => [t.key, t.noticeText]),
+            ),
+            sizeInfoByTpl: Object.fromEntries(
+              tpls.map((t) => [t.key, t.sizeInfoUrl]),
+            ),
+            optionTitleByTpl: Object.fromEntries(
+              tpls.map((t) => [t.key, t.optionTitle]),
+            ),
+            colorTitleByTpl: Object.fromEntries(
+              tpls.map((t) => [t.key, t.colorTitle]),
+            ),
+            seriesTitle: g.seriesTitle,
+            optionTitleEn: g.optionTitleEn,
+            heroUrl: g.heroUrl,
+            heroes: g.heroes || [],
+            colors: g.colors || [],
+            noticeText: g.noticeText || "",
+            sizeInfoUrl: g.sizeInfoUrl || "",
+            colorTitle: g.colorTitle || "",
+            series: g.seriesTitle,
+            seller: "",
+            t1: "",
+            t2: "",
+            t1_02: "",
+            t2_02: "",
+            copy: "",
+            copyBold: "",
+            rows: g.rows.map((r) => ({
+              name: r.name,
+              optionInfo: r.optionInfo || [],
+              normal: r.normalPrice,
+              sale: r.salePrice,
+              badge: r.badge || "none",
+              colorLine: r.colorLine || "",
+              thumbUrl: r.thumbUrl || "",
+              thumb: null,
+              thumbSrc: "",
+            })),
+          };
+        }
+        return out;
       }
-      $("#corsTest").onclick = async () => {
-        const box = $("#proxyResult"),
-          btn = $("#corsTest");
-        const list = [];
-        heroesForTpl().forEach((h) => list.push({ tag: "히어로", url: h.url }));
-        state.rows.forEach((r) => {
-          if (r.thumbUrl) list.push({ tag: "썸네일", url: r.thumbUrl });
+
+      function showSheetErrors(errors, okMsg) {
+        const box = $("#sheetErr");
+        if (!errors.length) {
+          box.innerHTML = okMsg
+            ? `<div class="warnbox ok"><b>${okMsg}</b></div>`
+            : "";
+          return;
+        }
+        // 같은 코드끼리 묶어 요청자 문구는 1번, 관리자 상세는 접어서
+        const byCode = {};
+        errors.forEach((e) => {
+          (byCode[e.code] = byCode[e.code] || []).push(e);
         });
-        if (!list.length) {
-          box.innerHTML = `<div class="warnbox warn"><b>검사할 URL이 없습니다</b>시트에 이미지 URL을 넣고 불러오세요.</div>`;
+        box.innerHTML = Object.entries(byCode)
+          .map(([code, list]) => {
+            const isWarn = code === "E301";
+            const rows = list.filter((e) => e.row).map((e) => e.row);
+            const where = rows.length
+              ? ` (${rows.length > 4 ? rows.slice(0, 4).join(", ") + " 외 " + (rows.length - 4) + "건" : "행 " + rows.join(", ")})`
+              : "";
+            return `<div class="warnbox ${isWarn ? "warn" : "err"}">
+      <b>${list[0].user}${where}</b>
+      <details><summary>관리자용 상세 [${code}]</summary>
+        <div class="errdetail">${list.map((e) => `${e.row ? "행 " + e.row + ": " : ""}${e.admin}`).join("<br/>")}</div>
+      </details></div>`;
+          })
+          .join("");
+      }
+
+      /* fetch 실패 원인 구분:
+   - CORS/네트워크 차단 → TypeError (status 조회 불가) → E104
+   - 서버 응답은 왔는데 권한/부재 → E102
+   - 그 외 HTTP 오류 → E101 */
+      async function safeFetch(url) {
+        let r;
+        try {
+          r = await fetch(url, { redirect: "follow" });
+        } catch (e) {
+          throw mkErr("E104", `${e.name}: ${e.message} @ ${url}`);
+        }
+        if (!r.ok)
+          throw mkErr(
+            r.status === 403 || r.status === 404 ? "E102" : "E101",
+            `HTTP ${r.status} ${r.statusText} @ ${url}`,
+          );
+        return r;
+      }
+      async function fetchCsv(url) {
+        const r = await safeFetch(url);
+        const t = await r.text();
+        if (/^\s*<!DOCTYPE|<html/i.test(t))
+          throw mkErr("E102", `HTML 반환 — 게시/공유 설정 확인 @ ${url}`);
+        if (!t.trim()) throw mkErr("E103", `빈 응답 @ ${url}`);
+        return t;
+      }
+
+      /* ---- 입력값 해석 (§1.1.1) ----
+   아래 3가지를 모두 받아들인다:
+     1) 게시 URL  : .../spreadsheets/d/e/2PACX-.../pubhtml
+     2) 편집 URL  : .../spreadsheets/d/{docId}/edit
+     3) 문서 ID   : {docId} 만
+*/
+      function parseSheetInput(v) {
+        const s = String(v || "").trim();
+        let m = s.match(/\/d\/e\/([A-Za-z0-9_-]+)/);
+        if (m) return { mode: "pub", id: m[1] };
+        m = s.match(/\/d\/([A-Za-z0-9_-]{20,})/);
+        if (m) return { mode: "gviz", id: m[1] };
+        if (/^2PACX-[A-Za-z0-9_-]+$/.test(s)) return { mode: "pub", id: s };
+        if (/^[A-Za-z0-9_-]{20,}$/.test(s)) return { mode: "gviz", id: s };
+        return null;
+      }
+      const pubHtmlUrl = (id) =>
+        `https://docs.google.com/spreadsheets/d/e/${id}/pubhtml`;
+      const pubCsvUrl = (id, gid) =>
+        `https://docs.google.com/spreadsheets/d/e/${id}/pub?gid=${gid}&single=true&output=csv`;
+
+      /* 게시 문서의 탭 목록(이름→gid) 조회 — pubhtml 의 sheet-menu 파싱 */
+      async function fetchPubTabs(id) {
+        const r = await safeFetch(pubHtmlUrl(id));
+        const html = await r.text();
+        const map = {};
+        const re = /sheet-button-(\d+)"[^>]*>\s*<a[^>]*>([^<]+)<\/a>/g;
+        let m;
+        while ((m = re.exec(html))) map[m[2].trim()] = m[1];
+        if (!Object.keys(map).length) {
+          // 탭이 1개면 sheet-menu 가 없음 → gid=0 단일
+          if (/<table/i.test(html)) return { _single: "0" };
+          throw mkErr("E103", "pubhtml 에서 탭 목록을 찾지 못했습니다");
+        }
+        return map;
+      }
+      async function fetchPubTabCsv(id, tabs, name) {
+        const gid =
+          tabs[name] ??
+          (tabs._single && Object.keys(tabs).length === 1
+            ? tabs._single
+            : null);
+        if (gid == null)
+          throw mkErr(
+            "E110",
+            `"${name}" 탭 없음 (게시된 탭: ${Object.keys(tabs)
+              .filter((k) => k[0] !== "_")
+              .join(", ")})`,
+          );
+        return fetchCsv(pubCsvUrl(id, gid));
+      }
+      function rowsToCsv(header, rows) {
+        const esc = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+        return [
+          header.map(esc).join(","),
+          ...rows.map((r) => r.map(esc).join(",")),
+        ].join("\n");
+      }
+
+      async function syncSheet() {
+        const btn = $("#syncBtn");
+        btn.disabled = true;
+        btn.textContent = "불러오는 중…";
+        try {
+          let pCsv,
+            tCsv,
+            hCsv = "",
+            cCsv = "";
+          if (src.mode === "csv" && src.csv === "manual") {
+            const uP = $("#urlP").value.trim(),
+              uT = $("#urlT").value.trim(),
+              uH = $("#urlH").value.trim(),
+              uC = $("#urlC").value.trim();
+            if (!uP || !uT)
+              throw mkErr(
+                "E101",
+                "ProductMaster / TemplateMaster CSV URL을 입력하세요",
+              );
+            pCsv = await fetchCsv(uP);
+            tCsv = await fetchCsv(uT);
+            if (uH) {
+              try {
+                hCsv = await fetchCsv(uH);
+              } catch (e) {
+                hCsv = "";
+              }
+            }
+            if (uC) {
+              try {
+                cCsv = await fetchCsv(uC);
+              } catch (e) {
+                cCsv = "";
+              }
+            }
+          } else if (src.mode === "csv") {
+            const inp = parseSheetInput($("#docId").value);
+            if (!inp) throw mkErr("E101", "문서 ID 또는 게시 URL을 입력하세요");
+            const nP = $("#tabP").value.trim() || "ProductMaster";
+            const nT = $("#tabT").value.trim() || "TemplateMaster";
+            const nH = $("#tabH").value.trim() || "HeroMaster";
+            const nC = $("#tabC").value.trim() || "ColorMaster";
+            if (inp.mode === "pub") {
+              const tabs = await fetchPubTabs(inp.id);
+              pCsv = await fetchPubTabCsv(inp.id, tabs, nP);
+              tCsv = await fetchPubTabCsv(inp.id, tabs, nT);
+              try {
+                hCsv = await fetchPubTabCsv(inp.id, tabs, nH);
+              } catch (e) {
+                hCsv = "";
+              }
+              try {
+                cCsv = await fetchPubTabCsv(inp.id, tabs, nC);
+              } catch (e) {
+                cCsv = "";
+              }
+            } else {
+              pCsv = await fetchCsv(sheetCsvUrl(inp.id, nP));
+              tCsv = await fetchCsv(sheetCsvUrl(inp.id, nT));
+              try {
+                hCsv = await fetchCsv(sheetCsvUrl(inp.id, nH));
+              } catch (e) {
+                hCsv = "";
+              }
+              try {
+                cCsv = await fetchCsv(sheetCsvUrl(inp.id, nC));
+              } catch (e) {
+                cCsv = "";
+              }
+            }
+          } else {
+            const u = $("#gasUrl").value.trim();
+            if (!u) throw mkErr("E101", "Apps Script URL 미입력");
+            const r = await fetch(u, { redirect: "follow" });
+            if (!r.ok)
+              throw mkErr(
+                r.status === 401 || r.status === 403 ? "E102" : "E101",
+                `HTTP ${r.status}`,
+              );
+            const j = await r.json();
+            if (!j.ok)
+              throw mkErr(j.code || "E101", j.message || "Apps Script 오류");
+            pCsv = rowsToCsv(j.ProductMaster.header, j.ProductMaster.rows);
+            tCsv = rowsToCsv(j.TemplateMaster.header, j.TemplateMaster.rows);
+            if (j.HeroMaster && j.HeroMaster.header.length)
+              hCsv = rowsToCsv(j.HeroMaster.header, j.HeroMaster.rows);
+            if (j.ColorMaster && j.ColorMaster.header.length)
+              cCsv = rowsToCsv(j.ColorMaster.header, j.ColorMaster.rows);
+          }
+          const P = parseSheet(pCsv, "ProductMaster");
+          const T = parseSheet(tCsv, "TemplateMaster");
+          const H = hCsv
+            ? parseSheet(hCsv, "HeroMaster")
+            : { rows: [], errors: [] };
+          const C = cCsv
+            ? parseSheet(cCsv, "ColorMaster")
+            : { rows: [], errors: [] };
+          const B = buildGroups(P.rows, T.rows, KNOWN_TPL, H.rows, C.rows);
+          const errs = [
+            ...P.errors,
+            ...T.errors,
+            ...H.errors,
+            ...C.errors,
+            ...B.errors,
+          ];
+          if (!Object.keys(B.groups).length) {
+            showSheetErrors(
+              errs.length ? errs : [mkErr("E103", "유효한 제품 행 없음")],
+            );
+            return;
+          }
+          SHEET_GROUPS = applySheet(B.groups);
+          src.syncedAt = new Date();
+          saveCfg();
+          cfgHint();
+          srcState();
+          const first = Object.keys(SHEET_GROUPS)[0];
+          initGroups(false);
+          selectGroup(first);
+          const hard = errs.filter((e) => e.code !== "E301");
+          showSheetErrors(
+            errs,
+            hard.length
+              ? null
+              : `동기화 완료 — 제품군 ${Object.keys(SHEET_GROUPS).length}개 · 옵션 ${P.rows.length}행` +
+                (C.rows.length ? ` · 색상 ${C.rows.length}개` : " · 색상 없음"),
+          );
+          srcHint();
+        } catch (e) {
+          const err = e.code ? e : mkErr("E101", String(e.message || e));
+          // 자동(pubhtml) 경로가 CORS로 막히면 → 직접 URL 모드로 전환 안내
+          if (err.code === "E104" && src.mode === "csv" && src.csv === "auto") {
+            $("#csvManual").click();
+            showSheetErrors([err]);
+            $("#sheetErr").insertAdjacentHTML(
+              "afterbegin",
+              `<div class="warnbox warn"><b>[탭별 URL 직접]으로 전환했습니다</b>
+         자동 탐색은 구글이 CORS를 막아 사용할 수 없습니다.<br/>
+         <b>파일 → 공유 → 웹에 게시</b>에서 <b>탭을 하나씩 고르고 형식을 CSV</b>로 게시한 뒤,
+         나오는 <code>...output=csv</code> 주소를 아래에 붙여넣으세요.</div>`,
+            );
+            return;
+          }
+          showSheetErrors([err]);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "시트 불러오기";
+        }
+      }
+
+      let SHEET_GROUPS = null;
+      const G = () => SHEET_GROUPS || GROUPS;
+
+      function srcState() {
+        const el = $("#srcState");
+        if (!el) return;
+        el.textContent =
+          src.mode === "sample"
+            ? "내장 샘플"
+            : src.syncedAt
+              ? `연결됨 · ${src.syncedAt.toLocaleTimeString("ko-KR")}`
+              : "미연결";
+      }
+      function srcHint() {
+        const h = $("#srcHint");
+        if (src.mode === "sample") {
+          h.innerHTML = "코드에 내장된 뱀부500 데이터로 동작합니다.";
+          return;
+        }
+        const t = src.syncedAt
+          ? `마지막 동기화: ${src.syncedAt.toLocaleTimeString("ko-KR")}`
+          : "아직 불러오지 않았습니다.";
+        h.innerHTML =
+          src.mode !== "csv"
+            ? `${t}<br/>시트는 비공개로 유지됩니다. 조직 계정으로 로그인되어 있어야 합니다.`
+            : src.csv === "manual"
+              ? `${t}<br/><b>파일 → 공유 → 웹에 게시</b>에서 <b>탭 하나씩 선택 + 형식 CSV</b>로 게시하면 나오는 주소를 각각 붙여넣으세요.<br/>(<code>.../pub?gid=...&single=true&output=csv</code>)`
+              : `${t}<br/>게시 URL 또는 문서 ID를 붙여넣으면 탭을 자동으로 찾습니다.<br/>실패하면 <b>[탭별 URL 직접]</b>을 쓰세요.`;
+      }
+      $("#srcSeg")
+        .querySelectorAll("button")
+        .forEach(
+          (b) =>
+            (b.onclick = () => {
+              src.mode = b.dataset.s;
+              $("#srcSeg")
+                .querySelectorAll("button")
+                .forEach((x) => x.classList.toggle("on", x === b));
+              $("#srcCsv").hidden = src.mode !== "csv";
+              $("#srcGas").hidden = src.mode !== "gas";
+              $("#syncRow").hidden = src.mode === "sample";
+              if (src.mode === "sample") {
+                SHEET_GROUPS = null;
+                showSheetErrors([]);
+                initGroups(false);
+                selectGroup("bamboo500");
+              }
+              srcHint();
+            }),
+        );
+      $("#csvAuto").onclick = () => {
+        src.csv = "auto";
+        $("#csvAuto").classList.add("on");
+        $("#csvManual").classList.remove("on");
+        $("#csvAutoBox").hidden = false;
+        $("#csvManualBox").hidden = true;
+        srcHint();
+      };
+      $("#csvManual").onclick = () => {
+        src.csv = "manual";
+        $("#csvManual").classList.add("on");
+        $("#csvAuto").classList.remove("on");
+        $("#csvAutoBox").hidden = true;
+        $("#csvManualBox").hidden = false;
+        srcHint();
+      };
+      $("#proxyUrl").onchange = () => {
+        saveCfg();
+        cfgHint();
+        state.rows.forEach((r) => {
+          r.thumb = null;
+          r.thumbTainted = false;
+        });
+        const u = state.heroUrl;
+        state.hero = null;
+        state.heroTainted = false;
+        loadSheetImages().then(() => {
+          if (u) pickHero(u);
+        });
+        status("이미지 프록시 설정을 적용했습니다.");
+      };
+      $("#proxyTest").onclick = async () => {
+        const box = $("#proxyResult"),
+          btn = $("#proxyTest");
+        const base = $("#proxyUrl").value.trim();
+        if (!base) {
+          box.innerHTML = `<div class="warnbox err"><b>프록시 URL을 입력하세요</b></div>`;
+          return;
+        }
+        const sample =
+          heroesForTpl()[0]?.url ||
+          state.heroUrl ||
+          (state.rows.find((r) => r.thumbUrl) || {}).thumbUrl;
+        if (!sample) {
+          box.innerHTML = `<div class="warnbox warn"><b>테스트할 이미지 URL이 없습니다</b>HeroMaster에 이미지를 등록한 뒤 다시 시도하세요.</div>`;
           return;
         }
         btn.disabled = true;
-        btn.textContent = "검사 중…";
-        box.innerHTML = `<div class="warnbox warn"><b>${list.length}개 검사 중…</b></div>`;
-        const out = [];
-        for (const it of list) {
-          const r = await probeCors(it.url);
-          out.push({ ...it, ...r });
-        }
-        const okN = out.filter((o) => o.ok).length;
-        const rows = out
-          .map(
-            (o) => `<tr><td>${o.ok ? "✅" : "❌"}</td><td>${o.tag}</td>
-      <td style="word-break:break-all">${esc(o.url.replace(/^https?:\/\/[^/]+/, ""))}</td></tr>`,
-          )
-          .join("");
-
-        // 프록시가 설정돼 있으면 직접 로드 실패는 치명적이지 않다 — 실제로 프록시로 되는지까지 확인
-        const hasProxy = !!($("#proxyUrl").value || "").trim();
-        let proxyOk = null;
-        if (okN < out.length && hasProxy) {
-          try {
-            await loadViaProxy(out.find((o) => !o.ok).url);
-            proxyOk = true;
-          } catch (e) {
-            proxyOk = false;
-            PROXY_ERR = String(e.message || e);
-          }
-        }
-        let kind, head, note;
-        if (okN === out.length) {
-          kind = "ok";
-          head = "전부 CORS 통과 — PNG 저장 가능";
-          note = "프록시 없이 직접 로드됩니다.";
-        } else if (proxyOk === true) {
-          kind = "ok";
-          head = `직접 로드는 차단되지만 프록시로 해결됨 — PNG 저장 가능`;
-          note =
-            "서버에 CORS 헤더가 없어 아래는 전부 ❌지만, 프록시가 중계하므로 저장에 문제 없습니다.";
-        } else if (proxyOk === false) {
-          kind = "err";
-          head = "차단 + 프록시도 실패 — PNG 저장 불가";
-          note = `프록시 오류: ${esc(PROXY_ERR || "")}`;
-        } else {
-          kind = "err";
-          head = `직접 로드 차단 (${okN}/${out.length} 통과)`;
-          note =
-            "서버가 CORS 헤더를 보내지 않습니다. <b>이미지 프록시 URL</b>을 설정하면 우회할 수 있습니다.";
-        }
-        box.innerHTML = `<div class="warnbox ${kind}"><b>${head}</b>
-    <div style="margin-bottom:4px">${note}</div>
-    <details><summary>파일별 직접 로드 결과 (${okN}/${out.length})</summary>
-      <table class="corstbl">${rows}</table></details></div>`;
-        btn.disabled = false;
-        btn.textContent = "이미지 CORS 진단";
-      };
-      $("#srcToggle").onclick = () => {
-        const b = $("#srcBody");
-        b.hidden = !b.hidden;
-      };
-      $("#fmtTabs")
-        .querySelectorAll("button")
-        .forEach((b) => (b.onclick = () => switchFmt(b.dataset.f)));
-
-      /* 편집 패널 폭 드래그 조절 (localStorage 유지) */
-      (function () {
-        const MIN = 380,
-          MAX = 900,
-          KEY = "cc-leftw";
+        btn.textContent = "테스트 중…";
+        box.innerHTML = `<div class="warnbox warn"><b>확인 중…</b>${esc(sample)}</div>`;
         try {
-          const w = +localStorage.getItem(KEY);
-          if (w >= MIN && w <= MAX)
-            document.documentElement.style.setProperty("--leftw", w + "px");
-        } catch (e) {}
-        const rz = $("#resizer");
-        if (!rz) return;
-        let dragging = false;
-        const onMove = (e) => {
-          if (!dragging) return;
-          const x = e.touches ? e.touches[0].clientX : e.clientX;
-          let w = Math.round(Math.min(MAX, Math.max(MIN, x)));
-          document.documentElement.style.setProperty("--leftw", w + "px");
-          renderFmt(); // 미리보기 폭 갱신
-        };
-        const end = () => {
-          if (!dragging) return;
-          dragging = false;
-          rz.classList.remove("drag");
-          document.body.style.userSelect = "";
-          document.body.style.cursor = "";
-          const w = parseInt(
-            getComputedStyle(document.documentElement).getPropertyValue(
-              "--leftw",
-            ),
-          );
-          try {
-            localStorage.setItem(KEY, w);
-          } catch (e) {}
-          draw();
-          schedTplPreviews(false); // 폭이 바뀌면 전부 다시
-        };
-        const start = (e) => {
-          dragging = true;
-          rz.classList.add("drag");
-          document.body.style.userSelect = "none";
-          document.body.style.cursor = "col-resize";
-          e.preventDefault();
-        };
-        rz.addEventListener("mousedown", start);
-        rz.addEventListener("touchstart", start, { passive: false });
-        window.addEventListener("mousemove", onMove);
-        window.addEventListener("touchmove", onMove, { passive: false });
-        window.addEventListener("mouseup", end);
-        window.addEventListener("touchend", end);
-        // 더블클릭 = 기본값 복원
-        rz.addEventListener("dblclick", () => {
-          document.documentElement.style.setProperty("--leftw", "600px");
-          try {
-            localStorage.setItem(KEY, 600);
-          } catch (e) {}
-          draw();
-          schedTplPreviews(false); // 폭이 바뀌면 전부 다시
-          renderFmt();
-        });
-      })();
-      $("#syncBtn").onclick = syncSheet;
-      $("#cfgClear").onclick = () => {
-        clearCfg();
-        CFG_FIELDS.forEach((f) => {
-          const el = $("#" + f);
-          if (el && !/^tab/.test(f)) el.value = "";
-        });
-        cfgHint();
-        status("저장된 접속 설정을 지웠습니다.");
+          await loadViaProxy(sample);
+          box.innerHTML = `<div class="warnbox ok"><b>프록시 정상</b>이미지를 중계로 불러왔습니다. PNG 저장이 가능합니다.</div>`;
+        } catch (e) {
+          box.innerHTML = `<div class="warnbox err"><b>프록시 실패</b>
+      <div class="errdetail">${esc(String(e.message || e))}</div>
+      <div style="margin-top:6px">테스트 대상: ${esc(sample)}</div></div>`;
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "프록시 테스트";
+        }
       };

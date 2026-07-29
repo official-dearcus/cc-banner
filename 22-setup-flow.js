@@ -1,163 +1,226 @@
-/* CC 배너 제너레이터 — 13-render-core
+/* CC 배너 제너레이터 — 19-export
    원본 index.html 에서 기능별로 분리. 로드 순서가 곧 실행 순서다. */
-      function canvasH() {
-        if (nvIsOn()) return nvCanvasH();
-        const O = OPT[state.tpl] || OPT["01"];
-        return (
-          SHARED.HERO_H +
-          O.body.y +
-          O.list.y +
-          O.list.pad * 2 +
-          cardTops().total +
-          60
+      /* ---------- 다운로드 ---------- */
+      let EXPORT_SCALE = 1;
+      const safe = (s) =>
+        String(s)
+          .replace(/[^\w가-힣]+/g, "-")
+          .replace(/^-+|-+$/g, "");
+      function fname() {
+        const p =
+          state.d1 && state.d2
+            ? `${state.d1.replace(/-/g, "")}-${state.d2.replace(/-/g, "")}`
+            : "nodate";
+        const x = EXPORT_SCALE > 1 ? `_${EXPORT_SCALE}x` : "";
+        return `${safe(G()[state.group].label)}_${state.tpl}_${state.theme}_${p}${x}.png`;
+      }
+      $("#scaleSel")
+        .querySelectorAll("button")
+        .forEach(
+          (b) =>
+            (b.onclick = () => {
+              EXPORT_SCALE = +b.dataset.x;
+              $("#scaleSel")
+                .querySelectorAll("button")
+                .forEach((x) => x.classList.toggle("on", x === b));
+              const px = SHARED.W * EXPORT_SCALE;
+              status(
+                `내보내기 크기: ${px}×${Math.round(canvasH() * EXPORT_SCALE)}px`,
+              );
+            }),
         );
+      function baseName() {
+        const p =
+          state.d1 && state.d2
+            ? `${state.d1.replace(/-/g, "")}-${state.d2.replace(/-/g, "")}`
+            : "nodate";
+        return `${safe(G()[state.group].label)}_${state.tpl}_${state.theme}_${p}`;
       }
 
-      function draw() {
-        const W = SHARED.W,
-          S = SHARED.SCALE;
-        const c = $("#preview");
-        if (!state.tpl) {
-          // 템플릿 미등록 제품군
-          c.width = W * S;
-          c.height = 600 * S;
-          const ctx = c.getContext("2d");
-          ctx.setTransform(S, 0, 0, S, 0, 0);
-          ctx.fillStyle = "#f2f0f6";
-          ctx.fillRect(0, 0, W, 600);
-          ctx.fillStyle = "#8a86a0";
-          ctx.textAlign = "center";
-          ctx.font = "500 28px Pretendard";
-          ctx.fillText(
-            G()[state.group].label + " 템플릿이 등록되지 않았습니다",
-            W / 2,
-            290,
+      /* 오프스크린에 한 포맷을 선택 배율로 렌더 → dataURL */
+      function renderOff(w, h, drawFn) {
+        const c = document.createElement("canvas");
+        c.width = w * EXPORT_SCALE;
+        c.height = h * EXPORT_SCALE;
+        const ctx = c.getContext("2d");
+        ctx.scale(EXPORT_SCALE, EXPORT_SCALE);
+        drawFn(ctx);
+        return c;
+      }
+      async function buildAllImages() {
+        const th = curTheme(),
+          out = [];
+        /* 렌더러가 없는 제품군(템플릿 미등록)에서 눌리면 좌표가 전부 비어
+           엉뚱한 곳에서 터진다. 여기서 먼저 끊고 이유를 알려준다. */
+        if (!state.tpl || !TH())
+          throw new Error(
+            "이 제품군은 아직 템플릿이 등록되지 않았습니다 — 템플릿을 먼저 선택하세요",
           );
-          ctx.font = "400 20px Pretendard";
-          ctx.fillText(
-            "피그마에 템플릿을 추가한 뒤 design.md에 규격을 등록하세요.",
-            W / 2,
-            330,
-          );
-          warnings();
+        // 상세: 기존 draw 는 #preview 를 쓰므로 오프스크린으로 재현
+        //  ⚠ drawDetailTo(ctx, W, th) — W 를 빼먹으면 히어로 좌표가 전부 NaN 이 되어
+        //    createLinearGradient 가 non-finite 로 터진다(미리보기는 W 를 넘기므로 멀쩡).
+        const detailH = canvasH();
+        out.push({
+          channel: "Detail",
+          name: `${baseName()}_Detail.png`,
+          canvas: renderOff(SHARED.W, detailH, (ctx) =>
+            drawDetailTo(ctx, SHARED.W, TH()),
+          ),
+        });
+        // 썸네일
+        out.push({
+          channel: "Detail",
+          name: `${baseName()}_Thumb.png`,
+          canvas: renderOff(1080, 1080, (ctx) => drawThumb(ctx, th)),
+        });
+        // 피드 N장
+        const n = feedCount();
+        for (let i = 0; i < n; i++) {
+          out.push({
+            channel: "Insta",
+            name: `${baseName()}_Feed${i + 1}.png`,
+            canvas: renderOff(1080, 1350, (ctx) => drawFeedSlide(ctx, i, th)),
+          });
+        }
+        return out;
+      }
+
+      /* ---------- 세션(셀러 1명) 전체 빌드 ----------
+   선택한 제품군을 하나씩 열어 이미지를 만든다.
+   ⚠ 검증이 중요하다: warnings() 는 "지금 열려 있는 제품군"만 본다.
+      탭을 안 열어본 제품군은 검증 없이 ZIP 에 들어갈 뻔했다. */
+      function inSession() {
+        return (
+          typeof SESSION !== "undefined" &&
+          SESSION.started &&
+          SESSION.groups.length > 0
+        );
+      }
+      async function buildSessionImages(onStep) {
+        const back = state.group;
+        const files = [];
+        const bad = [];
+        const gs = G();
+        for (let i = 0; i < SESSION.groups.length; i++) {
+          const k = SESSION.groups[i];
+          const label = (gs[k] && gs[k].label) || k;
+          if (onStep) onStep(label, i + 1, SESSION.groups.length);
+          gotoGroup(k);
+          await loadSheetImages(); // 탭을 안 열어봤다면 여기서 이미지가 들어온다
+          if (!warnings()) {
+            bad.push(label);
+            continue;
+          }
+          const imgs = await buildAllImages();
+          imgs.forEach((it) => files.push(it));
+        }
+        gotoGroup(back);
+        return { files, bad };
+      }
+
+      function sessionZipName() {
+        const who = safe(SESSION.sellerKo || SESSION.sellerEn || "seller");
+        const p =
+          SESSION.d1 && SESSION.d2
+            ? `${SESSION.d1.replace(/-/g, "")}-${SESSION.d2.replace(/-/g, "")}`
+            : "nodate";
+        return `${who}_${p}.zip`;
+      }
+
+      /* JSZip 지연 로드 — 다운로드를 실제로 누를 때만 받아온다.
+   (첫 화면 로드에서 94KB 를 덜 받는다) */
+      const JSZIP_CDN =
+        "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js";
+      let _zipP = null;
+      function ensureJSZip() {
+        if (typeof JSZip !== "undefined") return Promise.resolve();
+        if (_zipP) return _zipP;
+        _zipP = new Promise((res, rej) => {
+          const s = document.createElement("script");
+          s.src = JSZIP_CDN;
+          s.onload = () => res();
+          s.onerror = () => {
+            _zipP = null;
+            rej(new Error("jszip load failed"));
+          };
+          document.head.appendChild(s);
+        });
+        return _zipP;
+      }
+
+      $("#dlBtn").onclick = async () => {
+        /* 단일 제품군일 때만 여기서 미리 막는다.
+           세션 모드는 제품군마다 따로 검증한다. */
+        if (!inSession() && !warnings()) return;
+        try {
+          await ensureJSZip();
+        } catch (_) {
+          status("압축 라이브러리 로드 실패 — 인터넷 연결 확인", 1);
           return;
         }
-        const H = canvasH(),
-          th = TH();
-        c.width = W * S;
-        c.height = H * S;
-        const ctx = c.getContext("2d");
-        ctx.setTransform(S, 0, 0, S, 0, 0);
-        drawDetailTo(ctx, W, th);
-        warnings();
-        if (curFmt !== "detail") renderFmt(); // 썸네일/피드 탭이 열려있으면 같이 갱신
-      }
-
-      /* 상세페이지 본체 — 미리보기·ZIP 공용. ctx 는 이미 배율 적용된 상태로 받는다. */
-      function drawDetailTo(ctx, W, th) {
-        th = th || TH();
-        if (nvIsOn()) { nvDetail(ctx, W, th); return; }
-        const H = canvasH();
-        ctx.clearRect(0, 0, W, H);
-        ctx.fillStyle = th.sectionBg || "#fff";
-        ctx.fillRect(0, 0, W, H);
-
-        state.tpl === "01" ? hero01(ctx, W, th) : hero02(ctx, W, th);
-
-        const O = OPT[state.tpl];
-        const oy = SHARED.HERO_H;
-        const by = oy + O.body.y;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillStyle = th.eyebrowColor || th.accent;
-        ctx.font = `${O.eyebrow.weight} ${O.eyebrow.size}px ${O.eyebrow.font}`;
-        ctx.fillText("option info.", W / 2, by + O.eyebrow.lineH / 2);
-        ctx.fillStyle = O.heading.color || th.accent;
-        ctx.font = `${O.heading.weight} ${O.heading.size}px ${O.heading.font}, Pretendard`;
-        ctx.fillText(
-          state.series || "",
-          W / 2,
-          by + O.title.h - O.heading.lineH / 2,
-        );
-        ctx.textBaseline = "alphabetic";
-
-        const { tops, total } = cardTops();
-        const listY = by + O.list.y,
-          listX = O.body.x;
-        if (O.list.bg) {
-          ctx.fillStyle = O.list.bg;
-          ctx.fillRect(
-            listX,
-            listY,
-            O.list.w,
-            total - O.list.gap + O.list.pad * 2,
-          );
-        }
-        const startY = listY + O.list.pad;
-        const cardX = listX + O.list.pad;
-        state.rows.forEach((r, i) => {
-          const top = startY + tops[i].top;
-          state.tpl === "01"
-            ? card01(ctx, r, cardX, top, th)
-            : card02(ctx, r, cardX, top, th);
-        });
-      }
-
-      /* ---- 멀티 포맷 미리보기 ---- */
-      let curFmt = "detail";
-      function curTheme() {
-        return (
-          themesForKey(state.group, state.tpl)[state.theme] ||
-          Object.values(themesForKey(state.group, state.tpl))[0]
-        );
-      }
-      function renderThumbPreview() {
-        const c = $("#thumbCanvas");
-        if (!c || !state.tpl) return;
-        c.width = 1080;
-        c.height = 1080;
-        const ctx = c.getContext("2d");
-        ctx.clearRect(0, 0, 1080, 1080);
+        const btn = $("#dlBtn");
+        btn.disabled = true;
+        const old = btn.textContent;
+        btn.textContent = "이미지 생성 중…";
         try {
-          drawThumb(ctx, curTheme());
+          const multi = inSession();
+          let imgs, bad = [], zipName;
+          if (multi) {
+            const r = await buildSessionImages((label, i, n) => {
+              btn.textContent = `${label} 생성 중… (${i}/${n})`;
+            });
+            imgs = r.files;
+            bad = r.bad;
+            zipName = sessionZipName();
+            if (bad.length) {
+              const sum = $("#dlSum");
+              if (sum)
+                sum.innerHTML =
+                  `<b>${bad.join(", ")}</b> 제품군에 오류가 있어 제외했습니다. ` +
+                  `해당 탭을 열어 경고를 확인하세요.`;
+            }
+            if (!imgs.length) {
+              status("모든 제품군에 오류가 있어 만들 수 있는 이미지가 없습니다", 1);
+              return;
+            }
+          } else {
+            imgs = await buildAllImages();
+            zipName = `${baseName()}_전체.zip`;
+          }
+
+          const zip = new JSZip();
+          for (const it of imgs) {
+            const b64 = it.canvas.toDataURL("image/png").split(",")[1];
+            /* 채널이 바깥 폴더: Detail/ 에 상세·썸네일, Insta/ 에 피드 */
+            const path = it.channel ? `${it.channel}/${it.name}` : it.name;
+            zip.file(path, b64, { base64: true });
+          }
+          const blob = await zip.generateAsync({ type: "blob" });
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(blob);
+          a.download = zipName;
+          a.click();
+          setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+          pushHist();
+          status(
+            `ZIP 다운로드 완료 — ${imgs.length}장 (${EXPORT_SCALE}x)` +
+              (bad.length ? ` · 오류 ${bad.length}건 제외` : ""),
+          );
         } catch (e) {
           console.error(e);
+          /* 예전에는 무슨 오류든 "외부 이미지(CORS)" 로 뭉뚱그려서
+             엉뚱한 곳을 찾게 만들었다. 원인별로 구분해서 보여준다. */
+          const m = String(e && e.message ? e.message : e);
+          let msg;
+          if (e && (e.name === "SecurityError" || /[Tt]ainted/.test(m)))
+            msg =
+              "저장 실패 — 외부 이미지 보안(CORS) 문제입니다. 이미지가 /api/img 로 불러와졌는지 확인하세요";
+          else if (/non-finite|NaN|Infinity/.test(m))
+            msg = `저장 실패 — 좌표 계산 오류(렌더러 버그). 개발자 콘솔(F12)의 내용과 함께 알려주세요: ${m}`;
+          else msg = `저장 실패 — ${m}`;
+          status(msg, 1);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = old;
         }
-        c.style.width = (1080 * +$("#zoom").value) / 100 + "px";
-        c.style.height = "auto";
-      }
-      function renderFeedPreview() {
-        const wrap = $("#feedScroll");
-        if (!wrap || !state.tpl) return;
-        wrap.innerHTML = "";
-        const n = feedCount(),
-          z = +$("#zoom").value / 100;
-        for (let i = 0; i < n; i++) {
-          const c = document.createElement("canvas");
-          c.width = 1080;
-          c.height = 1350;
-          c.className = "feedslide";
-          c.style.width = 1080 * z + "px";
-          c.style.height = "auto";
-          try {
-            drawFeedSlide(c.getContext("2d"), i, curTheme());
-          } catch (e) {
-            console.error(e);
-          }
-          wrap.appendChild(c);
-        }
-      }
-      function renderFmt() {
-        if (curFmt === "thumb") renderThumbPreview();
-        else if (curFmt === "feed") renderFeedPreview();
-      }
-      function switchFmt(f) {
-        curFmt = f;
-        $("#fmtTabs")
-          .querySelectorAll("button")
-          .forEach((b) => b.classList.toggle("on", b.dataset.f === f));
-        $("#stageDetail").hidden = f !== "detail";
-        $("#stageThumb").hidden = f !== "thumb";
-        $("#stageFeed").hidden = f !== "feed";
-        renderFmt();
-      }
+      };

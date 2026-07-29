@@ -1,150 +1,224 @@
-/* CC 배너 제너레이터 — 14-render-hero
+/* CC 배너 제너레이터 — 02-design-tokens
    원본 index.html 에서 기능별로 분리. 로드 순서가 곧 실행 순서다. */
-      /* ---- 히어로 01 : 사진 + 영문 세리프 + 날짜바 ---- */
-      function hero01(ctx, W, th) {
-        const H = SHARED.HERO_H;
-        if (state.hero)
-          clipRect(ctx, 0, 0, W, H, () => cover(ctx, state.hero, 0, 0, W, H));
-        else {
-          ctx.fillStyle = "#b89a6a";
-          ctx.fillRect(0, 0, W, H);
-          ctx.fillStyle = "rgba(255,255,255,.65)";
-          ctx.textAlign = "center";
-          ctx.font = "500 26px Pretendard";
-          ctx.fillText("히어로 이미지를 업로드하세요", W / 2, H / 2);
-        }
-        // .fig 확인: 피그마 히어로에는 오버레이/그라데이션이 없음 → 사진 위에 바로 텍스트
+      /* ============================================================
+   design.md → 렌더 규칙 (피그마 실측값)
+   ============================================================ */
+      const SHARED = {
+        W: 860,
+        SCALE: 1,
+        HERO_H: 1080,
+        textStrong: "#333333",
+        textMuted: "#666666",
+        textSub: "#605850",
+        body: { x: 60, y: 150, w: 740 },
+        title: {
+          x: 79,
+          w: 582,
+          gap: 28,
+          eyebrow: { size: 36, lineH: 40 },
+          heading: { size: 56, lineH: 40 },
+        },
+        list: { y: 188, pitch: 380 },
+        thumb: {
+          w: 320,
+          h: 340,
+          bg: "#f8f8f8",
+          imgW: 73.55,
+          imgH: 79.07,
+          imgLeft: 13.07,
+          imgTop: 10.55,
+        },
+        name: { size: 32, lineH: 40, tracking: -0.64 },
+        unit: { size: 18, lineH: 36, tracking: -0.36 },
+      };
+      /* High Summit hhea 실측: (1829-(-1091))/2048 = 1.426 — CSS leading-normal 비율 */
+      const HS_LH = 1.426;
+      /* 02 셀러 필 높이 — 피그마 미확인(MCP 한도), 추정치 */
+      const PILL_H = 56;
+      /* dear.cus 로고 (960×160 흰색 원본을 348×58로 리샘플해 내장) */
+      const LOGO = {
+        img: null,
+        src: "assets/logo.png",
+      };
 
-        // txt-title: top100, flex-col gap8, center
-        // subH = High Summit normal line-height(1.426) × 44px = 62.7 (폰트 메트릭 실측)
-        const subH = HS_LH * 44,
-          subCY = 100 + subH / 2;
-        ctx.textBaseline = "middle";
-        const seller = state.seller || "seller";
-        ctx.font = `400 44px 'High Summit'`;
-        const sw = ctx.measureText(seller).width;
-        ctx.font = `400 40px 'Playfair Display'`;
-        const xw = ctx.measureText("×").width;
-        const logoW = 116,
-          gap = 16,
-          total = sw + gap + xw + gap + logoW;
-        let x = (W - total) / 2;
-        ctx.textAlign = "left";
-        ctx.fillStyle = "#fff";
-        ctx.font = `400 44px 'High Summit'`;
-        ctx.fillText(seller, x, subCY);
-        x += sw + gap;
-        ctx.font = `400 40px 'Playfair Display'`;
-        ctx.fillText("×", x, subCY);
-        x += xw + gap;
-        drawLogo(ctx, x, subCY, logoW, 19, "#fff");
+      const THEMES = {
+        "01": {
+          pink: {
+            label: "핑크",
+            accent: "#7c6055",
+            circleBg: "#7c6056",
+            badgeBorder: "#edcac4",
+            sectionBg: "#f6ecea",
+          },
+          blue: {
+            label: "블루",
+            accent: "#2d6181",
+            circleBg: "#2d6181",
+            badgeBorder: "#b3c7da",
+            sectionBg: "#eaf3f6",
+          },
+          green: {
+            label: "그린",
+            accent: "#65812d",
+            circleBg: "#65812d",
+            badgeBorder: "#c3d2a5",
+            sectionBg: "#f0f3dd",
+          },
+          yellow: {
+            label: "옐로우",
+            accent: "#b08a1e",
+            circleBg: "#b08a1e",
+            badgeBorder: "#f0e0a8",
+            sectionBg: "#faf3dc",
+          },
+          orange: {
+            label: "오렌지",
+            accent: "#c26a2b",
+            circleBg: "#c26a2b",
+            badgeBorder: "#f2cfa8",
+            sectionBg: "#fbeadb",
+          },
+          mint: {
+            label: "민트",
+            accent: "#2f8a76",
+            circleBg: "#2f8a76",
+            badgeBorder: "#b3ded2",
+            sectionBg: "#e3f4ef",
+          },
+        },
+        "02": {
+          green: {
+            label: "그린",
+            accent: "#65812d",
+            pillBg: "#91a36e",
+            gradFrom: "#d0dfb1",
+            gradTo: "#e0e4c4",
+            titleFrom: "#65812d",
+            titleTo: "#254631",
+            dateText: "#65812d",
+            badgeText: "#65812d",
+            chipBg: "#f0f3dd",
+            chipText: "#254631",
+            cardBorder: "#d0dfb1",
+            sectionBg: "#b9ca7d",
+            eyebrowColor: "#31522d",
+          },
+          blue: {
+            label: "블루",
+            accent: "#2d6181",
+            pillBg: "#6e89a3",
+            gradFrom: "#d3edf0",
+            gradTo: "#f3fdfe",
+            titleFrom: "#2d6181",
+            titleTo: "#253846",
+            dateText: "#2d6181",
+            badgeText: "#2d6181",
+            chipBg: "#ebf2f3",
+            chipText: "#253846",
+            cardBorder: "#b3c7da",
+            sectionBg: "#b3c7da",
+            eyebrowColor: "#2d6181",
+          },
+          pink: {
+            label: "핑크",
+            accent: "#7c6056",
+            pillBg: "#d8b8ab",
+            gradFrom: "#fbe9e6",
+            gradTo: "#f9f1ef",
+            titleFrom: "#7c6055",
+            titleTo: "#2b160f",
+            dateText: "#7c6055",
+            badgeText: "#7c6055",
+            chipBg: "#f6ecea",
+            chipText: "#613f32",
+            cardBorder: "#d4bab4",
+            sectionBg: "#edcac4",
+            eyebrowColor: "#7c6055",
+          },
+          yellow: {
+            label: "옐로우",
+            accent: "#b08a1e",
+            pillBg: "#c9ae5a",
+            gradFrom: "#f4e6b4",
+            gradTo: "#fdf7df",
+            titleFrom: "#b08a1e",
+            titleTo: "#5a4410",
+            dateText: "#b08a1e",
+            badgeText: "#b08a1e",
+            chipBg: "#faf3dc",
+            chipText: "#5a4410",
+            cardBorder: "#e6d38f",
+            sectionBg: "#e3cf7e",
+            eyebrowColor: "#6b5312",
+          },
+          orange: {
+            label: "오렌지",
+            accent: "#c26a2b",
+            pillBg: "#d99a68",
+            gradFrom: "#f7d9bd",
+            gradTo: "#fdefe0",
+            titleFrom: "#c26a2b",
+            titleTo: "#5c2f10",
+            dateText: "#c26a2b",
+            badgeText: "#c26a2b",
+            chipBg: "#fbeadb",
+            chipText: "#5c2f10",
+            cardBorder: "#eec3a0",
+            sectionBg: "#e8a86f",
+            eyebrowColor: "#7a3f18",
+          },
+          mint: {
+            label: "민트",
+            accent: "#2f8a76",
+            pillBg: "#6cb3a2",
+            gradFrom: "#bfe6db",
+            gradTo: "#e6f6f1",
+            titleFrom: "#2f8a76",
+            titleTo: "#123a30",
+            dateText: "#2f8a76",
+            badgeText: "#2f8a76",
+            chipBg: "#e3f4ef",
+            chipText: "#123a30",
+            cardBorder: "#a6d8ca",
+            sectionBg: "#8fcbbb",
+            eyebrowColor: "#1c5548",
+          },
+        },
+      };
 
-        // headline: Playfair 80, lineH100, 2줄 — 각 line box 중앙에 배치
-        const top = 100 + subH + 8;
-        ctx.textAlign = "center";
-        ctx.fillStyle = "#fff";
-        ctx.font = `400 80px 'Playfair Display'`;
-        [state.t1, state.t2].filter(Boolean).forEach((l, i) => {
-          trk(ctx, l, W / 2, top + i * 100 + 50, -1.6, "center");
-        });
-        ctx.textBaseline = "alphabetic";
-
-        // date bar
-        ctx.fillStyle = th.accent;
-        ctx.fillRect(0, 1000, W, 80);
-        ctx.fillStyle = "#fff";
-        ctx.font = `400 40px 'Playfair Display'`;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        trk(ctx, range01(state.d1, state.d2), W / 2, 1040, -0.8, "center");
-        ctx.textBaseline = "alphabetic";
-      }
-
-      /* ---- 히어로 02 : 그라데이션 배경 + 제품 누끼컷 + 한글 그라데이션 타이틀 + 카피바
-   피그마 구조: main-img = 그라데이션 배경 프레임, 그 위에 제품 이미지가 얹힘.
-   (사진을 cover로 깔고 그라데이션을 덮는 게 아님) ---- */
-      function hero02(ctx, W, th) {
-        const H = SHARED.HERO_H;
-        // 그라데이션 배경 (141.81deg)
-        const a = (141.81 * Math.PI) / 180,
-          len = Math.abs(W * Math.cos(a)) + Math.abs(H * Math.sin(a));
-        const cx = W / 2,
-          cy = H / 2,
-          dx = (Math.cos(a) * len) / 2,
-          dy = (Math.sin(a) * len) / 2;
-        const g = ctx.createLinearGradient(cx - dx, cy - dy, cx + dx, cy + dy);
-        g.addColorStop(0.0136, th.gradFrom);
-        g.addColorStop(0.8337, th.gradTo);
-        ctx.fillStyle = g;
-        ctx.fillRect(0, 0, W, H);
-        // 제품 이미지 — 히어로 전체(860×1080)에 1:1 적용, 그라데이션 위에 얹힘
-        // (.fig: main-img 의 IMAGE fill 이 프레임 전체를 채움)
-        if (state.hero)
-          clipRect(ctx, 0, 0, W, H, () => cover(ctx, state.hero, 0, 0, W, H));
-
-        const left = (W - 751) / 2;
-        // 셀러 필(pill) — px20, gap16, rounded
-        ctx.font = `400 28px Pretendard`;
-        const sw = ctx.measureText(state.seller || "seller").width;
-        ctx.font = `400 36px 'Playfair Display'`;
-        const xw = ctx.measureText("×").width;
-        const logoW = 114,
-          gap = 16,
-          inner = sw + gap + xw + gap + logoW,
-          pw = inner + 40,
-          ph = PILL_H,
-          py = 100;
-        ctx.fillStyle = th.pillBg;
-        roundRect(ctx, left, py, pw, ph, ph / 2);
-        ctx.fill();
-        ctx.textBaseline = "middle";
-        ctx.textAlign = "left";
-        ctx.fillStyle = "#fff";
-        let x = left + 20,
-          cy2 = py + ph / 2;
-        ctx.font = `400 28px Pretendard`;
-        ctx.fillText(state.seller || "seller", x, cy2);
-        x += sw + gap;
-        ctx.font = `400 36px 'Playfair Display'`;
-        ctx.fillText("×", x, cy2);
-        x += xw + gap;
-        drawLogo(ctx, x, cy2, logoW, 19);
-
-        // 타이틀 — 그라데이션 텍스트, 좌측정렬, lineH80 gap8
-        const ht = py + ph + 40;
-        ctx.textAlign = "left";
-        const lines = [
-          [state.t1, 400],
-          [state.t2, 700],
-        ].filter((l) => l[0]);
-        lines.forEach((l, i) => {
-          const y = ht + i * 88 + 40;
-          const tg = ctx.createLinearGradient(left, 0, left + 751, 0);
-          tg.addColorStop(0, th.titleFrom);
-          tg.addColorStop(1, th.titleTo);
-          ctx.fillStyle = tg;
-          ctx.font = `${l[1]} 80px Pretendard`;
-          trk(ctx, l[0], left, y, -1.6, "left");
-        });
-
-        // 기간 텍스트
-        const dy2 = ht + (lines.length ? lines.length * 88 - 8 : 0) + 40 + 17;
-        ctx.fillStyle = th.dateText;
-        ctx.font = `400 34px Pretendard`;
-        trk(ctx, range02(state.d1, state.d2), left, dy2, -0.68, "left");
-
-        // 카피 바
-        ctx.fillStyle = th.accent;
-        ctx.fillRect(0, 1000, W, 80);
-        ctx.fillStyle = "#fff";
-        ctx.font = `400 32px Pretendard`;
-        const w1 = trkWidth(ctx, state.copy, -0.64);
-        ctx.font = `700 32px Pretendard`;
-        const w2 = trkWidth(ctx, state.copyBold, -0.64);
-        let bx2 = (W - (w1 + w2)) / 2;
-        ctx.font = `400 32px Pretendard`;
-        trk(ctx, state.copy, bx2, 1041, -0.64, "left");
-        ctx.font = `700 32px Pretendard`;
-        trk(ctx, state.copyBold, bx2 + w1, 1041, -0.64, "left");
-        ctx.textBaseline = "alphabetic";
-      }
+      /* 옵션 섹션 규격 — .fig 실측 (템플릿마다 완전히 다름) */
+      const OPT = {
+        "01": {
+          body: { x: 60, y: 150, w: 740 },
+          title: { x: 79, w: 582, gap: 28, h: 108 },
+          eyebrow: {
+            font: "'Playfair Display'",
+            weight: 400,
+            size: 36,
+            lineH: 40,
+          },
+          heading: {
+            font: "Pretendard",
+            weight: 600,
+            size: 56,
+            lineH: 40,
+            color: null,
+          },
+          list: { y: 188, w: 740, bg: null, pad: 0, gap: 20 },
+          cardW: 740,
+        },
+        "02": {
+          body: { x: 50, y: 150, w: 760 },
+          title: { x: 89, w: 582, gap: 28, h: 124 },
+          eyebrow: { font: "'High Summit'", weight: 400, size: 48, lineH: 40 },
+          heading: {
+            font: "GmarketSans",
+            weight: 700,
+            size: 56,
+            lineH: 56,
+            color: "#ffffff",
+          },
+          list: { y: 180, w: 760, bg: "#ffffff", pad: 20, gap: 20 },
+          cardW: 720,
+        },
+      };

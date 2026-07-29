@@ -1,147 +1,61 @@
-/* CC 배너 제너레이터 — 06-config-store
+/* CC 배너 제너레이터 — 04-template-meta
    원본 index.html 에서 기능별로 분리. 로드 순서가 곧 실행 순서다. */
-      /* ============================================================
-   시트 연동 (§1.1 조회/캐시/동기화)
-   ============================================================ */
-      /* 렌더러가 구현된 템플릿 ID 목록.
-         여기 없는 templateId 는 E302 로 걸러진다(잘못된 레이아웃 방지).
-         누볼라 02·03 은 렌더러 구현 후 추가할 것. */
-      const KNOWN_TPL = [
-        "bamboo500_01", "bamboo500_02",
-        "nuvolafamily_01", "nuvolafamily_02", "nuvolafamily_03",
-      ];
-      const src = { mode: "sample", csv: "auto", syncedAt: null };
-
-      /* ---- 접속 설정 저장 (§1.1.1 환경설정) ----
-   localStorage 는 환경에 따라 막힐 수 있으므로 항상 try/catch. 실패해도 동작에는 지장 없음. */
-      /* ============================================================
-   기본 접속 설정 (배포용)
-   ------------------------------------------------------------
-   여기에 값이 있으면 열자마자 자동으로 시트를 불러오고 프록시를 적용한다.
-   운영자가 화면에서 바꾸면 그 값이 브라우저에 저장되어 기본값보다 우선한다.
-   시트/프록시 주소가 바뀌면 이 블록만 수정하면 된다.
-   ============================================================ */
-      const PRESET = {
-        /* Vercel 서버 함수(/api/sheet)가 비공개 시트를 읽어 CSV 로 돌려준다.
-           시트를 "웹에 게시"할 필요가 없고, 주소가 노출되지도 않는다.
-           시트가 바뀌면 이 파일이 아니라 Vercel 환경변수 SHEET_ID 를 고친다. */
-        csv: {
-          ProductMaster: "/api/sheet?tab=ProductMaster",
-          TemplateMaster: "/api/sheet?tab=TemplateMaster",
-          HeroMaster: "/api/sheet?tab=HeroMaster",
-          ColorMaster: "/api/sheet?tab=ColorMaster",
-        },
-        proxy:
-          "https://script.google.com/macros/s/AKfycbxKjJ78pLc7Pj1VYNPCGwJ0eRC_AsEAo6-aBNDpEgYGcCjGEa9wwTTeJtK8rRJwcVr8/exec",
+      /* ── 누볼라 패밀리 테마 ──────────────────────────────────────
+         .fig 실측(green): accent #65812d · badgeBorder #d0dfb1
+                          noticeBg #e1e5c6 · colorBg #b9ca7d
+         나머지 5색은 뱀부 02 팔레트와 같은 톤으로 파생. */
+      const THEMES_NUVOLA = {
+        /* discInk = 할인율 글자색. green 만 .fig 실측값(#254631)이 있고
+           나머지 5색은 피그마에 실물이 없어 accent 로 폴백한다. */
+        green: { label: "그린", accent: "#65812d", badgeBorder: "#d0dfb1",
+                 noticeBg: "#e1e5c6", colorBg: "#b9ca7d", colorBgLight: "#f0f3dd",
+                 pillBg: "#91a36e", titleColor: "#448122", mainBg: "#f8fbe1",
+                 discInk: "#254631" },
+        blue: { label: "블루", accent: "#2d6181", badgeBorder: "#b3c7da",
+                noticeBg: "#dbe6ee", colorBg: "#7d9eca", colorBgLight: "#eaf3f6",
+                pillBg: "#6e89a3", titleColor: "#1d5a80", mainBg: "#f6f9fe" },
+        pink: { label: "핑크", accent: "#7c6055", badgeBorder: "#d4bab4",
+                noticeBg: "#f0dedb", colorBg: "#edcac4", colorBgLight: "#f6ecea",
+                pillBg: "#d8b8ab", titleColor: "#6b4a3e", mainBg: "#fffdfd" },
+        yellow: { label: "옐로우", accent: "#b08a1e", badgeBorder: "#e6d38f",
+                  noticeBg: "#f0e5bd", colorBg: "#e3cf7e", colorBgLight: "#faf3dc",
+                  pillBg: "#c9ae5a", titleColor: "#96731a", mainBg: "#fdfbef" },
+        orange: { label: "오렌지", accent: "#c26a2b", badgeBorder: "#eec3a0",
+                  noticeBg: "#f5ddc5", colorBg: "#e8a86f", colorBgLight: "#fbeadb",
+                  pillBg: "#d99a68", titleColor: "#a85520", mainBg: "#fff9f3" },
+        mint: { label: "민트", accent: "#2f8a76", badgeBorder: "#a6d8ca",
+                noticeBg: "#cfe9e1", colorBg: "#8fcbbb", colorBgLight: "#e3f4ef",
+                pillBg: "#6cb3a2", titleColor: "#1f7562", mainBg: "#f2fbf8" },
       };
-
-      /* v2: 게시 CSV → /api/sheet 전환. 옛 저장값을 버리고 새 기본값을 쓰게 한다. */
-      const CFG_KEY = "cc-banner-cfg-v2";
-      const CFG_FIELDS = [
-        "docId",
-        "tabP",
-        "tabT",
-        "tabH",
-        "tabC",
-        "urlP",
-        "urlT",
-        "urlH",
-        "urlC",
-        "gasUrl",
-        "proxyUrl",
-      ];
-      let CFG_OK = null; // localStorage 사용 가능 여부
-
-      /* 설정은 출처(scheme+host+port)별로 저장된다.
-   Live Server 포트가 5500→5501 로 바뀌거나 localhost↔127.0.0.1 이 달라지면
-   어제 저장한 설정이 보이지 않는다. 그래서 저장 위치를 화면에 노출한다. */
-      function cfgProbe() {
-        try {
-          localStorage.setItem("__t", "1");
-          localStorage.removeItem("__t");
-          CFG_OK = true;
-        } catch (e) {
-          CFG_OK = false;
-        }
-        return CFG_OK;
+      /* 템플릿 ID → { fam, key }.  "nuvolafamily_03" → {fam:"nuvola", key:"03"} */
+      function tplParts(id) {
+        const m = String(id || "").match(/^(.*)_(\d+)$/);
+        if (!m) return { fam: "bamboo", key: "01" };
+        return { fam: /^nuvola/i.test(m[1]) ? "nuvola" : "bamboo", key: m[2] };
       }
-      function saveCfg() {
-        try {
-          const o = {
-            mode: src.mode,
-            csv: src.csv,
-            seller: state.seller,
-            d1: state.d1,
-            d2: state.d2,
-          };
-          CFG_FIELDS.forEach((f) => {
-            const el = $("#" + f);
-            if (el) o[f] = el.value;
-          });
-          localStorage.setItem(CFG_KEY, JSON.stringify(o));
-          CFG_OK = true;
-        } catch (e) {
-          CFG_OK = false;
-          cfgHint();
-        }
+      function tplIdToFam(id) { return tplParts(id).fam; }
+      /* 패밀리별 테마 표 */
+      function themeTable(fam, key) {
+        return fam === "nuvola" ? THEMES_NUVOLA : THEMES[key] || {};
       }
-      function cfgHint() {
-        const el = $("#cfgWhere");
-        if (!el) return;
-        if (CFG_OK === false) {
-          el.className = "warnbox err";
-          el.innerHTML = `<b>설정을 저장할 수 없습니다</b>브라우저가 저장소를 막고 있습니다(시크릿 모드 등). 매번 입력해야 합니다.`;
-          return;
-        }
-        const saved = (() => {
-          try {
-            return !!localStorage.getItem(CFG_KEY);
-          } catch (e) {
-            return false;
-          }
-        })();
-        el.className = "hint";
-        el.innerHTML = `설정 저장 위치: <b>${location.origin}</b> ${saved ? "— 저장됨 ✓" : "— 아직 없음"}<br/>
-    ⚠️ <b>포트가 바뀌면 설정이 사라집니다.</b> (localhost:5500 ↔ 5501 은 서로 다른 저장소)
-    항상 같은 주소로 여세요.`;
+      /* 현재 제품군의 패밀리 */
+      function curFam() {
+        const g = G()[state.group];
+        return (g && g.family) || "bamboo";
       }
-      function loadCfg() {
-        try {
-          const o = JSON.parse(localStorage.getItem(CFG_KEY) || "null");
-          if (!o) return null;
-          CFG_FIELDS.forEach((f) => {
-            const el = $("#" + f);
-            if (el && o[f] != null) el.value = o[f];
-          });
-          /* 저장된 설정에 없는 항목은 배포 기본값(PRESET)으로 채운다.
-             새 탭(ColorMaster 등)이 추가돼도 기존 사용자가 자동으로 받아가게 하기 위함. */
-          if (PRESET && PRESET.csv) {
-            const fill = {
-              urlP: PRESET.csv.ProductMaster,
-              urlT: PRESET.csv.TemplateMaster,
-              urlH: PRESET.csv.HeroMaster,
-              urlC: PRESET.csv.ColorMaster,
-              proxyUrl: PRESET.proxy,
-            };
-            for (const [id, v] of Object.entries(fill)) {
-              const el = $("#" + id);
-              if (el && !el.value && v) {
-                el.value = v;
-                o[id] = v;
-              }
-            }
-          }
-          return o;
-        } catch (e) {
-          return null;
-        }
+      const TPL_META_NUVOLA = {
+        "01": { label: "01 · 사진형", desc: "배경 사진 + 중앙 타이틀 + 날짜 바" },
+        "02": { label: "02 · 사진형(큰 타이틀)", desc: "배경 사진 + 3줄 타이틀" },
+        "03": { label: "03 · 그리드형", desc: "타이틀 + 제품 이미지 4컷" },
+      };
+      function tplMeta(fam, key) {
+        const t = (fam === "nuvola" ? TPL_META_NUVOLA : TPL_META)[key];
+        return t || { label: key, desc: "" };
       }
-      function clearCfg() {
-        try {
-          localStorage.removeItem(CFG_KEY);
-        } catch (e) {}
-      }
-
-      function tplIdToKey(id) {
-        return tplParts(id).key;
-      }
+      const TPL_META = {
+        "01": { label: "01 · 사진형", desc: "영문 세리프 타이틀 + 날짜 바" },
+        "02": {
+          label: "02 · 그라데이션형",
+          desc: "한글 그라데이션 타이틀 + 카피 바",
+        },
+      };

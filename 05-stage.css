@@ -1,641 +1,307 @@
-/* CC 배너 제너레이터 — 22-setup-flow
-   [1] 행사 정보 화면 + [2] 제품군 탭.
+/* CC 배너 제너레이터 — 16-render-cards
+   원본 index.html 에서 기능별로 분리. 로드 순서가 곧 실행 순서다. */
+      const NAME_W = { "01": 250, "02": 342 }; // 피그마 txt_option 폭
+      const ATTR_LH = 30,
+        ATTR_GAP = 10; // ⚠️ 라벨 있는 블록의 행높이/간격 — 피그마 미확인(추정)
 
-   설계 메모
-   - 기존 화면/렌더러를 고치지 않고 "위에 얹는" 레이어다.
-     index.html 에서 이 파일과 styles/06-setup.css 만 빼면 예전 UI 그대로다.
-   - 제품군 N개는 state 구조를 바꾸지 않고 슬롯 스냅샷으로 오간다.
-     20-history-share.js 의 snap()/restore() 와 같은 발상이되,
-     이미지 객체(hero/thumb)를 참조 그대로 들고 있어 탭 전환에 재로드가 없다.
-   - 로드 순서상 가장 마지막이라 앞 파일의 전역 함수를 감쌀 수 있다.
-*/
+      /* 측정 전용 오프스크린 컨텍스트 */
+      const _mc = document.createElement("canvas").getContext("2d");
 
-/* ============================================================
-   세션 (= 셀러 1명의 행사 1건)
-   ============================================================ */
-const SESSION = {
-  groups: [], // 선택한 제품군 키 목록
-  theme: "", // 공통 테마 (탭에서 개별 변경 가능)
-  sellerKo: "",
-  sellerEn: "",
-  d1: "",
-  d2: "",
-  slots: {}, // { groupKey: 스냅샷 }
-  started: false,
-};
-
-const SES_KEY = "cc-banner-session-v1";
-
-/* 셀러 최근 목록 — SellerMaster 탭이 생기면 이 자리를 대체하면 된다 */
-const SELLER_KEY = "cc-banner-sellers-v1";
-function loadSellers() {
-  try {
-    return JSON.parse(localStorage.getItem(SELLER_KEY) || "[]");
-  } catch (e) {
-    return [];
-  }
-}
-function rememberSeller(ko, en) {
-  if (!ko && !en) return;
-  try {
-    const list = loadSellers().filter((s) => s.ko !== ko);
-    list.unshift({ ko, en });
-    localStorage.setItem(SELLER_KEY, JSON.stringify(list.slice(0, 30)));
-  } catch (e) {}
-}
-
-/* 상단 셀러 알약(pill)은 뱀부·누볼라 모든 템플릿에서 항상 영문이다.
-   (2026-07 요청) 한글은 pill 이 아니라 히어로 타이틀 쪽에 들어간다. */
-function sellerFor() {
-  return SESSION.sellerEn || SESSION.sellerKo;
-}
-
-/* 히어로 타이틀의 "셀러 × 디어커스" 에서 앞부분을 한글 셀러명으로 바꾼다.
-   피그마에서 seller_name 레이어가 "× 디어커스" 와 오토레이아웃으로 묶인 그 자리다.
-   곱셈기호(×)가 없는 제목(예: NUVOLA FAMILY SET)은 건드리지 않는다. */
-function titleWithSeller(s) {
-  const ko = SESSION.sellerKo || SESSION.sellerEn;
-  if (!ko || !s || s.indexOf("×") < 0) return s;
-  return s.replace(/^[^×]*(?=×)/, ko + " ");
-}
-function applySellerToTitles() {
-  if (!SESSION.started) return;
-  state.t1 = titleWithSeller(state.t1);
-  state.t2 = titleWithSeller(state.t2);
-  const e1 = $("#t1"),
-    e2 = $("#t2");
-  if (e1) e1.value = state.t1 || "";
-  if (e2) e2.value = state.t2 || "";
-}
-
-function syncSellerField() {
-  if (!SESSION.started) return;
-  const v = sellerFor();
-  state.seller = v;
-  const el = $("#seller");
-  if (el) el.value = v;
-  applySellerToTitles();
-  if (typeof checkSeller === "function") checkSeller();
-}
-
-/* ============================================================
-   슬롯 스냅샷 — 제품군 하나의 작업 상태 전체
-   ============================================================ */
-const SLOT_FIELDS = [
-  "tpl",
-  "theme",
-  "t1",
-  "t2",
-  "copy",
-  "copyBold",
-  "series",
-  "notice",
-  "sizeInfoOn",
-  "hero",
-  "heroSrc",
-  "heroUrl",
-  "heroUpload",
-  "heroTainted",
-];
-function slotSnap() {
-  const o = {};
-  SLOT_FIELDS.forEach((f) => (o[f] = state[f]));
-  o.rows = state.rows; // 참조 유지 → 썸네일 이미지가 살아있다
-  o.colorPick = JSON.parse(JSON.stringify(state.colorPick || {}));
-  return o;
-}
-function slotApply(s) {
-  SLOT_FIELDS.forEach((f) => (state[f] = s[f]));
-  state.rows = s.rows;
-  state.colorPick = JSON.parse(JSON.stringify(s.colorPick || {}));
-}
-
-/* 화면 전체 갱신 — 탭을 옮긴 뒤 좌/중/우를 현재 state 로 맞춘다 */
-function refreshPanels() {
-  renderGroupButtons($("#groupSearch") ? $("#groupSearch").value : "");
-  $("#seller").value = state.seller || "";
-  $("#t1").value = state.t1 || "";
-  $("#t2").value = state.t2 || "";
-  $("#d1").value = state.d1 || "";
-  $("#d2").value = state.d2 || "";
-  $("#copy").value = state.copy || "";
-  $("#copyBold").value = state.copyBold || "";
-  $("#series").value = state.series || "";
-  if (typeof renderNvBlocks === "function") renderNvBlocks();
-  renderTplList();
-  renderThemes();
-  renderRows();
-  syncTplUI();
-  if (typeof renderHeroList === "function") renderHeroList();
-  if (typeof dateHint === "function") dateHint();
-  draw();
-}
-
-/* ============================================================
-   제품군 탭
-   ============================================================ */
-function gotoGroup(key) {
-  if (!SESSION.groups.includes(key)) return;
-  if (state.group && SESSION.slots[state.group])
-    SESSION.slots[state.group] = slotSnap();
-
-  const prev = SESSION.slots[key];
-  state.group = key;
-  if (prev) {
-    slotApply(prev);
-    refreshPanels();
-  } else {
-    selectGroup(key); // 최초 진입 — 기존 초기화 경로를 그대로 탄다
-    if (SESSION.theme && themesFor(state.tpl)[SESSION.theme])
-      state.theme = SESSION.theme;
-    syncSellerField();
-    SESSION.slots[key] = slotSnap();
-    renderThemes();
-    draw();
-  }
-  renderGroupTabs();
-  saveSession();
-}
-
-function renderGroupTabs() {
-  const el = $("#gnav");
-  if (!el) return;
-  if (!SESSION.started || SESSION.groups.length === 0) {
-    el.hidden = true;
-    return;
-  }
-  el.hidden = false;
-  const gs = G();
-  const items = SESSION.groups
-    .map((k, i) => {
-      const s = k === state.group ? slotSnap() : SESSION.slots[k];
-      const th = s && s.theme;
-      const off = th && SESSION.theme && th !== SESSION.theme;
-      return (
-        `<button class="gt ${k === state.group ? "on" : ""}" data-g="${k}">` +
-        `<span class="idx">${i + 1}</span>` +
-        `<span class="nm">${(gs[k] && gs[k].label) || k}</span>` +
-        (off ? `<span class="off">${th}</span>` : "") +
-        `</button>`
-      );
-    })
-    .join("");
-  el.innerHTML =
-    `<div class="cap">제품군 <span class="spacer"></span>${SESSION.groups.length}개</div>` +
-    `<div class="list">${items}</div>` +
-    `<div class="acts">` +
-    `<button id="gtReset">테마 통일 (${SESSION.theme || "-"})</button>` +
-    `<button id="gtBack">행사 정보 수정</button>` +
-    `</div>`;
-
-  el.querySelectorAll(".gt").forEach(
-    (b) => (b.onclick = () => gotoGroup(b.dataset.g)),
-  );
-  const rs = $("#gtReset");
-  if (rs)
-    rs.onclick = () => {
-      SESSION.groups.forEach((k) => {
-        const s = k === state.group ? null : SESSION.slots[k];
-        if (s && SESSION.theme && themeOkFor(s.tpl, SESSION.theme))
-          s.theme = SESSION.theme;
-      });
-      if (SESSION.theme && themeOkFor(state.tpl, SESSION.theme)) {
-        state.theme = SESSION.theme;
-        SESSION.slots[state.group] = slotSnap();
-        renderThemes();
-        draw();
-      }
-      renderGroupTabs();
-      status(`테마를 ${SESSION.theme} 로 통일했습니다.`);
-    };
-  const bk = $("#gtBack");
-  if (bk) bk.onclick = () => openSetup(false);
-}
-function themeOkFor(tpl, key) {
-  try {
-    return !!themesFor(tpl)[key];
-  } catch (e) {
-    return false;
-  }
-}
-
-
-/* ============================================================
-   공구 기간 — 2클릭 범위 달력
-   첫 클릭 = 시작일, 둘째 클릭 = 종료일. 시작보다 앞을 누르면 시작이 옮겨간다.
-   숨은 #suD1/#suD2 에 값을 넣어 기존 코드와 그대로 맞물린다.
-   ============================================================ */
-const DOW = ["일", "월", "화", "수", "목", "금", "토"];
-let CAL_BASE = new Date();
-let CAL = { d1: "", d2: "", half: false };
-
-function ymd(d) {
-  return (
-    d.getFullYear() +
-    "-" +
-    String(d.getMonth() + 1).padStart(2, "0") +
-    "-" +
-    String(d.getDate()).padStart(2, "0")
-  );
-}
-function fromYmd(s) {
-  const m = String(s || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null;
-}
-function monthCells(y, m) {
-  const first = new Date(y, m, 1);
-  const start = new Date(y, m, 1 - first.getDay());
-  const out = [];
-  for (let i = 0; i < 42; i++) {
-    const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
-    out.push(d);
-  }
-  return out;
-}
-function calPick(s) {
-  if (!CAL.half || !CAL.d1 || s < CAL.d1) {
-    CAL.d1 = s;
-    CAL.d2 = "";
-    CAL.half = true;
-  } else {
-    CAL.d2 = s;
-    CAL.half = false;
-  }
-  $("#suD1").value = CAL.d1;
-  $("#suD2").value = CAL.d2;
-  renderCal();
-  updateSetupBar();
-}
-function monthHtml(y, m) {
-  const cells = monthCells(y, m);
-  const has = CAL.d1 && CAL.d2;
-  const body = cells
-    .map((d) => {
-      const s = ymd(d);
-      const out = d.getMonth() !== m;
-      const isS1 = s === CAL.d1;
-      const isS2 = s === CAL.d2;
-      const inR = has && s > CAL.d1 && s < CAL.d2;
-      const cls = [
-        out ? "out" : "",
-        isS1 ? "s1" : "",
-        isS2 ? "s2" : "",
-        inR ? "in" : "",
-        has ? "has-range" : "",
-      ]
-        .filter(Boolean)
-        .join(" ");
-      return `<button class="${cls}" data-d="${s}"${out ? " disabled" : ""}>${out ? "" : d.getDate()}</button>`;
-    })
-    .join("");
-  return (
-    `<div class="cal-m"><div class="mh">${y}년 ${m + 1}월</div><div class="cal-grid">` +
-    DOW.map((w, i) => `<div class="dw${i === 0 ? " sun" : ""}">${w}</div>`).join("") +
-    body +
-    `</div></div>`
-  );
-}
-function renderCal() {
-  const el = $("#suCal");
-  if (!el) return;
-  const y = CAL_BASE.getFullYear(),
-    m = CAL_BASE.getMonth();
-  const n = new Date(y, m + 1, 1);
-  const label = CAL.d1
-    ? `${CAL.d1} ~ ${CAL.d2 || "<span class='ph'>종료일 선택</span>"}`
-    : `<span class="ph">시작일을 클릭하세요</span>`;
-  el.innerHTML =
-    `<div class="cal-head">` +
-    `<button class="nav" id="calPrev" type="button">‹</button>` +
-    `<button class="nav" id="calNext" type="button">›</button>` +
-    `<span class="picked">${label}</span><span class="spacer"></span></div>` +
-    `<div class="cal-months">${monthHtml(y, m)}${monthHtml(n.getFullYear(), n.getMonth())}</div>` +
-    `<div class="cal-foot"><span>날짜 두 번이면 끝납니다.</span><span class="spacer"></span>` +
-    `<button type="button" id="calClear">지우기</button></div>`;
-  el.querySelectorAll(".cal-grid button:not([disabled])").forEach(
-    (b) => (b.onclick = () => calPick(b.dataset.d)),
-  );
-  $("#calPrev").onclick = () => {
-    CAL_BASE = new Date(y, m - 1, 1);
-    renderCal();
-  };
-  $("#calNext").onclick = () => {
-    CAL_BASE = new Date(y, m + 1, 1);
-    renderCal();
-  };
-  $("#calClear").onclick = () => {
-    CAL = { d1: "", d2: "", half: false };
-    $("#suD1").value = "";
-    $("#suD2").value = "";
-    renderCal();
-    updateSetupBar();
-  };
-}
-function calSet(d1, d2) {
-  CAL = { d1: d1 || "", d2: d2 || "", half: false };
-  $("#suD1").value = CAL.d1;
-  $("#suD2").value = CAL.d2;
-  const b = fromYmd(CAL.d1);
-  if (b) CAL_BASE = new Date(b.getFullYear(), b.getMonth(), 1);
-  renderCal();
-}
-
-/* ============================================================
-   [1] 행사 정보 화면
-   ============================================================ */
-let SETUP_PICK = [];
-let SETUP_THEME = "";
-
-function allThemeKeys() {
-  /* 패밀리가 섞여도 여섯 색 키는 공통이다. 교집합을 쓴다. */
-  const gs = G();
-  let keys = null;
-  for (const k of SETUP_PICK.length ? SETUP_PICK : Object.keys(gs)) {
-    const g = gs[k];
-    const tpl = (g && g.templates && g.templates[0]) || null;
-    const id = tpl ? tpl.templateId || tpl.id || tpl : null;
-    let t = {};
-    try {
-      t = themesForKey(k, id) || {};
-    } catch (e) {}
-    const ks = Object.keys(t);
-    if (!ks.length) continue;
-    keys = keys === null ? ks : keys.filter((x) => ks.includes(x));
-  }
-  return keys && keys.length ? keys : ["green", "blue", "pink", "yellow", "orange", "mint"];
-}
-
-function renderSetupGroups() {
-  const el = $("#suGroups");
-  if (!el) return;
-  const gs = G();
-  const keys = Object.keys(gs);
-  if (!keys.length) {
-    el.innerHTML = `<div class="empty">시트를 불러오는 중입니다…</div>`;
-    return;
-  }
-  el.innerHTML = keys
-    .map((k) => {
-      const g = gs[k];
-      const n = (g.rows || []).length;
-      const noTpl = !(g.templates || []).length;
-      return (
-        `<button class="${SETUP_PICK.includes(k) ? "on" : ""} ${noTpl ? "dim" : ""}" data-g="${k}"${noTpl ? " disabled" : ""}>` +
-        `${g.label || k}<span class="sub">${noTpl ? "템플릿 미등록" : `옵션 ${n}개`}</span></button>`
-      );
-    })
-    .join("");
-  el.querySelectorAll("button").forEach(
-    (b) =>
-      (b.onclick = () => {
-        const k = b.dataset.g;
-        const i = SETUP_PICK.indexOf(k);
-        if (i >= 0) SETUP_PICK.splice(i, 1);
-        else {
-          SETUP_PICK.push(k);
-          prefetchGroup(k); // 체크하는 순간 이미지를 미리 받아둔다
+      /* 폭 안에서 줄바꿈 — 공백 우선, 한 단어가 폭을 넘으면 글자 단위로 강제 분할 */
+      function wrapText(ctx, text, maxW, tracking) {
+        const t = String(text || "").trim();
+        if (!t) return [];
+        const words = t.split(/\s+/),
+          lines = [];
+        let line = "";
+        const w = (s) => trkWidth(ctx, s, tracking || 0);
+        for (const word of words) {
+          const test = line ? line + " " + word : word;
+          if (w(test) <= maxW) {
+            line = test;
+            continue;
+          }
+          if (line) {
+            lines.push(line);
+            line = "";
+          }
+          if (w(word) <= maxW) {
+            line = word;
+            continue;
+          }
+          // 단어 자체가 폭 초과 -> 글자 단위 분할
+          let cur = "";
+          for (const ch of word) {
+            if (w(cur + ch) > maxW && cur) {
+              lines.push(cur);
+              cur = ch;
+            } else cur += ch;
+          }
+          line = cur;
         }
-        renderSetupGroups();
-        renderSetupThemes();
-        updateSetupBar();
-      }),
-  );
-}
+        if (line) lines.push(line);
+        return lines;
+      }
+      /* 제품명 줄 계산.
+   - 셀 안 줄바꿈(Alt+Enter)은 **의도된 줄바꿈**으로 그대로 유지
+   - 각 줄이 폭을 넘을 때만 자동으로 접음 → 어떤 경우에도 폭을 넘지 않음(원과 겹치지 않음) */
+      function nameLines(r) {
+        const nameW = NAME_W[state.tpl] || 250;
+        _mc.font = `600 ${SHARED.name.size}px Pretendard`;
+        const out = [];
+        for (const para of String(rowName(r) || "").split(/\r?\n/)) {
+          const t = para.trim();
+          if (!t) continue;
+          out.push(...wrapText(_mc, t, nameW, SHARED.name.tracking));
+        }
+        return out.length ? out : [""];
+      }
+      function rowName(r) {
+        return r.name || [r.n1, r.n2].filter(Boolean).join(" ");
+      }
 
-/* 선택 즉시 이미지 프리페치 — 셀러명·기간을 입력하는 동안 뒤에서 받는다.
-   IMG_CACHE 에 얹히므로 [2] 로 넘어가면 네트워크를 다시 타지 않는다. */
-function prefetchGroup(key) {
-  const g = G()[key];
-  if (!g || typeof loadImgSmart !== "function") return;
-  const urls = new Set();
-  (g.rows || []).forEach((r) => r.thumbUrl && urls.add(r.thumbUrl));
-  if (g.heroUrl) urls.add(g.heroUrl);
-  (g.colors || []).forEach((c) => c.url && urls.add(c.url));
-  Object.values(g.gridByTpl || {}).forEach((a) =>
-    (a || []).forEach((u) => u && urls.add(u)),
-  );
-  if (g.sizeInfoUrl) urls.add(g.sizeInfoUrl);
-  Object.values(g.sizeInfoByTpl || {}).forEach((u) => u && urls.add(u));
-  urls.forEach((u) => {
-    loadImgSmart(u).catch(() => {});
-  });
-}
+      function attrsHeight(attrs) {
+        if (!attrs || !attrs.length) return 0;
+        // 라벨 없는 단일 블록 = 뱀부500 케이스 (피그마 검증값 36)
+        if (attrs.length === 1 && !attrs[0].label) return SHARED.unit.lineH;
+        return (
+          attrs.reduce((a, b) => a + (b.label ? ATTR_LH : 0) + ATTR_LH, 0) +
+          ATTR_GAP * (attrs.length - 1)
+        );
+      }
+      function cardMetrics(r, priceH) {
+        const lns = nameLines(r);
+        const lines = lns.length || 1;
+        const attrs = rowAttrs(r);
+        const aH = attrsHeight(attrs);
+        const txtH = lines * SHARED.name.lineH + (aH ? 10 + aH : 0);
+        const boxTopH = Math.max(txtH, 80);
+        const nameWrapH = (r.badge !== "none" ? 36 + 16 : 0) + boxTopH;
+        const contentH = nameWrapH + 36 + priceH;
+        // 피그마: 카드 1~4=360(콘텐츠 최대 296), 배지+3줄인 카드5는 428로 키움.
+        // 콘텐츠가 360에 안 들어가면 피그마처럼 카드를 키운다.
+        const cardH = Math.max(360, contentH + 64);
+        return {
+          lns,
+          lines,
+          attrs,
+          aH,
+          txtH,
+          boxTopH,
+          nameWrapH,
+          contentH,
+          cardH,
+        };
+      }
+      /* 시트 optionInfo(배열) 또는 구 unit(문자열) 모두 지원 */
+      function rowAttrs(r) {
+        if (Array.isArray(r.optionInfo)) return r.optionInfo;
+        if (r.unit) return [{ label: null, value: r.unit }];
+        return [];
+      }
+      /* 옵션 상세 블록 렌더 → 끝난 y 반환 */
+      function drawAttrs(ctx, attrs, x, y) {
+        if (!attrs.length) return y;
+        if (attrs.length === 1 && !attrs[0].label) {
+          ctx.fillStyle = SHARED.textSub;
+          ctx.font = `400 ${SHARED.unit.size}px Pretendard`;
+          trk(
+            ctx,
+            attrs[0].value,
+            x,
+            y + SHARED.unit.lineH / 2,
+            SHARED.unit.tracking,
+            "left",
+          );
+          return y + SHARED.unit.lineH;
+        }
+        let cy = y;
+        attrs.forEach((a, i) => {
+          if (a.label) {
+            ctx.fillStyle = SHARED.textStrong;
+            ctx.font = `600 ${SHARED.unit.size}px Pretendard`;
+            trk(
+              ctx,
+              a.label,
+              x,
+              cy + ATTR_LH / 2,
+              SHARED.unit.tracking,
+              "left",
+            );
+            cy += ATTR_LH;
+          }
+          ctx.fillStyle = SHARED.textSub;
+          ctx.font = `400 ${SHARED.unit.size}px Pretendard`;
+          trk(ctx, a.value, x, cy + ATTR_LH / 2, SHARED.unit.tracking, "left");
+          cy += ATTR_LH;
+          if (i < attrs.length - 1) cy += ATTR_GAP;
+        });
+        return cy;
+      }
+      function card01(ctx, r, x0, top, th) {
+        const x = x0 + 10;
+        const m = cardMetrics(r, 82);
+        const CW = OPT["01"].cardW,
+          CH = m.cardH,
+          OH = CH - 72;
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(x0, top, CW, CH);
+        const T = SHARED.thumb;
+        ctx.fillStyle = T.bg;
+        ctx.fillRect(x, top + 10, T.w, CH - 20);
+        if (r.thumb)
+          drawThumbFit(
+            ctx,
+            r.thumb,
+            x + (T.w * T.imgLeft) / 100,
+            top + 10 + ((CH - 20) * T.imgTop) / 100,
+            (T.w * T.imgW) / 100,
+            ((CH - 20) * T.imgH) / 100,
+          );
+        else ph(ctx, x + T.w / 2, top + CH / 2);
 
-function renderSetupThemes() {
-  const el = $("#suThemes");
-  if (!el) return;
-  const keys = allThemeKeys();
-  if (!keys.includes(SETUP_THEME)) SETUP_THEME = keys[0] || "";
-  const pal = typeof THEMES_NUVOLA !== "undefined" ? THEMES_NUVOLA : {};
-  el.innerHTML = keys
-    .map((k) => {
-      const c = (pal[k] && pal[k].accent) || "#999";
-      const lb = (pal[k] && pal[k].label) || k;
-      return `<button class="${k === SETUP_THEME ? "on" : ""}" data-t="${k}"><span class="dot" style="background:${c}"></span>${lb}</button>`;
-    })
-    .join("");
-  el.querySelectorAll("button").forEach(
-    (b) =>
-      (b.onclick = () => {
-        SETUP_THEME = b.dataset.t;
-        renderSetupThemes();
-      }),
-  );
-}
+        const ox = x + 356,
+          OW = 342;
+        let cy = top + 36 + (OH - m.contentH) / 2; // justify-center
 
-function renderSellerList() {
-  const dl = $("#suSellerList");
-  if (!dl) return;
-  dl.innerHTML = loadSellers()
-    .map((s) => `<option value="${(s.ko || "").replace(/"/g, "&quot;")}">`)
-    .join("");
-}
+        if (r.badge !== "none") {
+          const txt = r.badge === "renewal" ? "RENEWAL!" : "NEW!";
+          ctx.strokeStyle = th.badgeBorder;
+          ctx.lineWidth = 2;
+          roundRect(ctx, ox, cy, 120, 36, 18);
+          ctx.stroke();
+          ctx.fillStyle = th.accent;
+          ctx.font = `600 20px Pretendard`;
+          ctx.textBaseline = "middle";
+          trk(ctx, txt, ox + 60, cy + 18, -0.4, "center");
+          cy += 36 + 16;
+        }
+        const boxTop = cy;
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = SHARED.textStrong;
+        ctx.font = `600 32px Pretendard`;
+        m.lns.forEach((l, i) =>
+          trk(ctx, l, ox, boxTop + i * 40 + 20, -0.64, "left"),
+        );
+        if (m.aH) drawAttrs(ctx, m.attrs, ox, boxTop + m.lines * 40 + 10);
+        // 할인 원
+        const d = disc(r.normal, r.sale);
+        ctx.fillStyle = th.circleBg;
+        ctx.beginPath();
+        ctx.arc(ox + 302, boxTop + 40, 40, 0, 7);
+        ctx.fill();
+        ctx.fillStyle = "#fff";
+        ctx.font = `700 28px GmarketSans, Pretendard`;
+        trk(
+          ctx,
+          d != null ? d + "%" : "—",
+          ox + 302,
+          boxTop + 41,
+          -0.56,
+          "center",
+        );
 
-function updateSetupBar() {
-  const ko = ($("#suSellerKo") || {}).value || "";
-  const en = ($("#suSellerEn") || {}).value || "";
-  const d1 = ($("#suD1") || {}).value || "";
-  const d2 = ($("#suD2") || {}).value || "";
-  const probs = [];
-  if (!SETUP_PICK.length) probs.push("제품군");
-  if (!ko.trim() && !en.trim()) probs.push("셀러명");
-  if (!d1 || !d2) probs.push("공구 기간");
-  else if (new Date(d2) < new Date(d1)) probs.push("기간 순서");
+        // 가격 2줄
+        const py = boxTop + m.boxTopH + 36;
+        const g = G()[state.group] || {};
+        ctx.fillStyle = SHARED.textMuted;
+        ctx.font = `600 20px Pretendard`;
+        trk(ctx, g.normalLabel || "정상가", ox, py + 18, -0.4, "left");
+        ctx.font = `400 20px Pretendard`;
+        const np = won(r.normal);
+        trk(ctx, np, ox + OW, py + 18, -0.4, "right");
+        const npw = trkWidth(ctx, np, -0.4);
+        ctx.strokeStyle = SHARED.textMuted;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(ox + OW - npw, py + 18);
+        ctx.lineTo(ox + OW, py + 18);
+        ctx.stroke();
 
-  const n = SETUP_PICK.length;
-  const sum = $("#suSum");
-  if (sum)
-    sum.textContent = probs.length
-      ? `${probs.join(" · ")} 을(를) 입력하세요`
-      : `제품군 ${n}개 — 상세 ${n}장 · 썸네일 ${n}장 · 피드 ${n}세트`;
-  const go = $("#suGo");
-  if (go) go.disabled = probs.length > 0;
-}
+        ctx.fillStyle = SHARED.textStrong;
+        ctx.font = `600 28px Pretendard`;
+        trk(ctx, g.saleLabel || "혜택가", ox, py + 46 + 18, -0.56, "left");
+        ctx.font = `700 28px Pretendard`;
+        trk(ctx, won(r.sale), ox + OW, py + 46 + 18, -0.56, "right");
+        ctx.textBaseline = "alphabetic";
+        return CH;
+      }
 
-function openSetup(reset) {
-  if (reset) {
-    SETUP_PICK = [];
-    SETUP_THEME = "";
-  } else {
-    SETUP_PICK = SESSION.groups.slice();
-    SETUP_THEME = SESSION.theme;
-    $("#suSellerKo").value = SESSION.sellerKo || "";
-    $("#suSellerEn").value = SESSION.sellerEn || "";
-  }
-  calSet(
-    reset ? "" : SESSION.d1 || state.d1 || "",
-    reset ? "" : SESSION.d2 || state.d2 || "",
-  );
-  renderSellerList();
-  renderSetupGroups();
-  renderSetupThemes();
-  updateSetupBar();
-  $("#setup").hidden = false;
-}
+      /* ---- 카드 02 : 텍스트 배지 + 사각칩 + 인라인 가격 (라벨 없음) ---- */
+      function card02(ctx, r, x, top, th) {
+        const m = cardMetrics(r, 80);
+        const CW = OPT["02"].cardW,
+          CH = m.cardH - 6,
+          OH = CH - 72;
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(x, top, CW, CH);
+        ctx.strokeStyle = th.cardBorder;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x, top + CH - 0.5);
+        ctx.lineTo(x + CW, top + CH - 0.5);
+        ctx.stroke();
 
-function startSession() {
-  const keep = SESSION.slots;
-  SESSION.groups = SETUP_PICK.slice();
-  SESSION.theme = SETUP_THEME;
-  SESSION.sellerKo = $("#suSellerKo").value.trim();
-  SESSION.sellerEn = $("#suSellerEn").value.trim();
-  SESSION.d1 = $("#suD1").value;
-  SESSION.d2 = $("#suD2").value;
-  SESSION.started = true;
-  /* 빠진 제품군의 슬롯은 버린다 */
-  SESSION.slots = {};
-  SESSION.groups.forEach((k) => {
-    if (keep[k]) SESSION.slots[k] = keep[k];
-  });
+        const T = SHARED.thumb;
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(x, top + 7, T.w, CH - 14);
+        if (r.thumb)
+          drawThumbFit(
+            ctx,
+            r.thumb,
+            x + (T.w * T.imgLeft) / 100,
+            top + 7 + ((CH - 14) * T.imgTop) / 100,
+            (T.w * T.imgW) / 100,
+            ((CH - 14) * T.imgH) / 100,
+          );
+        else ph(ctx, x + T.w / 2, top + CH / 2);
 
-  state.d1 = SESSION.d1;
-  state.d2 = SESSION.d2;
-  $("#d1").value = SESSION.d1;
-  $("#d2").value = SESSION.d2;
-  rememberSeller(SESSION.sellerKo, SESSION.sellerEn);
+        const ox = x + T.w + 36,
+          OW = CW - T.w - 36;
+        let cy = top + 36 + (OH - m.contentH) / 2;
 
-  /* 한글 셀러명이 바뀌었으면 이미 열어본 제품군의 제목도 따라가야 한다 */
-  Object.values(SESSION.slots).forEach((s) => {
-    s.t1 = titleWithSeller(s.t1);
-    s.t2 = titleWithSeller(s.t2);
-  });
+        ctx.textBaseline = "middle";
+        if (r.badge !== "none") {
+          const txt = r.badge === "renewal" ? "★리뉴얼★" : "★NEW★";
+          ctx.fillStyle = th.badgeText;
+          ctx.font = `600 24px Pretendard`;
+          trk(ctx, txt, ox, cy + 18, -0.48, "left");
+          cy += 36 + 16;
+        }
+        const boxTop = cy;
+        ctx.fillStyle = SHARED.textStrong;
+        ctx.font = `600 32px Pretendard`;
+        m.lns.forEach((l, i) =>
+          trk(ctx, l, ox, boxTop + i * 40 + 20, -0.64, "left"),
+        );
+        if (m.aH) drawAttrs(ctx, m.attrs, ox, boxTop + m.lines * 40 + 10);
 
-  $("#setup").hidden = true;
-  const first = SESSION.groups[0];
-  state.group = null; // gotoGroup 이 이전 슬롯을 저장하지 않도록
-  gotoGroup(first);
-  syncSellerField();
-  draw();
-  status(`${SESSION.sellerKo || SESSION.sellerEn} — 제품군 ${SESSION.groups.length}개로 시작합니다.`);
-}
+        // 가격줄: [칩 80] gap20 [혜택가] gap16 [정상가 취소선] — 라벨 없음
+        const py = boxTop + m.boxTopH + 36;
+        const d = disc(r.normal, r.sale);
+        ctx.fillStyle = th.chipBg;
+        ctx.fillRect(ox, py, 80, 80);
+        ctx.fillStyle = th.chipText;
+        ctx.font = `700 28px GmarketSans, Pretendard`;
+        trk(ctx, d != null ? d + "%" : "—", ox + 40, py + 41, -0.56, "center");
 
-/* ---------- 이어하기 ---------- */
-function saveSession() {
-  try {
-    localStorage.setItem(
-      SES_KEY,
-      JSON.stringify({
-        groups: SESSION.groups,
-        theme: SESSION.theme,
-        sellerKo: SESSION.sellerKo,
-        sellerEn: SESSION.sellerEn,
-        d1: SESSION.d1,
-        d2: SESSION.d2,
-        at: Date.now(),
-      }),
-    );
-  } catch (e) {}
-}
-function lastSession() {
-  try {
-    const o = JSON.parse(localStorage.getItem(SES_KEY) || "null");
-    if (!o || !o.groups || !o.groups.length) return null;
-    if (Date.now() - (o.at || 0) > 7 * 864e5) return null; // 일주일 지나면 버림
-    return o;
-  } catch (e) {
-    return null;
-  }
-}
-
-/* ============================================================
-   기존 함수 감싸기
-   ============================================================ */
-/* 템플릿이 바뀌면 셀러명(한글/영문)을 다시 고른다 */
-const _applyTplDefaults = applyTplDefaults;
-applyTplDefaults = function () {
-  const r = _applyTplDefaults.apply(this, arguments);
-  syncSellerField();
-  return r;
-};
-
-/* 좌측 제품군 버튼으로 세션 밖 제품군을 누르면 탭에 편입한다 */
-const _selectGroup = selectGroup;
-selectGroup = function (key) {
-  if (SESSION.started && !SESSION.groups.includes(key)) {
-    SESSION.groups.push(key);
-    SETUP_PICK = SESSION.groups.slice();
-  }
-  const r = _selectGroup.apply(this, arguments);
-  if (SESSION.started) {
-    if (SESSION.theme && themeOkFor(state.tpl, SESSION.theme))
-      state.theme = SESSION.theme;
-    syncSellerField();
-    SESSION.slots[key] = slotSnap();
-    renderGroupTabs();
-    saveSession();
-  }
-  return r;
-};
-
-/* ============================================================
-   부팅
-   ============================================================ */
-(function initSetupFlow() {
-  /* 셀러 입력 → 세션에 반영 */
-  ["suSellerKo", "suSellerEn"].forEach((id) => {
-    const el = $("#" + id);
-    if (el) el.oninput = updateSetupBar;
-  });
-  const koEl = $("#suSellerKo");
-  if (koEl)
-    koEl.onchange = () => {
-      const hit = loadSellers().find((s) => s.ko === koEl.value.trim());
-      if (hit && hit.en && !$("#suSellerEn").value) $("#suSellerEn").value = hit.en;
-      updateSetupBar();
-    };
-  const go = $("#suGo");
-  if (go) go.onclick = startSession;
-
-  /* 좌측 패널의 셀러 입력을 직접 고치면 세션 값도 따라간다 */
-  const sel = $("#seller");
-  if (sel)
-    sel.addEventListener("input", () => {
-      if (!SESSION.started) return;
-      SESSION.sellerEn = sel.value.trim(); // pill 은 항상 영문
-    });
-
-  /* 시트 로딩이 끝난 뒤 제품군 목록을 다시 그린다 */
-  const _initGroups = initGroups;
-  initGroups = function () {
-    const r = _initGroups.apply(this, arguments);
-    if (!$("#setup").hidden) {
-      renderSetupGroups();
-      renderSetupThemes();
-      updateSetupBar();
-    }
-    return r;
-  };
-
-  /* 최초 진입 — 이전 세션이 있으면 채워서 보여준다 */
-  const last = lastSession();
-  if (last) {
-    SESSION.sellerKo = last.sellerKo || "";
-    SESSION.sellerEn = last.sellerEn || "";
-    SESSION.theme = last.theme || "";
-    SESSION.d1 = last.d1 || "";
-    SESSION.d2 = last.d2 || "";
-    SESSION.groups = (last.groups || []).slice();
-  }
-  openSetup(!last);
-  renderGroupTabs();
-})();
+        let px = ox + 80 + 20;
+        ctx.fillStyle = SHARED.textStrong;
+        ctx.font = `700 28px Pretendard`;
+        const sp = won(r.sale);
+        trk(ctx, sp, px, py + 40, -0.56, "left");
+        px += trkWidth(ctx, sp, -0.56) + 16;
+        ctx.fillStyle = SHARED.textMuted;
+        ctx.font = `400 20px Pretendard`;
+        const np = won(r.normal);
+        trk(ctx, np, px, py + 40, -0.4, "left");
+        const npw = trkWidth(ctx, np, -0.4);
+        ctx.strokeStyle = SHARED.textMuted;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(px, py + 40);
+        ctx.lineTo(px + npw, py + 40);
+        ctx.stroke();
+        ctx.textBaseline = "alphabetic";
+        return CH;
+      }

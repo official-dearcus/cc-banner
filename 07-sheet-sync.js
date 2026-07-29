@@ -1,169 +1,85 @@
-/* CC 배너 제너레이터 — 03-sample-data
+/* CC 배너 제너레이터 — 18-validate
    원본 index.html 에서 기능별로 분리. 로드 순서가 곧 실행 순서다. */
-      /* ============================================================
-   제품 마스터 (실운영: Google Sheet ProductMaster/TemplateMaster fetch로 교체)
-   명세서 §1.1.2 — 제품군 키로 제품 옵션 + 템플릿 목록 조회
-   ============================================================ */
-      const GROUPS = {
-        bamboo500: {
-          label: "뱀부500",
-          templates: ["01", "02"],
-          seller: "wtable_official",
-          t1: "Bamboo500 Premium",
-          t2: "Series ~60% Open.",
-          t1_02: "셀러 × 디어커스",
-          t2_02: "뱀부 500 Series",
-          copy: "먼지 날림이 적어 안심하고 쓰는 ",
-          copyBold: "뱀부 500 시리즈!",
-          series: "뱀부500 시리즈 가격 안내",
-          rows: [
-            {
-              name: "뱀부500 화장지 3겹 30롤 2세트",
-              optionInfo: [{ label: null, value: "1롤당 663원" }],
-              normal: 73800,
-              sale: 39800,
-              badge: "renewal",
-            },
-            {
-              name: "뱀부500 미용티슈 3겹 150매 6팩 단품",
-              optionInfo: [{ label: null, value: "1매당 22원" }],
-              normal: 49900,
-              sale: 19800,
-              badge: "none",
-            },
-            {
-              name: "뱀부500 키친타월 3겹 프리미엄 4롤 단품",
-              optionInfo: [{ label: null, value: "10매당 353원" }],
-              normal: 29800,
-              sale: 19800,
-              badge: "none",
-            },
-            {
-              name: "뱀부500 키친타월 3겹 프리미엄 4롤 2세트",
-              optionInfo: [{ label: null, value: "10매당 319원" }],
-              normal: 59600,
-              sale: 35800,
-              badge: "none",
-            },
-            {
-              name: "뱀부500 뽑아쓰는 키친타월 100매 10팩",
-              optionInfo: [{ label: null, value: "10매당 189원" }],
-              normal: 37800,
-              sale: 18900,
-              badge: "new",
-            },
-          ],
-        },
-        cheoma: {
-          label: "처마",
-          templates: [],
-          series: "처마 싱크대 물막이 가격 안내",
-          rows: [
-            {
-              name: "처마 물막이 그란데",
-              optionInfo: [],
-              normal: 36900,
-              sale: 18900,
-              badge: "none",
-            },
-          ],
-        },
-        nuvola: {
-          label: "누볼라 패밀리",
-          templates: [],
-          series: "누볼라 패밀리 세트 옵션 안내",
-          rows: [
-            {
-              name: "누볼라 욕실화 (키즈)",
-              optionInfo: [],
-              normal: 28900,
-              sale: 14900,
-              badge: "none",
-            },
-          ],
-        },
-        balena: {
-          label: "발리나",
-          templates: [],
-          series: "발리나 욕실화 특가 오픈",
-          rows: [
-            {
-              name: "발리나 욕실화",
-              optionInfo: [],
-              normal: 60000,
-              sale: 31800,
-              badge: "none",
-            },
-          ],
-        },
-        ovale: {
-          label: "오발레&누볼라키즈",
-          templates: [],
-          series: "오발레&누볼라키즈 가격 안내",
-          rows: [
-            {
-              name: "누볼라 욕실화 (키즈)",
-              optionInfo: [],
-              normal: 28900,
-              sale: 14900,
-              badge: "none",
-            },
-          ],
-        },
-        airbium: {
-          label: "에어비움",
-          templates: [],
-          series: "에어비움 고체 탈취제 안내",
-          rows: [
-            {
-              name: "에어비움 고체탈취제 380g 1개 단품",
-              optionInfo: [],
-              normal: 28800,
-              sale: 17800,
-              badge: "none",
-            },
-          ],
-        },
-        popcorn: {
-          label: "팝콘백",
-          templates: [],
-          series: "팝콘백 옵션 안내",
-          rows: [
-            {
-              name: "팝콘 플리츠백 1세트",
-              optionInfo: [],
-              normal: 79000,
-              sale: 29800,
-              badge: "none",
-            },
-          ],
-        },
-        ondekko: {
-          label: "온더꼬끄",
-          templates: [],
-          series: "온더꼬끄 한정특가 안내",
-          rows: [
-            {
-              name: "인테리어 안전매트 온더꼬끄 단품 (6개입)",
-              optionInfo: [{ label: null, value: "1매당 55,000원" }],
-              normal: 99000,
-              sale: 55000,
-              badge: "none",
-            },
-          ],
-        },
-        moajoy: {
-          label: "모아조이",
-          templates: [],
-          series: "모아조이 옵션 안내",
-          rows: [
-            {
-              name: "디어커스 × 브랜드마방소 모아조이 플레이매트",
-              optionInfo: [],
-              normal: 63800,
-              sale: 39800,
-              badge: "none",
-            },
-          ],
-        },
-      };
+      /* ---------- 검증 ---------- */
+      function checkSeller() {
+        const bad =
+          state.tpl === "01" && state.seller && !LATIN.test(state.seller);
+        $("#seller").classList.toggle("bad", bad);
+        const h = $("#sellerHint");
+        h.className = "hint" + (bad ? " err" : "");
+        h.innerHTML = bad
+          ? "템플릿 01의 셀러명 서체(High Summit)에는 <b>한글 글리프가 없습니다</b>. 영문으로 바꾸거나 템플릿 02를 사용하세요."
+          : state.tpl === "01"
+            ? "영문만 가능 (High Summit 손글씨체)"
+            : "한글 가능 (Pretendard)";
+        return !bad;
+      }
+      function warnings() {
+        const w = [];
+        if (!state.tpl) {
+          w.push([
+            "err",
+            "템플릿 미등록",
+            `${G()[state.group].label} 제품군에 등록된 템플릿이 없습니다.`,
+          ]);
+          $("#warnList").innerHTML = w
+            .map(
+              ([k, t, m]) => `<div class="warnbox ${k}"><b>${t}</b>${m}</div>`,
+            )
+            .join("");
+          $("#dlBtn").disabled = true;
+          return false;
+        }
+        if (!state.hero)
+          w.push([
+            "warn",
+            state.tpl === "02" ? "제품 이미지 없음" : "히어로 이미지 없음",
+            state.tpl === "02"
+              ? "그라데이션만 표시됩니다."
+              : "폴백 컬러로 표시됩니다.",
+          ]);
+        if (anyTainted()) {
+          const which = [
+            state.heroTainted ? "히어로" : null,
+            state.rows.some((r) => r.thumbTainted) ? "썸네일" : null,
+          ]
+            .filter(Boolean)
+            .join("·");
+          const detail = PROXY_ERR
+            ? `<b>프록시가 실패했습니다:</b><div class="errdetail">${esc(PROXY_ERR)}</div>`
+            : `→ <b>이미지 프록시 URL</b>을 설정하거나, CORS 허용 스토리지로 옮기거나, <b>직접 업로드</b>를 쓰세요.`;
+          w.push([
+            "err",
+            "PNG 저장 불가 — 이미지 CORS 미허용",
+            `${which} 이미지 서버가 <b>Access-Control-Allow-Origin</b> 헤더를 주지 않습니다.<br/>${detail}`,
+          ]);
+        }
+        if (state.tpl === "01" && state.seller && !LATIN.test(state.seller))
+          w.push([
+            "err",
+            "셀러명 한글",
+            "템플릿 01은 영문 전용입니다 (High Summit).",
+          ]);
+        if (!state.seller) w.push(["warn", "셀러명 미입력", ""]);
+        if (!state.d1 || !state.d2) w.push(["warn", "공구 기간 미입력", ""]);
+        else if (new Date(state.d2) < new Date(state.d1))
+          w.push(["err", "기간 오류", "종료일이 시작일보다 빠릅니다."]);
+        state.rows.forEach((r, i) => {
+          if (r.sale > r.normal)
+            w.push(["err", `카드 ${i + 1} 가격 오류`, "판매가 > 정상가"]);
+          if (!r.normal) w.push(["err", `카드 ${i + 1} 정상가 없음`, ""]);
+        });
+        if (!state.rows.length) w.push(["err", "카드 없음", ""]);
+        if (!w.length) w.push(["ok", "이상 없음", "다운로드 준비 완료."]);
+        $("#warnList").innerHTML = w
+          .map(([k, t, m]) => `<div class="warnbox ${k}"><b>${t}</b>${m}</div>`)
+          .join("");
+        const blocked = w.some((x) => x[0] === "err");
+        $("#dlBtn").disabled = blocked;
+        return !blocked;
+      }
+      function status(m, e) {
+        const el = $("#statusline");
+        el.textContent = m;
+        el.style.color = e ? "var(--err)" : "var(--ink-soft)";
+      }

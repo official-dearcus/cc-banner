@@ -1,395 +1,653 @@
-/* CC 배너 제너레이터 — 10-group-template-ui
+/* CC 배너 제너레이터 — 15-render-thumb-feed
    원본 index.html 에서 기능별로 분리. 로드 순서가 곧 실행 순서다. */
-      /* ---------- 초기화 · 제품군 선택 (명세서 §2.1.1) ---------- */
-      function renderGroupButtons(filter) {
-        const q = (filter || "").trim().toLowerCase();
-        const box = $("#group");
-        const entries = Object.entries(G()).filter(
-          ([k, g]) => !q || g.label.toLowerCase().includes(q),
-        );
-        box.innerHTML = entries
-          .map(
-            ([k, g]) =>
-              `<button class="groupbtn ${k === state.group ? "on" : ""}" data-g="${k}"${g.templates.length ? "" : ' data-empty="1"'}>${g.label}${g.templates.length ? "" : " · 템플릿없음"}</button>`,
-          )
-          .join("");
-        box.querySelectorAll(".groupbtn").forEach(
-          (b) => (b.onclick = () => selectGroup(b.dataset.g)),
-        );
-      }
-      /* select=false 면 버튼만 다시 그린다. 호출부에서 selectGroup 을 따로 부르는 경우
-         제품군 선택이 두 번 실행돼 랜덤(템플릿·컬러·히어로)이 두 번 돌던 문제를 막는다. */
-      function initGroups(select) {
-        renderGroupButtons();
-        if (select === false) return;
-        const keys = Object.keys(G());
-        selectGroup(keys.includes("bamboo500") ? "bamboo500" : keys[0]);
-      }
-      /* 히어로 상태 완전 초기화 (템플릿 전환·제품군 전환 시) */
-      function clearHero() {
-        state.hero = null;
-        state.heroSrc = "";
-        state.heroUrl = "";
-        state.heroUpload = false;
-        state.heroTainted = false;
-      }
-      /* 처음 진입 시 템플릿을 랜덤으로 고른다 — 선택 고민을 줄이되, 이후 수정 가능 */
-      function pickInitialTpl(g) {
-        if (!g.templates || !g.templates.length) return null;
-        return g.templates[Math.floor(Math.random() * g.templates.length)];
-      }
-      /* 처음 진입 시 컬러도 랜덤 (템플릿 허용 컬러 중, 수정 가능) */
-      function pickInitialTheme(key, tpl) {
-        if (!tpl) return null;
-        const keys = Object.keys(themesForKey(key, tpl));
-        if (!keys.length) return null;
-        return keys[Math.floor(Math.random() * keys.length)];
-      }
-      /* 처음 진입 시 히어로도 랜덤 (현재 템플릿의 히어로 중에서만, 수정 가능).
-         async 로딩 중 템플릿이 바뀌면 적용하지 않아 01/02 히어로가 섞이지 않는다. */
-      async function applyRandomHero(gen) {
-        const tplAtPick = state.tpl;
-        const list = heroesForTpl();
-        if (!list.length) return;
-        const h = list[Math.floor(Math.random() * list.length)];
-        if (!h || !h.url) return;
-        try {
-          const r = await loadImgSmart(h.url);
-          if (gen !== undefined && gen !== SEL_GEN) return; // 제품군이 바뀌었으면 폐기
-          if (state.tpl !== tplAtPick) return; // 로딩 후에도 같은 템플릿일 때만 적용
-          state.hero = r.img;
-          state.heroTainted = r.tainted;
-          state.heroUrl = h.url;
-          state.heroUpload = false;
-          renderHeroList();
-          schedTplPreviews(true);
-          draw();
-        } catch (e) {
-          /* 실패 시 히어로 없이 진행 */
-        }
-      }
-      let SEL_GEN = 0; // 제품군 선택 세대 — 비동기 로딩 경합 방지
-      function selectGroup(key) {
-        const gen = ++SEL_GEN;
-        state.group = key;
-        const g = G()[key];
-        // 하위 선택 초기화 (§2.1.1)
-        state.tpl = pickInitialTpl(g); // 처음엔 랜덤 (수정 가능)
-        state.theme = pickInitialTheme(key, state.tpl); // 컬러도 랜덤 (수정 가능)
-        clearHero();
-        // 셀러명·공구기간은 운영자 입력값(가변값)이므로 제품군을 바꿔도 유지한다.
-        Object.assign(state, {
-          seller: state.seller || g.seller || "",
-          copy: g.copy || "",
-          copyBold: g.copyBold || "",
-          series: g.series || g.seriesTitle || "",
-          rows: (g.rows || []).map((r) =>
-            mkRow({ ...r, thumb: null, thumbSrc: "" }),
-          ),
-        });
-        applyTplDefaults();
-        renderGroupButtons($("#groupSearch") ? $("#groupSearch").value : "");
-        $("#seller").value = state.seller;
-        $("#copy").value = state.copy;
-        $("#copyBold").value = state.copyBold;
-        // 누볼라 계열: 안내 문구·사이즈 이미지는 템플릿별 → 그룹 공통 순
-        state.notice =
-          (g.noticeByTpl && g.noticeByTpl[state.tpl]) || g.noticeText || "";
-        state.sizeInfoOn = !!nvSizeInfoUrl();
-        renderNvBlocks();
-        $("#series").value = state.series;
-        renderTplList();
-        renderThemes();
-        renderRows();
-        syncTplUI();
-        resetColorPick();
-        renderNvBlocks();
-        renderHeroList();
-        draw();
-        loadSheetImages(gen);
-        applyRandomHero(gen);
-      }
-      function themesForKey(gk, tpl) {
-        const g = G()[gk],
-          all = themeTable((g && g.family) || "bamboo", tpl);
-        const f = g && g.themeFilter && g.themeFilter[tpl];
-        if (!f || !f.length) return all;
-        const out = {};
-        f.forEach((k) => {
-          if (all[k]) out[k] = all[k];
-        });
-        return Object.keys(out).length ? out : all;
-      }
-      /* 시트의 thumbUrl / heroUrl 자동 로드 (§리스크: URL 만료·CORS) */
-      /* 다섯 종류(썸네일·히어로·색상칩·상단4컷·사이즈안내)를 순차로 기다리던 것을
-         한 번에 병렬로 바꿨다. 이제 전체 소요 = 가장 느린 이미지 1장. */
-      async function loadSheetImages(gen) {
-        const g = G()[state.group];
-        if (!g) return;
-        const fails = [];
-        const jobs = [];
-        const job = (url, label, apply) => {
-          if (!url) return;
-          jobs.push(
-            loadImgSmart(url).then(
-              (x) => apply(x),
-              () => fails.push(label),
-            ),
-          );
-        };
+      /* ============================================================
+   멀티 포맷 렌더러 — 썸네일(1080²) · 인스타 피드(1080×1350 ×N)
+   .fig(CC자동화-배너_템플릿_bamboo) 실측 기반
+   ============================================================ */
+      const FMT = {
+        detail: { w: 860, label: "상세페이지" },
+        thumb: { w: 1080, h: 1080, label: "썸네일" },
+        feed: { w: 1080, h: 1350, label: "인스타 피드" },
+      };
 
-        /* 옵션 카드 썸네일 */
-        state.rows.forEach((r) => {
-          if (r.thumb) return;
-          job(r.thumbUrl, rowName(r), (x) => {
-            r.thumb = x.img;
-            r.thumbTainted = x.tainted;
-            r.thumbSrc = r.thumbUrl;
-          });
-        });
-
-        /* 히어로 */
-        if (!state.hero)
-          job(g.heroUrl, "히어로", (x) => {
-            state.hero = x.img;
-            state.heroTainted = x.tainted;
-            state.heroUpload = false;
-          });
-
-        /* 색상 칩 (누볼라 등) */
-        (g.colors || []).forEach((c) => {
-          if (c.img) return;
-          job(c.url, "색상 " + (c.label || c.colorKey), (x) => {
-            c.img = x.img;
-            c.imgTainted = x.tainted;
-          });
-        });
-
-        /* 03 상단 이미지 4컷 */
-        const gUrls = new Set();
-        Object.values(g.gridByTpl || {}).forEach((arr) =>
-          (arr || []).forEach((u) => u && gUrls.add(u)),
-        );
-        gUrls.forEach((u) => {
-          if (GRID_IMG[u]) return;
-          job(u, "상단 이미지", (x) => {
-            GRID_IMG[u] = x.img;
-          });
-        });
-
-        /* 사이즈 안내 — 템플릿마다 다를 수 있어 URL 단위로 캐시 */
-        const sUrls = new Set();
-        if (g.sizeInfoUrl) sUrls.add(g.sizeInfoUrl);
-        Object.values(g.sizeInfoByTpl || {}).forEach((u) => u && sUrls.add(u));
-        sUrls.forEach((u) => {
-          if (SIZE_IMG[u]) return;
-          job(u, "사이즈 안내", (x) => {
-            SIZE_IMG[u] = x.img;
-          });
-        });
-
-        await Promise.all(jobs);
-
-        if (fails.length)
-          status(
-            `이미지 ${fails.length}건 로드 실패: ${fails.slice(0, 2).join(", ")}`,
-            1,
-          );
-        if (gen !== undefined && gen !== SEL_GEN) return; // 이미 다른 제품군으로 넘어감
-        renderRows();
-        draw();
-      }
-      function applyTplDefaults() {
-        const g = G()[state.group];
-        if (!g || !state.tpl) return;
-        // 히어로 타이틀: 시트(TemplateMaster.heroTitle) 우선 → 내장 샘플 → 기존 입력 유지
-        const st = g.titleByTpl && g.titleByTpl[state.tpl];
-        if (st && st.length) {
-          // 1줄 = 윗줄, 2줄 이후는 모두 아랫줄로 합친다(줄바꿈 유지).
-          // 3줄 이상 입력해도 잘리지 않는다.
-          state.t1 = st[0] || "";
-          state.t2 = st.slice(1).filter(Boolean).join("\n");
-        } else if (state.tpl === "02") {
-          state.t1 = g.t1_02 || g.t1 || state.t1 || "";
-          state.t2 = g.t2_02 || g.t2 || state.t2 || "";
-        } else {
-          state.t1 = g.t1 || state.t1 || "";
-          state.t2 = g.t2 || state.t2 || "";
-        }
-        // 하단 카피 (02)
-        const sc = g.copyByTpl && g.copyByTpl[state.tpl];
-        if (sc && (sc.c || sc.b)) {
-          state.copy = sc.c || "";
-          state.copyBold = sc.b || "";
-        }
-        $("#copy").value = state.copy;
-        $("#copyBold").value = state.copyBold;
-        state.series =
-          state.tpl === "02"
-            ? g.optionTitleEn || g.series || ""
-            : g.seriesTitle || g.series || "";
-        $("#t1").value = state.t1;
-        $("#t2").value = state.t2;
-        $("#series").value = state.series;
-        const lab = $("#seriesLabel");
-        if (lab)
-          lab.textContent =
-            state.tpl === "02" ? "옵션 제목 (영문)" : "시리즈 제목 (한글)";
-        // 누볼라 계열: 안내 문구·사이즈 이미지는 템플릿마다 다르므로 전환 시 다시 반영
-        if (nvIsOn()) {
-          state.notice =
-            (g.noticeByTpl && g.noticeByTpl[state.tpl]) || g.noticeText || "";
-          state.sizeInfoOn = !!nvSizeInfoUrl();
-        }
-        renderNvBlocks();
-      }
-      /* 템플릿 목록 — 프리뷰 카드 (§2.1.2) */
-      function renderTplList() {
-        const g = G()[state.group],
-          box = $("#tplList");
-        if (!g.templates.length) {
-          box.innerHTML = `<div class="tplempty">이 제품군은 <b>템플릿이 아직 등록되지 않았습니다.</b><br/>
-      피그마에 템플릿을 만들고 design.md에 규격을 추가하면 여기 표시됩니다.</div>`;
-          $("#tplHint").textContent = "";
-          return;
-        }
-        box.innerHTML = g.templates
-          .map(
-            (t) => `
-    <div class="tplcard ${t === state.tpl ? "on" : ""}" data-t="${t}">
-      <canvas class="tplprev" data-prev="${t}" width="240" height="302"></canvas>
-      <div class="tplmeta"><div class="tplname">${(G()[state.group]?.labelOverride?.[t]) || tplMeta(curFam(), t).label}</div>
-        <div class="tpldesc">${tplMeta(curFam(), t).desc}</div></div>
-    </div>`,
-          )
-          .join("");
-        box.querySelectorAll(".tplcard").forEach(
-          (el) =>
-            (el.onclick = () => {
-              const prev = state.tpl;
-              state.tpl = el.dataset.t;
-              if (state.tpl !== prev) clearHero(); // 템플릿마다 히어로 성격이 다르므로 초기화
-              if (!themesForKey(state.group, state.tpl)[state.theme])
-                state.theme = Object.keys(
-                  themesForKey(state.group, state.tpl),
-                )[0];
-              applyTplDefaults();
-              renderTplList();
-              renderThemes();
-              syncTplUI();
-              renderHeroList();
-              draw();
-            }),
-        );
-        requestAnimationFrame(() => drawTplPreviews()); // 전체 갱신(목록 재생성 직후)
-      }
-      /* 각 템플릿 히어로를 축소 렌더 */
-      /* 미리보기 갱신 요청을 한 프레임으로 합친다.
-         셀러명·타이틀을 타이핑하면 글자마다 3장을 다시 그리고 있었다.
-         onlyCurrent=true 면 지금 선택된 템플릿 카드 하나만 갱신한다
-         (양옆 카드가 같이 바뀌어 헷갈리던 것도 없어진다). */
-      let _tplReq = 0,
-        _tplAll = false;
-      function schedTplPreviews(onlyCurrent) {
-        if (!onlyCurrent) _tplAll = true;
-        if (_tplReq) return;
-        _tplReq = requestAnimationFrame(() => {
-          _tplReq = 0;
-          const all = _tplAll;
-          _tplAll = false;
-          drawTplPreviews(all ? null : state.tpl);
-        });
-      }
-      function drawTplPreviews(only) {
-        const g = G()[state.group];
-        if (!g.templates.length) return;
-        /* ⚠ 예전에는 THEMES[t] 를 직접 읽었다.
-           THEMES 에는 "01","02" 밖에 없어서 누볼라 03 에서 undefined 가 되고
-           THEMES["03"][state.theme] 가 TypeError 로 터졌다.
-           그 예외가 pickHero 의 try 안에서 잡혀 "이미지 로드 실패"로 둔갑했다.
-           패밀리에 맞는 테마표(themeTable)와 렌더러(nvMain)를 쓰도록 고쳤다. */
-        const nv = typeof nvIsOn === "function" && nvIsOn();
-        const H = nv && typeof NV !== "undefined" ? NV.MAIN_H : SHARED.HERO_H;
-        const off = document.createElement("canvas");
-        off.width = 860;
-        off.height = H;
-        const octx = off.getContext("2d");
-        g.templates.forEach((t) => {
-          if (only && t !== only) return; // 나머지 카드는 그대로 둔다
-          const cv = document.querySelector(`[data-prev="${t}"]`);
-          if (!cv) return;
-          const tbl = themeTable(curFam(), t) || {};
-          const keys = Object.keys(tbl);
-          if (!keys.length) return; // 테마표가 없는 템플릿은 미리보기 생략
-          const th = tbl[tbl[state.theme] ? state.theme : keys[0]];
-          octx.clearRect(0, 0, 860, H);
-          const saveT = state.tpl;
-          state.tpl = t;
-          try {
-            if (nv) nvMain(octx, 860, th);
-            else t === "01" ? hero01(octx, 860, th) : hero02(octx, 860, th);
-          } catch (e) {
-            console.warn("템플릿 미리보기 실패", t, e);
-          } finally {
-            state.tpl = saveT; // 예외가 나도 현재 템플릿을 되돌린다
+      /* ---- 썸네일 1080×1080 : 상세 히어로를 정사각으로, 타이틀 96px ---- */
+      function drawThumb(ctx, th) {
+        if (nvIsOn()) { nvThumb(ctx, th); return; }
+        const W = 1080,
+          H = 1080;
+        if (state.tpl === "01") {
+          if (state.hero)
+            clipRect(ctx, 0, 0, W, H, () => cover(ctx, state.hero, 0, 0, W, H));
+          else {
+            ctx.fillStyle = "#d9d9d9";
+            ctx.fillRect(0, 0, W, H);
           }
-          const c = cv.getContext("2d");
-          c.clearRect(0, 0, cv.width, cv.height);
-          c.drawImage(off, 0, 0, 860, H, 0, 0, cv.width, cv.height);
-        });
+          // txt-title 프레임 @(77,110) w926, cAlign=CENTER → 내부 요소 가로 중앙
+          // 프레임 가로 중앙 = 77 + 926/2 = 540 = 화면 중앙
+          const cx = 540,
+            subH = HS_LH * 56,
+            top = 110;
+          ctx.textBaseline = "middle";
+          ctx.fillStyle = "#fff";
+          const seller = state.seller || "seller";
+          ctx.font = `400 56px 'High Summit'`;
+          const sw = ctx.measureText(seller).width;
+          ctx.font = `400 48px 'Playfair Display'`;
+          const xw = ctx.measureText("×").width;
+          const logoW = 140,
+            gap = 18,
+            subW = sw + gap + xw + gap + logoW;
+          let sx = cx - subW / 2,
+            scy = top + subH / 2;
+          ctx.textAlign = "left";
+          ctx.font = `400 56px 'High Summit'`;
+          ctx.fillText(seller, sx, scy);
+          sx += sw + gap;
+          ctx.font = `400 48px 'Playfair Display'`;
+          ctx.fillText("×", sx, scy);
+          sx += xw + gap;
+          drawLogo(ctx, sx, scy, logoW, 24);
+          // title 96px lineH104 2줄, 가로 중앙
+          const ty = top + subH + 10 + 90;
+          ctx.textAlign = "center";
+          ctx.font = `400 96px 'Playfair Display'`;
+          [state.t1, state.t2]
+            .filter(Boolean)
+            .forEach((l, i) => trk(ctx, l, cx, ty + i * 104, -1.9, "center"));
+          ctx.textBaseline = "alphabetic";
+        } else {
+          // 02 그라데이션 배경 + 제품 이미지 전체(STRETCH) + 필 + 그라데이션 타이틀 + 카피바
+          const a = (141.81 * Math.PI) / 180,
+            len = Math.abs(W * Math.cos(a)) + Math.abs(H * Math.sin(a));
+          const g = ctx.createLinearGradient(
+            W / 2 - (Math.cos(a) * len) / 2,
+            H / 2 - (Math.sin(a) * len) / 2,
+            W / 2 + (Math.cos(a) * len) / 2,
+            H / 2 + (Math.sin(a) * len) / 2,
+          );
+          g.addColorStop(0.0136, th.gradFrom);
+          g.addColorStop(0.8337, th.gradTo);
+          ctx.fillStyle = g;
+          ctx.fillRect(0, 0, W, H);
+          // main-img: 원본(1080 전체 채움)의 80% 크기 + 하단 120px 마진
+          // if (state.hero) {
+          //   const marginB = 10;
+          //   const scale = 1,
+          //     imgW = W * scale,
+          //     imgH = H * scale;
+          //   const ix = W - imgW; // 가로 중앙
+          //   const iy = H - marginB - imgH; // 하단에서 120 띄우고 그 위로 이미지
+          //   contain(ctx, state.hero, ix, iy, imgW, imgH);
+          // }
+          if (state.hero) {
+            const maxH = H * 1.1;
+            const ratio = state.hero.width / state.hero.height;
+            const imgH = maxH,
+              imgW = imgH * ratio; // 높이 기준, 실제 비율
+            const ix = W - imgW; // 우측 정렬
+            const iy = -70; // ← y좌표 직접 지정 (키우면 아래로, 줄이면 위로)
+            ctx.drawImage(state.hero, ix, iy, imgW, imgH);
+          }
+          const left = 59,
+            top = 87;
+          // pill @(59,87)
+          ctx.font = `400 32px Pretendard`;
+          const sw = ctx.measureText(state.seller || "seller").width;
+          ctx.font = `400 44px 'Playfair Display'`;
+          const xw = ctx.measureText("×").width;
+          const logoW = 130,
+            gap = 16,
+            ph = 64,
+            pw = sw + gap + xw + gap + logoW + 48;
+          ctx.fillStyle = th.pillBg;
+          roundRect(ctx, left, top, pw, ph, ph / 2);
+          ctx.fill();
+          ctx.textBaseline = "middle";
+          ctx.textAlign = "left";
+          ctx.fillStyle = "#fff";
+          let x = left + 24,
+            cy = top + ph / 2;
+          ctx.font = `400 32px Pretendard`;
+          ctx.fillText(state.seller || "seller", x, cy);
+          x += sw + gap;
+          ctx.font = `400 44px 'Playfair Display'`;
+          ctx.fillText("×", x, cy);
+          x += xw + gap;
+          drawLogo(ctx, x, cy, logoW, 22);
+          // 타이틀 @(59, top+108) 96px lineH104
+          const ty = top + ph + 44;
+          ctx.textAlign = "left";
+          [
+            [state.t1, 400],
+            [state.t2, 700],
+          ]
+            .filter((l) => l[0])
+            .forEach((l, i) => {
+              const tg = ctx.createLinearGradient(left, 0, left + 800, 0);
+              tg.addColorStop(0, th.titleFrom);
+              tg.addColorStop(1, th.titleTo);
+              ctx.fillStyle = tg;
+              ctx.font = `${l[1]} 96px Pretendard`;
+              trk(ctx, l[0], left, ty + i * 104 + 52, -1.9, "left");
+            });
+          ctx.fillStyle = th.dateText;
+          ctx.font = `400 40px Pretendard`;
+          trk(
+            ctx,
+            range02(state.d1, state.d2),
+            left,
+            ty + 2 * 104 + 40 + 20,
+            -0.8,
+            "left",
+          );
+          // 카피바 @(0,980) h100
+          ctx.fillStyle = th.accent;
+          ctx.fillRect(0, 980, W, 100);
+          ctx.fillStyle = "#fff";
+          ctx.textBaseline = "middle";
+          ctx.font = `400 44px Pretendard`;
+          const c1 = trkWidth(ctx, state.copy, -0.88);
+          ctx.font = `700 44px Pretendard`;
+          const c2 = trkWidth(ctx, state.copyBold, -0.88);
+          let bx = (W - (c1 + c2)) / 2;
+          ctx.font = `400 44px Pretendard`;
+          trk(ctx, state.copy, bx, 1030, -0.88, "left");
+          ctx.font = `700 44px Pretendard`;
+          trk(ctx, state.copyBold, bx + c1, 1030, -0.88, "left");
+          ctx.textBaseline = "alphabetic";
+        }
       }
-      function syncTplUI() {
-        const has = !!state.tpl;
-        $("#themeBlock").hidden = !has;
-        $("#copyBlock").hidden = nvIsOn() || state.tpl !== "02";
-        $("#tplTag").textContent =
-          G()[state.group].label +
-          (has ? " · " + tplMeta(curFam(), state.tpl).label : "");
-        $("#tplHint").innerHTML = !has
-          ? ""
-          : state.tpl === "01"
-            ? "<b>셀러명은 영문만</b> 가능합니다 (High Summit)."
-            : "셀러명 한글 가능 (Pretendard).";
-        renumberBlocks();
-        $("#imgLabel").textContent =
+
+      /* ---- 피드 슬라이드 분배 (2,2,... 홀수면 마지막 1) ---- */
+      function feedSlides() {
+        const n = state.rows.length;
+        const groups = [];
+        for (let i = 0; i < n; i += 2) groups.push(state.rows.slice(i, i + 2));
+        // groups: [[2],[2],...,[1 or 2]]
+        return groups; // 각 원소가 옵션면 1장
+      }
+      function feedCount() {
+        if (nvIsOn()) return nvFeedCount();
+        return 1 + feedSlides().length;
+      } // 히어로 1 + 옵션면 N
+
+      /* ---- 피드 옵션 카드 960×468 : 이미지 왼쪽 / 정보 오른쪽 ---- */
+      function feedCard(ctx, r, x, top, th, CW) {
+        CW = CW || 960;
+        const CH = 468;
+        const G0 = G()[state.group] || {};
+        const d = disc(r.normal, r.sale);
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(x, top, CW, CH);
+
+        if (state.tpl === "02") {
+          // ===== 템플릿 02 피드 카드 — .fig auto-layout(flex) 그대로 =====
+          // 카드 940×468 = [box-img 426] + gap36 + [info 456], counter=CENTER(세로중앙)
+          const imgW = 426,
+            imgH = 440,
+            imgY = (CH - imgH) / 2; // 카드 안 세로 중앙 (468-440)/2=14
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(x, top + imgY, imgW, imgH);
+          if (r.thumb) drawThumbCover(ctx, r.thumb, x, top + imgY, imgW, imgH);
+
+          // info 좌측 x = box-img(426) + gap36 = 462, 폭 456
+          const ix = x + 462,
+            IW = 456;
+          const badgeOn = r.badge !== "none";
+
+          /* ── auto-layout: 내용을 먼저 측정한 뒤 높이를 계산한다 (고정값 금지) ──
+             name-wrap = [badge 48 + gap20] + box-top(제품명 n줄 + gap12 + 단위값)
+             info      = name-wrap + gap48 + price-wrap(108)
+             제품명이 2줄이든 3줄이든 아래 가격 덩어리와의 간격(48)이 항상 유지된다. */
+          const LH = 52; // 제품명 줄높이
+          const lns = [];
+          _mc.font = `600 40px Pretendard`;
+          for (const para of String(rowName(r)).split(/\r?\n/)) {
+            const t = para.trim();
+            if (t) lns.push(...wrapText(_mc, t, IW, -0.8));
+          }
+          const attrs = rowAttrs(r);
+          const isSingleAttr = attrs.length === 1 && !attrs[0].label;
+          const attrH = attrs.length
+            ? isSingleAttr
+              ? 48
+              : attrs.length * 32
+            : 0;
+          const boxTopH = lns.length * LH + (attrH ? 12 + attrH : 0);
+          const nameWrapH = (badgeOn ? 48 + 20 : 0) + boxTopH;
+          const infoH = nameWrapH + 48 + 108;
+          // primary=CENTER → 세로 중앙. 내용이 길면 위로 붙여 잘림 방지
+          const iy = top + Math.max(8, (CH - infoH) / 2);
+
+          ctx.textAlign = "left";
+          let ny = iy;
+          if (badgeOn) {
+            const bt = r.badge === "renewal" ? "★리뉴얼★" : "★NEW★";
+            ctx.fillStyle = th.accent;
+            ctx.font = `600 32px Pretendard`;
+            ctx.textBaseline = "middle";
+            trk(ctx, bt, ix, ny + 24, -0.4, "left");
+            ny += 48 + 20;
+          }
+          // box-top: 제품명(40px, lineH52) + gap12 + 단위값(24px)
+          ctx.fillStyle = "#333333";
+          ctx.font = `600 40px Pretendard`;
+          ctx.textBaseline = "middle";
+          lns.forEach((l, i) =>
+            trk(ctx, l, ix, ny + 26 + i * LH, -0.8, "left"),
+          );
+          let vy = ny + lns.length * LH + 12;
+          if (attrs.length) {
+            ctx.fillStyle = "#605850";
+            ctx.font = `400 24px Pretendard`;
+            if (isSingleAttr) {
+              trk(ctx, attrs[0].value, ix, vy + 24, -0.48, "left");
+            } else
+              attrs.forEach((a) => {
+                trk(
+                  ctx,
+                  (a.label ? a.label + " " : "") + a.value,
+                  ix,
+                  vy + 16,
+                  -0.48,
+                  "left",
+                );
+                vy += 32;
+              });
+          }
+          // price-wrap(가로 flex gap24, counter=CENTER) — name-wrap 아래 gap48
+          const py = iy + nameWrapH + 48;
+          ctx.fillStyle = th.chipBg || "#f0f3dd";
+          ctx.fillRect(ix, py, 108, 108); // 정사각, radius 0
+          ctx.fillStyle = th.chipText || "#254631";
+          ctx.font = `700 36px GmarketSans, Pretendard`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          trk(ctx, d != null ? d + "%" : "—", ix + 54, py + 55, -0.6, "center");
+          ctx.textAlign = "left";
+          const px = ix + 108 + 24,
+            pcy = py + 54; // gap24, 가격 세로중앙
+          ctx.fillStyle = "#333333";
+          ctx.font = `700 40px Pretendard`;
+          const sp = won(r.sale);
+          trk(ctx, sp, px, pcy, -0.8, "left");
+          const spw = trkWidth(ctx, sp, -0.8);
+          ctx.fillStyle = "#666666";
+          ctx.font = `400 28px Pretendard`;
+          const np2 = won(r.normal);
+          trk(ctx, np2, px + spw + 20, pcy + 2, -0.56, "left");
+          const npw2 = trkWidth(ctx, np2, -0.56);
+          ctx.strokeStyle = "#666666";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(px + spw + 20, pcy + 2);
+          ctx.lineTo(px + spw + 20 + npw2, pcy + 2);
+          ctx.stroke();
+          ctx.textBaseline = "alphabetic";
+          return CH;
+        }
+
+        // ===== 템플릿 01 피드 카드 — .fig auto-layout 그대로 =====
+        // 카드 960×468 = [box-img 416] + gap48 + [option 448], C:CENTER(세로중앙)
+        // box-img 416×448, 카드 세로중앙 (468-448)/2=10
+        const imgW = 416,
+          imgH = 448,
+          imgY = (CH - imgH) / 2;
+        ctx.fillStyle = "#f8f8f8";
+        ctx.fillRect(x + 10, top + imgY, imgW, imgH);
+        if (r.thumb) drawThumbCover(ctx, r.thumb, x + 10, top + imgY, imgW, imgH);
+
+        // option 영역 x = 10(카드좌패딩) + 416 + gap48 = 474, 폭 448
+        const ix = x + 474,
+          IW = 448;
+        /* option = 세로 flex, P:SPACE_EVENLY → name-wrap + price-wrap
+           name-wrap = [badge 49 + gap20] + box-top
+           box-top   = 가로 flex → 제품명블록(왼) ┄ 할인원 104(오른) 이므로
+                       높이 = max(제품명 n줄 + gap13 + 단위값, 104)
+           ※ 내용을 먼저 측정해 높이를 잡는다(고정값 금지). 제품명이 3줄이어도
+              단위값과 가격줄 사이 간격이 유지된다. */
+        const priceH = 106;
+        const _lines = [];
+        _mc.font = `600 40px Pretendard`;
+        const _nameW = IW - 104 - 20;
+        for (const para of String(rowName(r)).split(/\r?\n/)) {
+          const t = para.trim();
+          if (t) _lines.push(...wrapText(_mc, t, _nameW, -0.8));
+        }
+        const _attrs = rowAttrs(r);
+        const _isSingleAttr = _attrs.length === 1 && !_attrs[0].label;
+        const _attrH = _attrs.length
+          ? _isSingleAttr
+            ? 32
+            : _attrs.length * 32
+          : 0;
+        const boxTopH = Math.max(
+          _lines.length * 52 + (_attrH ? 13 + _attrH : 0),
+          104,
+        );
+        const nameH = (r.badge !== "none" ? 49 + 20 : 0) + boxTopH;
+        // name-wrap 과 price-wrap 사이는 고정 47(.fig gap). 전체를 세로 중앙에 둔다.
+        // SPACE_EVENLY 로 나누면 이름이 3줄일 때 간격이 저절로 좁아지므로 고정으로 둔다.
+        const BLOCK_GAP = 47;
+        const infoH = nameH + BLOCK_GAP + priceH;
+        let ny = top + Math.max(8, (CH - infoH) / 2);
+        const _infoTop = ny;
+
+        ctx.textAlign = "left";
+        // --- name-wrap (세로 flex gap20, P:MIN) ---
+        //   badge(49) + gap20 + box-top(165)
+        if (r.badge !== "none") {
+          const bt = r.badge === "renewal" ? "RENEWAL!" : "NEW!";
+          ctx.font = `600 28px Pretendard`;
+          const bw = trkWidth(ctx, bt, -0.4) + 40;
+          ctx.strokeStyle = th.badgeBorder || th.accent;
+          ctx.lineWidth = 2;
+          roundRect(ctx, ix, ny, bw, 49, 24);
+          ctx.stroke();
+          ctx.fillStyle = th.accent;
+          ctx.textBaseline = "middle";
+          trk(ctx, bt, ix + bw / 2, ny + 25, -0.4, "center");
+          ny += 49 + 20;
+        }
+        // --- box-top (가로 flex, P:SPACE_EVENLY) → 제품명(왼) ┄ 할인율(오른, 104×104) ---
+        const boxTopY = ny;
+        // 할인율 원 (실측 discount_rate 104×104, 01은 원형 초록)
+        ctx.fillStyle = th.circleBg || th.accent;
+        ctx.beginPath();
+        ctx.arc(ix + IW - 52, boxTopY + 52, 52, 0, 7);
+        ctx.fill();
+        ctx.fillStyle = "#fff";
+        ctx.font = `700 36px GmarketSans, Pretendard`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        trk(
+          ctx,
+          d != null ? d + "%" : "—",
+          ix + IW - 52,
+          boxTopY + 53,
+          -0.6,
+          "center",
+        );
+        // 제품명 40px lineH52 + 단위 24px (왼쪽, 할인원과 안 겹치게 폭 제한)
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "#333333";
+        ctx.font = `600 40px Pretendard`;
+        _lines.forEach((l, i) =>
+          trk(ctx, l, ix, boxTopY + 26 + i * 52, -0.8, "left"),
+        );
+        let vy = boxTopY + _lines.length * 52 + 13;
+        if (_attrs.length) {
+          ctx.fillStyle = "#605850";
+          ctx.font = `400 24px Pretendard`;
+          if (_isSingleAttr) {
+            trk(ctx, _attrs[0].value, ix, vy + 12, -0.48, "left");
+          } else
+            _attrs.forEach((a) => {
+              trk(
+                ctx,
+                (a.label ? a.label + " " : "") + a.value,
+                ix,
+                vy + 12,
+                -0.48,
+                "left",
+              );
+              vy += 32;
+            });
+        }
+
+        // --- price-wrap (세로 flex gap12, P:CENTER) — name-wrap 아래 고정 간격 ---
+        //   정상가줄(라벨┄값, 취소선) + 혜택가줄(라벨┄값)
+        const py = _infoTop + nameH + BLOCK_GAP;
+        ctx.textBaseline = "middle";
+        // 정상가줄 (28px, muted, 값 취소선) — SPACE_EVENLY: 라벨 왼 ┄ 값 오른
+        ctx.fillStyle = SHARED.textMuted;
+        ctx.font = `400 28px Pretendard`;
+        trk(ctx, G0.normalLabel || "정상가", ix, py + 23, -0.56, "left");
+        const np = won(r.normal),
+          npw = trkWidth(ctx, np, -0.56);
+        trk(ctx, np, ix + IW, py + 23, -0.56, "right");
+        ctx.strokeStyle = SHARED.textMuted;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(ix + IW - npw, py + 23);
+        ctx.lineTo(ix + IW, py + 23);
+        ctx.stroke();
+        // 혜택가줄 (40px, strong)
+        ctx.fillStyle = "#333333";
+        ctx.font = `600 40px Pretendard`;
+        trk(ctx, G0.saleLabel || "혜택가", ix, py + 47 + 20, -0.8, "left");
+        ctx.font = `700 40px Pretendard`;
+        trk(ctx, won(r.sale), ix + IW, py + 47 + 20, -0.8, "right");
+        ctx.textBaseline = "alphabetic";
+        return CH;
+      }
+
+      /* 피드 히어로 슬라이드 */
+      function feedHero(ctx, th) {
+        const W = 1080,
+          H = 1350;
+        if (state.tpl === "01") {
+          if (state.hero)
+            clipRect(ctx, 0, 0, W, H, () => cover(ctx, state.hero, 0, 0, W, H));
+          else {
+            ctx.fillStyle = "#b89a6a";
+            ctx.fillRect(0, 0, W, H);
+          }
+          // txt-title @(77,110) 가로 중앙 (thumb과 동일 정렬)
+          const cx = 540,
+            subH = HS_LH * 56,
+            top = 110;
+          ctx.textBaseline = "middle";
+          ctx.fillStyle = "#fff";
+          const seller = state.seller || "seller";
+          ctx.font = `400 56px 'High Summit'`;
+          const sw = ctx.measureText(seller).width;
+          ctx.font = `400 48px 'Playfair Display'`;
+          const xw = ctx.measureText("×").width;
+          const logoW = 140,
+            gap = 18,
+            subW = sw + gap + xw + gap + logoW;
+          let sx = cx - subW / 2,
+            scy = top + subH / 2;
+          ctx.textAlign = "left";
+          ctx.font = `400 56px 'High Summit'`;
+          ctx.fillText(seller, sx, scy);
+          sx += sw + gap;
+          ctx.font = `400 48px 'Playfair Display'`;
+          ctx.fillText("×", sx, scy);
+          sx += xw + gap;
+          drawLogo(ctx, sx, scy, logoW, 24);
+          const ty = top + subH + 10 + 90;
+          ctx.textAlign = "center";
+          ctx.font = `400 96px 'Playfair Display'`;
+          [state.t1, state.t2]
+            .filter(Boolean)
+            .forEach((l, i) => trk(ctx, l, cx, ty + i * 104, -1.9, "center"));
+          ctx.textBaseline = "alphabetic";
+          // box-bottom @(0,1250) h100
+          ctx.fillStyle = th.accent;
+          ctx.fillRect(0, 1250, W, 100);
+          ctx.fillStyle = "#fff";
+          ctx.textBaseline = "middle";
+          ctx.textAlign = "center";
+          ctx.font = `400 44px 'Playfair Display'`;
+          trk(ctx, range01(state.d1, state.d2), W / 2, 1300, -0.8, "center");
+          ctx.textBaseline = "alphabetic";
+        } else {
+          const a = (141.81 * Math.PI) / 180,
+            len = Math.abs(W * Math.cos(a)) + Math.abs(H * Math.sin(a));
+          const g = ctx.createLinearGradient(
+            W / 2 - (Math.cos(a) * len) / 2,
+            H / 2 - (Math.sin(a) * len) / 2,
+            W / 2 + (Math.cos(a) * len) / 2,
+            H / 2 + (Math.sin(a) * len) / 2,
+          );
+          g.addColorStop(0.0136, th.gradFrom);
+          g.addColorStop(0.8337, th.gradTo);
+          ctx.fillStyle = g;
+          ctx.fillRect(0, 0, W, H);
+          if (state.hero)
+            clipRect(ctx, 0, 0, W, H, () => cover(ctx, state.hero, 0, 0, W, H));
+          const left = 88,
+            top = 130; // .fig txt-title @(88,130)
+          ctx.font = `400 32px Pretendard`;
+          const sw = ctx.measureText(state.seller || "seller").width;
+          ctx.font = `400 44px 'Playfair Display'`;
+          const xw = ctx.measureText("×").width;
+          const ph = 64,
+            pw = sw + 16 + xw + 16 + 130 + 48;
+          ctx.fillStyle = th.pillBg;
+          roundRect(ctx, left, top, pw, ph, ph / 2);
+          ctx.fill();
+          ctx.textBaseline = "middle";
+          ctx.textAlign = "left";
+          ctx.fillStyle = "#fff";
+          let x = left + 24,
+            cy = top + ph / 2;
+          ctx.font = `400 32px Pretendard`;
+          ctx.fillText(state.seller || "seller", x, cy);
+          x += sw + 16;
+          ctx.font = `400 44px 'Playfair Display'`;
+          ctx.fillText("×", x, cy);
+          x += xw + 16;
+          drawLogo(ctx, x, cy, 130, 22);
+          const ty = top + ph + 44;
+          ctx.textAlign = "left";
+          [
+            [state.t1, 400],
+            [state.t2, 700],
+          ]
+            .filter((l) => l[0])
+            .forEach((l, i) => {
+              const tg = ctx.createLinearGradient(left, 0, left + 800, 0);
+              tg.addColorStop(0, th.titleFrom);
+              tg.addColorStop(1, th.titleTo);
+              ctx.fillStyle = tg;
+              ctx.font = `${l[1]} 96px Pretendard`;
+              trk(ctx, l[0], left, ty + i * 104 + 52, -1.9, "left");
+            });
+          ctx.fillStyle = th.dateText;
+          ctx.font = `400 40px Pretendard`;
+          trk(
+            ctx,
+            range02(state.d1, state.d2),
+            left,
+            ty + 2 * 104 + 40 + 20,
+            -0.8,
+            "left",
+          );
+          ctx.fillStyle = th.accent;
+          ctx.fillRect(0, 1250, W, 100);
+          ctx.fillStyle = "#fff";
+          ctx.textBaseline = "middle";
+          ctx.font = `400 44px Pretendard`;
+          const c1 = trkWidth(ctx, state.copy, -0.88);
+          ctx.font = `700 44px Pretendard`;
+          const c2 = trkWidth(ctx, state.copyBold, -0.88);
+          let bx = (W - (c1 + c2)) / 2;
+          ctx.font = `400 44px Pretendard`;
+          trk(ctx, state.copy, bx, 1300, -0.88, "left");
+          ctx.font = `700 44px Pretendard`;
+          trk(ctx, state.copyBold, bx + c1, 1300, -0.88, "left");
+          ctx.textBaseline = "alphabetic";
+        }
+      }
+
+      /* 피드 옵션면 헤더 (option info. + 시리즈/옵션명) */
+      function feedOptHeader(ctx, W, th) {
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        // 01 = Playfair 40px accent / 02 = High Summit 52px eyebrowColor
+        ctx.fillStyle =
+          state.tpl === "02" ? th.eyebrowColor || th.accent : th.accent;
+        ctx.font =
           state.tpl === "02"
-            ? "제품 이미지 (누끼컷)"
-            : "히어로 이미지 (연출컷)";
-        $("#imgHint").innerHTML =
+            ? `400 52px 'High Summit'`
+            : `400 40px 'Playfair Display'`;
+        ctx.fillText("option info.", W / 2, 100 + 26);
+        ctx.fillStyle = state.tpl === "02" ? "#ffffff" : th.accent;
+        ctx.font =
           state.tpl === "02"
-            ? "그라데이션 배경 위에 얹힙니다. <b>배경 제거된 누끼컷</b>을 넣으세요."
-            : "화면 전체를 채웁니다. <b>글자 없는 연출컷</b>을 넣으세요.";
-        checkSeller();
+            ? `700 72px GmarketSans, Pretendard`
+            : `600 72px Pretendard`;
+        ctx.fillText(state.series || "", W / 2, 100 + 112);
+        ctx.textBaseline = "alphabetic";
       }
-      /* ⚠ 예전에는 THEMES[tpl] 을 직접 읽었다. THEMES 에는 "01","02" 뿐이라
-         누볼라 03 에서 undefined 가 되고 .pink 를 읽다 터졌다.
-         같은 일을 이미 제대로 하는 themesForKey 로 합친다(중복 제거). */
-      function themesFor(tpl) {
-        return themesForKey(state.group, tpl) || {};
-      }
-      function renderThemes() {
-        if (!state.tpl) {
-          $("#themeSw").innerHTML = "";
+
+      /* 피드 슬라이드 1장 (idx 0=히어로, 1~=옵션면) */
+      function drawFeedSlide(ctx, idx, th) {
+        if (nvIsOn()) { nvFeedSlide(ctx, idx, th); return; }
+        const W = 1080,
+          H = 1350;
+        if (idx === 0) {
+          feedHero(ctx, th);
           return;
         }
-        const t = themesFor(state.tpl);
-        if (!t[state.theme]) state.theme = Object.keys(t)[0];
-        $("#themeSw").innerHTML = Object.entries(t)
-          .map(
-            ([k, v]) => `
-    <div class="sw ${k === state.theme ? "on" : ""}" data-k="${k}">
-      <div class="dot" style="background:${v.accent}"></div><div class="nm">${v.label}</div></div>`,
-          )
-          .join("");
-        $("#themeSw")
-          .querySelectorAll(".sw")
-          .forEach(
-            (el) =>
-              (el.onclick = () => {
-                state.theme = el.dataset.k;
-                renderThemes();
-                schedTplPreviews(true);
-                draw();
-              }),
-          );
+        const slides = feedSlides();
+        const cards = slides[idx - 1] || [];
+        const isLastOdd = idx - 1 === slides.length - 1 && cards.length === 1;
+
+        // 배경
+        ctx.fillStyle =
+          state.tpl === "02"
+            ? th.sectionBg || "#b9ca7d"
+            : th.sectionBg || "#f0f3dd";
+        ctx.fillRect(0, 0, W, H);
+        feedOptHeader(ctx, W, th);
+
+        if (isLastOdd) {
+          if (state.tpl === "01") {
+            // 01: 카드 1장 + 하단 로고 박스 (히어로 box-bottom과 동일: accent색, 0/1250, W×100)
+            feedCard(ctx, cards[0], 60, 319, th, 960);
+            ctx.fillStyle = th.accent;
+            ctx.fillRect(0, 1250, W, 100);
+            drawLogo(ctx, W / 2 - 100, 1300, 200, 32);
+          } else {
+            // 02: 진한 배경 + 흰 컨테이너 카드 1장 + 하단 로고
+            const listX = 60,
+              listY = 312,
+              listW = 940;
+            ctx.fillStyle = "#ffffff";
+            roundRect(ctx, listX, listY, listW, 468 + 40, 0);
+            ctx.fill();
+            feedCard(ctx, cards[0], listX, listY + 20, th, 940);
+            drawLogo(ctx, W / 2 - 100, 1270, 200, 32);
+          }
+          return;
+        }
+
+        // 일반 옵션면
+        if (state.tpl === "02") {
+          // .fig: option-list 컨테이너 940×988 @(60,312), pad20 gap12
+          //       카드 940×468, 컨테이너 폭과 동일(좌우 여백 0), pitch 480
+          const listX = 60,
+            listY = 312,
+            listW = 940;
+          const listH = 20 + cards.length * 468 + (cards.length - 1) * 12 + 20;
+          ctx.fillStyle = "#ffffff";
+          roundRect(ctx, listX, listY, listW, listH, 0);
+          ctx.fill();
+          let cy = listY + 20;
+          cards.forEach((r, i) => {
+            feedCard(ctx, r, listX, cy, th, 940);
+            // 카드 사이 구분선 (.fig: option_01 하단 border, cardBorder색)
+            if (i < cards.length - 1) {
+              ctx.strokeStyle = th.cardBorder || "#d0dfb1";
+              ctx.lineWidth = 1.5;
+              ctx.beginPath();
+              ctx.moveTo(listX + 30, cy + 468);
+              ctx.lineTo(listX + 940 - 30, cy + 468);
+              ctx.stroke();
+            }
+            cy += 480;
+          });
+        } else {
+          // 01: 배경 위에 흰 카드 직접 (컨테이너 없음)
+          let cy = 319;
+          for (const r of cards) {
+            feedCard(ctx, r, 60, cy, th, 960);
+            cy += 488;
+          }
+        }
       }
