@@ -1,4 +1,4 @@
-cc-banner  build 2026-07-29-c
-- 옵션 카드 레이아웃을 템플릿별로 분리 (01 라벨2줄+원 / 02·03 1줄+사각)  상세·피드 모두
-- 소제목 글꼴 템플릿별 (01 Playfair / 02 High Summit+Gmarket+그림자 / 03 Afacad Flux)
-- 미리보기 부분 갱신
+cc-banner  build 2026-07-29-d
+- 옵션 카드를 템플릿 3종으로 분리 (01 라벨2줄+원 / 02 사각+1줄 / 03 사각+1줄+이미지 오른쪽+진한배지)
+- 소제목 글꼴·대소문자 템플릿별 (01 Playfair / 02 High Summit / 03 Afacad Flux, 03은 "color info." 소문자)
+- .fig 2026-07-29 기준 재실측
