@@ -1,9 +1,12 @@
-cc-banner  build 2026-07-29-l
-.fig 전체 시각속성 일괄 대조 (fillPaints/strokePaints/effects/cornerRadius/opacity/textDecoration)
-- 옵션 카드 구분선·테두리  01 없음 / 02 아래 1px #d0dfb1 / 03 사방 20px #f0f3dd
-- 03 할인배지 모서리 반경 20 (상세) · 25.56 (피드)  ← 각지게 그리고 있었음
-- 01 히어로 타이틀 DROP_SHADOW blur8 rgba(0,0,0,0.32)  ← 없었음
-- 피드 옵션 슬라이드 기하 템플릿별 / eyebrow 색 분리 / 리스트 컨테이너 모델
-확인됨(이상 없음): 취소선, 투명도, 01·02 배지 반경, 02 제목 그림자
-남은 것: 03 히어로 전면 재작업(img_grid 테마 그림자 blur6.5 포함) / 컬러섹션 컨테이너화
-        02 나머지 5색 eyebrowInk / 03-pink 옵션색
+cc-banner  build 2026-07-29-m
+템플릿 03 히어로 전면 재작업 (.fig 실측, 상세·썸네일·피드 3종 모두)
+  - 셀러 알약(× DEAR.CUS) 제거 → "{셀러} Pick!" 한 줄
+  - 하단 카피 바 제거
+  - 글꼴 Pretendard → Afacad Flux, 좌측정렬 → 가운데정렬, 자간 -2
+  - 날짜 "07.30 (Thu) - 08.01 (Sat)" → "07.06 - 07.09" (range03)
+  - img_grid 흰 판에 테마색 글로우 DROP_SHADOW blur6.5
+      green #d0dfb1 · blue #c5cddd · pink #ddc5c6 (나머지는 badgeBorder 폴백)
+  - 피드 배경 GRADIENT #d0dfb1 → #e0e4c4
+  좌표  상세 판(65,397)740×600 / 썸네일(60,430)960×570 / 피드(60,450)960×764
+검증: 세 포맷의 흰 판·4컷 셀 좌표가 .fig 와 일치, 알약 흔적 없음
+남은 것: 컬러섹션 컨테이너화 / 02 나머지 5색 eyebrowInk / 03-pink 옵션색
