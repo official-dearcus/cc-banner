@@ -1,10 +1,7 @@
-cc-banner  build 2026-07-29-r
-① 03 할인율 배지 배경  accent → t03Badge  (green 만 우연히 일치했었음)
-② 03 알림 바           배경 t03Frame · 글자 t03ChipLabel
-                        green #f0f3dd/#65812d · blue #eeeeee/#888888 · pink #f3e7e7/#c57f80
-③ 03 컬러섹션 키즈/성인 줄  제목색 → t03ChipLabel
-④ 03 인스타 피드 재정렬 (.fig feed_02)
-     소제목  "Option info." 대문자 O · Regular 60px · 제목 SemiBold 92px  (02 는 52/72)
-     카드    920×460 · 테두리 24px t03Frame (상세는 20) · 간격 24
-     배지    OPTION n. 200×60 · Afacad Flux 30px
-     할인율  102×102 r25.6
+cc-banner  build 2026-07-29-s
+- 인스타 피드 컬러 슬라이드를 상세와 같은 규칙으로 정리
+    키즈/성인 줄 색 = t03ChipLabel  (green #65812d / blue #888888 / pink #c57f80)
+    → 상세만 고치고 피드(nvfColor)를 빠뜨렸던 것
+- 회귀 복구: 칩 이름(슬리퍼 밑 글자)은 테마와 무관하게 #666666
+    (r 빌드에서 chipLabelKey 를 넣어 테마색으로 잘못 바뀌어 있었음. .fig 는 3색 모두 #666666)
+- 03 알림바 / 배지 / 피드 배치 (r 빌드 내용 포함)
