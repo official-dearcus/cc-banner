@@ -1,9 +1,9 @@
-cc-banner  build 2026-07-29-i
-- 옵션 리스트 컨테이너 모델 (.fig option-list: 패딩·간격·배경)
-- 소제목 eyebrow 색을 제목 색과 분리
-    01  eyebrow = 제목 색      (.fig 동일)
-    02  eyebrow #31522d ≠ 제목 (.fig 다름)  ← 임의로 통일돼 있던 것
-    03  eyebrow = 제목 색      (.fig 동일)
-  상세·컬러·피드 세 곳 모두 적용
-남은 것: 03 히어로 / 컬러섹션 컨테이너화 / 03 pink 옵션섹션 색(아래 참고)
-확인 필요: .fig 03-pink 는 옵션 eyebrow·제목이 #633e3e (green·blue 는 흰색)
+cc-banner  build 2026-07-29-l
+.fig 전체 시각속성 일괄 대조 (fillPaints/strokePaints/effects/cornerRadius/opacity/textDecoration)
+- 옵션 카드 구분선·테두리  01 없음 / 02 아래 1px #d0dfb1 / 03 사방 20px #f0f3dd
+- 03 할인배지 모서리 반경 20 (상세) · 25.56 (피드)  ← 각지게 그리고 있었음
+- 01 히어로 타이틀 DROP_SHADOW blur8 rgba(0,0,0,0.32)  ← 없었음
+- 피드 옵션 슬라이드 기하 템플릿별 / eyebrow 색 분리 / 리스트 컨테이너 모델
+확인됨(이상 없음): 취소선, 투명도, 01·02 배지 반경, 02 제목 그림자
+남은 것: 03 히어로 전면 재작업(img_grid 테마 그림자 blur6.5 포함) / 컬러섹션 컨테이너화
+        02 나머지 5색 eyebrowInk / 03-pink 옵션색
