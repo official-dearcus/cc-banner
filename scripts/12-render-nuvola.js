@@ -249,9 +249,13 @@
                 sellerSize: 28, xSize: 36, logoW: 114, logoH: 19 },
         blockGap: 40, titleGap: 8, dateSize: 34,
         t02: { size: 80, lineH: 80 },
-        t03: { size1: 60, size2: 80, lineH: 80 },
+        /* .fig 실측 — 전부 Afacad Flux, 자간 -2, 가운데 정렬 */
+        t03: { font: "'Afacad Flux', Pretendard", track: -2,
+               sellerY: 100, sellerSize: 60, lineH: 80, pickWord: "Pick!",
+               titleY: 188, titleSize: 80,
+               dateY: 308, dateH: 34, dateSize: 34 },
         bar: { y: 1000, h: 80, copySize: 32 },
-        grid: { x: 65, y: 397, w: 740, h: 600, pad: 20, cw: 345, ch: 260, gx: 10, gy: 10 },
+        grid: { x: 65, y: 397, w: 740, h: 600, pad: 20, cw: 345, ch: 260, gx: 10, gy: 10, shadowBlur: 6.5 },
       };
       /* pill (셀러 × 로고) — 02·03 공용. 그린 배경 알약 */
       function nvPill(ctx, x, y, th) {
@@ -387,33 +391,60 @@
         ctx.textBaseline = "alphabetic";
       }
       /* 03 — 밝은 배경 + 타이틀 + 제품 이미지 4컷 그리드 */
+      /* ── 03 히어로 (.fig nuvolafamily_03-detail / section-main) ──────────
+         860×1080, 단색 배경(mainBg). 사진도, 셀러 알약도, 하단 카피 바도 없다.
+           txt-title  rel(55,100) 751×242   — 전부 가운데 정렬, Afacad Flux, 자간 -2
+             seller_wrap  y=100 h=80   "{셀러} Pick!"  Regular 60px  titleColor
+             title        y=188 h=80   대제목            Bold    80px  titleColor
+             date         y=308 h=34   "07.06 - 07.09"  Regular 34px  pillBg
+           img_grid   rel(65,397) 740×600
+             Rectangle 2  흰 판 + DROP_SHADOW blur6.5 (테마색 gridShadow)
+             셀 345×260 을 (85,417)/(440,417)/(85,687)/(440,687)
+         예전 코드는 02 구조(사진 배경 + 알약 + 좌측정렬 Pretendard)를 쓰고 있었다. */
       function nvMain03(ctx, W, H, th) {
-        const M = NVM, G = NVM.grid;
+        const M = NVM, G = NVM.grid, T = NVM.t03;
         ctx.fillStyle = th.mainBg || "#f8fbe1";
         ctx.fillRect(0, 0, W, H);
-        if (state.hero) clipRect(ctx, 0, 0, W, H, () => cover(ctx, state.hero, 0, 0, W, H));
-        let y = M.ty;
-        y += nvPill(ctx, M.tx, y, th) + M.blockGap;
-        ctx.textAlign = "left"; ctx.textBaseline = "middle";
+
+        const cx = W / 2;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+
+        /* 1줄 — "{셀러} Pick!" */
         ctx.fillStyle = th.titleColor || th.accent;
-        const L1 = String(state.t1 || "").split(/\r?\n/).filter(Boolean);
-        const L2 = String(state.t2 || "").split(/\r?\n/).filter(Boolean);
-        L1.forEach((l, i) => {
-          ctx.font = `400 ${M.t03.size1}px Pretendard`;
-          trk(ctx, l, M.tx, y + M.t03.lineH / 2 + i * M.t03.lineH, -1.2, "left");
-        });
-        y += L1.length * M.t03.lineH + (L1.length ? M.titleGap : 0);
-        L2.forEach((l, i) => {
-          ctx.font = `700 ${M.t03.size2}px Pretendard`;
-          trk(ctx, l, M.tx, y + M.t03.lineH / 2 + i * M.t03.lineH, -1.6, "left");
-        });
-        y += L2.length * M.t03.lineH + M.blockGap;
+        ctx.font = `400 ${T.sellerSize}px ${T.font}`;
+        trk(
+          ctx,
+          `${state.seller || "Seller_name"} ${T.pickWord}`,
+          cx,
+          T.sellerY + T.lineH / 2,
+          T.track,
+          "center",
+        );
+
+        /* 2줄 — 대제목 (시트 heroTitle 의 둘째 줄) */
+        const big = String(state.t2 || state.t1 || "")
+          .split(/\r?\n/)
+          .filter(Boolean);
+        ctx.font = `700 ${T.titleSize}px ${T.font}`;
+        big.forEach((l, i) =>
+          trk(ctx, l, cx, T.titleY + T.lineH / 2 + i * T.lineH, T.track, "center"),
+        );
+
+        /* 날짜 */
         ctx.fillStyle = th.pillBg || th.accent;
-        ctx.font = `400 ${M.dateSize}px Pretendard`;
-        trk(ctx, range01(state.d1, state.d2), M.tx, y + M.dateSize / 2, -0.68, "left");
-        // 이미지 4컷 그리드
+        ctx.font = `400 ${T.dateSize}px ${T.font}`;
+        trk(ctx, range03(state.d1, state.d2), cx, T.dateY + T.dateH / 2, T.track, "center");
+        ctx.textBaseline = "alphabetic";
+
+        /* 이미지 4컷 그리드 — 흰 판에 테마색 글로우 */
+        ctx.save();
+        ctx.shadowColor = th.gridShadow || th.badgeBorder || "#d0dfb1";
+        ctx.shadowBlur = G.shadowBlur;
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(G.x, G.y, G.w, G.h);
+        ctx.restore();
+
         const imgs = nvGridImgs();
         const pos = [
           [G.x + G.pad, G.y + G.pad],
@@ -422,12 +453,11 @@
           [G.x + G.pad + G.cw + G.gx, G.y + G.pad + G.ch + G.gy],
         ];
         pos.forEach(([px, py], i) => {
-          ctx.fillStyle = "#f4f2ee";
+          ctx.fillStyle = "#f2f2f2";
           ctx.fillRect(px, py, G.cw, G.ch);
           const im = imgs[i];
           if (im) clipRect(ctx, px, py, G.cw, G.ch, () => cover(ctx, im, px, py, G.cw, G.ch));
         });
-        ctx.textBaseline = "alphabetic";
       }
 
       /* ── 옵션 카드 (740×360) ── */
@@ -789,22 +819,25 @@
                logoW: 136, logoH: 23,
                size: 96, lineH: 104, titleGap: 8, dateSize: 40,
                barY: 1250, barH: 100, copySize: 44 },
-        t03: { titleX: 60, titleY: 140, titleW: 960, blockGap: 48,
-               pillH: 48, pillPadL: 20, pillGap: 16, sellerSize: 28, xSize: 36,
-               logoW: 114, logoH: 19,
-               size1: 60, size2: 120, lineH: 92, dateSize: 48,
-               grid: { x: 60, y: 450, w: 960, h: 764, pad: 20, cw: 455, ch: 357, gx: 10, gy: 10 } },
+        /* .fig feed_01 실측 */
+        t03: { font: "'Afacad Flux', Pretendard", track: -2, lineH: 80,
+               gradTop: "#d0dfb1", gradBottom: "#e0e4c4",
+               sellerY: 140, sellerSize: 60,
+               titleY2: 232, titleSize: 120,
+               dateY: 360, dateH: 34, dateSize: 48,
+               grid: { x: 60, y: 450, w: 960, h: 764, pad: 20, cw: 455, ch: 357, gx: 10, gy: 10, shadowBlur: 6.5 } },
         // 썸네일(1080²) 전용 좌표
         th02: { titleX: 59, titleY: 87, titleW: 900, blockGap: 48,
                 pillH: 60, pillPadL: 24, pillGap: 20, sellerSize: 32, xSize: 44,
                 logoW: 136, logoH: 23,
                 size: 96, lineH: 104, titleGap: 8, dateSize: 40,
                 barY: 980, barH: 100, copySize: 44 },
-        th03: { titleX: 60, titleY: 120, titleW: 960, blockGap: 48,
-                pillH: 48, pillPadL: 20, pillGap: 16, sellerSize: 28, xSize: 36,
-                logoW: 114, logoH: 19,
-                size1: 60, size2: 120, lineH: 92, dateSize: 48,
-                grid: { x: 60, y: 430, w: 960, h: 570, pad: 20, cw: 455, ch: 260, gx: 10, gy: 10 } },
+        /* .fig thumb 실측 — 배경은 사진(그라데이션 없음) */
+        th03: { font: "'Afacad Flux', Pretendard", track: -2, lineH: 80,
+                sellerY: 120, sellerSize: 60,
+                titleY2: 212, titleSize: 120,
+                dateY: 340, dateH: 34, dateSize: 48,
+                grid: { x: 60, y: 430, w: 960, h: 570, pad: 20, cw: 455, ch: 260, gx: 10, gy: 10, shadowBlur: 6.5 } },
         // 02·03 옵션 슬라이드: 흰 컨테이너로 카드 감쌈
         /* .fig feed 옵션 슬라이드
              02 : option-list rel(60,330) 960×960 #ffffff, 카드 920×460 @+20,+20, 간격 20
@@ -841,9 +874,16 @@
         return C.pillH;
       }
       /* 4컷 그리드 (03 썸네일·피드) */
-      function nvfGrid(ctx, G) {
+      function nvfGrid(ctx, G, th) {
+        /* .fig: 흰 판에 테마색 글로우 (DROP_SHADOW blur 6.5) */
+        ctx.save();
+        if (G.shadowBlur && th) {
+          ctx.shadowColor = th.gridShadow || th.badgeBorder || "#d0dfb1";
+          ctx.shadowBlur = G.shadowBlur;
+        }
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(G.x, G.y, G.w, G.h);
+        ctx.restore();
         const imgs = nvGridImgs();
         const pos = [
           [G.x + G.pad, G.y + G.pad],
@@ -962,32 +1002,47 @@
         ctx.textBaseline = "alphabetic";
       }
       /* 03 — 사진 배경 + 알약 + 큰 타이틀 + 4컷 그리드 */
+      /* ── 03 히어로 (썸네일·피드) ─────────────────────────────────
+         .fig nuvolafamily_03-thumb / _03-feed_01
+           피드   배경 GRADIENT(#d0dfb1 → #e0e4c4) + hero-img 사진
+           썸네일 배경 사진
+           글자는 상세와 같은 규칙: Afacad Flux · 가운데 정렬 · 자간 -2
+             "{셀러} Pick!"  Regular 60px  titleColor
+             대제목           Bold   120px  titleColor
+             날짜             Regular 48px  pillBg
+           img_grid 흰 판 + 테마색 글로우(blur 6.5)
+         예전에는 상세와 똑같이 알약 + 좌측정렬 Pretendard 였다. */
       function nvfHero03(ctx, W, H, th, CFG) {
         const C = CFG || NVF.t03;
-        ctx.fillStyle = th.mainBg || "#f8fbe1";
+        if (C.gradTop) {
+          const g0 = ctx.createLinearGradient(0, 0, 0, H);
+          g0.addColorStop(0, th.gridShadow || C.gradTop);
+          g0.addColorStop(1, C.gradBottom);
+          ctx.fillStyle = g0;
+        } else {
+          ctx.fillStyle = th.mainBg || "#f8fbe1";
+        }
         ctx.fillRect(0, 0, W, H);
         if (state.hero) clipRect(ctx, 0, 0, W, H, () => cover(ctx, state.hero, 0, 0, W, H));
-        let y = C.titleY;
-        y += nvfPill(ctx, C.titleX, y, th, C) + C.blockGap;
-        ctx.textAlign = "left"; ctx.textBaseline = "middle";
+
+        const cx = W / 2;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
         ctx.fillStyle = th.titleColor || th.accent;
-        const L1 = String(state.t1 || "").split(/\r?\n/).filter(Boolean);
-        const L2 = String(state.t2 || "").split(/\r?\n/).filter(Boolean);
-        L1.forEach((l, i) => {
-          ctx.font = `400 ${C.size1}px Pretendard`;
-          trk(ctx, l, C.titleX, y + C.lineH / 2 + i * C.lineH, -1.2, "left");
-        });
-        y += L1.length * C.lineH;
-        L2.forEach((l, i) => {
-          ctx.font = `700 ${C.size2}px Pretendard`;
-          trk(ctx, l, C.titleX, y + C.lineH / 2 + i * C.lineH, -2.4, "left");
-        });
-        y += L2.length * C.lineH + C.blockGap;
+        ctx.font = `400 ${C.sellerSize}px ${C.font}`;
+        trk(ctx, `${state.seller || "Seller_name"} Pick!`, cx, C.sellerY + C.lineH / 2, C.track, "center");
+
+        const big = String(state.t2 || state.t1 || "").split(/\r?\n/).filter(Boolean);
+        ctx.font = `700 ${C.titleSize}px ${C.font}`;
+        big.forEach((l, i) =>
+          trk(ctx, l, cx, C.titleY2 + C.lineH / 2 + i * C.lineH, C.track, "center"),
+        );
+
         ctx.fillStyle = th.pillBg || th.accent;
-        ctx.font = `400 ${C.dateSize}px Pretendard`;
-        trk(ctx, range01(state.d1, state.d2), C.titleX, y + C.dateSize / 2, -0.9, "left");
-        nvfGrid(ctx, C.grid);
+        ctx.font = `400 ${C.dateSize}px ${C.font}`;
+        trk(ctx, range03(state.d1, state.d2), cx, C.dateY + C.dateH / 2, C.track, "center");
         ctx.textBaseline = "alphabetic";
+        nvfGrid(ctx, C.grid, th);
       }
 
       /* 섹션 헤딩 (option info. / color info.) */

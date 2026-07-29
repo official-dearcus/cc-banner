@@ -13,11 +13,11 @@
                  discInk: "#254631",
                  /* 템플릿 02 의 "option info./Color info." 전용 색. .fig 실측(green).
                     나머지 5색은 피그마에 02 실물이 없어 제목 색으로 폴백한다. */
-                 eyebrowInk: "#31522d" },
-        blue: { label: "블루", accent: "#2d6181", badgeBorder: "#b3c7da",
+                 eyebrowInk: "#31522d", gridShadow: "#d0dfb1" },
+        blue: { label: "블루", accent: "#2d6181", badgeBorder: "#b3c7da", gridShadow: "#c5cddd",
                 noticeBg: "#dbe6ee", colorBg: "#7d9eca", colorBgLight: "#eaf3f6",
                 pillBg: "#6e89a3", titleColor: "#1d5a80", mainBg: "#f6f9fe" },
-        pink: { label: "핑크", accent: "#7c6055", badgeBorder: "#d4bab4",
+        pink: { label: "핑크", accent: "#7c6055", badgeBorder: "#d4bab4", gridShadow: "#ddc5c6",
                 noticeBg: "#f0dedb", colorBg: "#edcac4", colorBgLight: "#f6ecea",
                 pillBg: "#d8b8ab", titleColor: "#6b4a3e", mainBg: "#fffdfd" },
         yellow: { label: "옐로우", accent: "#b08a1e", badgeBorder: "#e6d38f",

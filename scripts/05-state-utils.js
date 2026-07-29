@@ -41,6 +41,16 @@
           ? `${fmtD01(a)} - ${fmtD01(b)}`
           : "공구 기간 미입력";
       }
+      /* 03 히어로 전용 — .fig "07.06 - 07.09" (요일 없음) */
+      function range03(a, b) {
+        const f = (iso) => {
+          if (!iso) return "";
+          const d = new Date(iso + "T00:00:00");
+          if (isNaN(d)) return "";
+          return `${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
+        };
+        return f(a) && f(b) ? `${f(a)} - ${f(b)}` : "공구 기간 미입력";
+      }
       function range02(a, b) {
         if (!a || !b) return "공구 기간 미입력";
         const s = new Date(a + "T00:00:00"),
