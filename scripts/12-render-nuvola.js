@@ -87,7 +87,7 @@
                    01·03 은 eyebrow 와 제목이 같은 색이라 이 키가 없다. */
                 eyebrowInkKey: "eyebrowInk" },
         "03": { main: "grid", optDark: true, colorDark: false, colorBox: true,
-                chipLabel: "#666666", noticeKey: "colorBgLight",
+                chipLabel: "#666666",
                 /* 03 은 글자 크기만 크고(80/72) 박스 높이는 56 이다 */
                 optEyebrow: 48, optEyebrowLH: 40, optHeading: 80, optHeadingLH: 56,
                 colEyebrow: 48, colEyebrowLH: 40, colHeading: 72, colHeadingLH: 56,
@@ -96,7 +96,8 @@
                 eyeFont: "'Afacad Flux', 'Playfair Display'",
                 headFont: "'Afacad Flux', Pretendard", headWeight: 600,
                 colorEyebrow: "color info.", colorBgKey: "t03Frame",
-                optInkKey: "t03OptInk", colorInkKey: "t03Ink", chipLabelKey: "t03ChipLabel" },  // 03 은 소문자 (02 는 "Color info.")
+                optInkKey: "t03OptInk", colorInkKey: "t03Ink", chipLabelKey: "t03ChipLabel",
+                noticeKey: "t03Frame", noticeInkKey: "t03ChipLabel", listInkKey: "t03ChipLabel" },  // 03 은 소문자 (02 는 "Color info.")
       };
       /* 섹션 배경 헬퍼 */
       function nvOptBg(th) {
@@ -165,13 +166,17 @@
                 badgeGap: 24, badgeText: (i) => `OPTION ${i + 1}.`,
                 /* .fig: 03 의 discount_rate 는 반경 20 둥근 사각 (02 는 각짐) */
                 discR: 20, fDiscR: 25.56,
-                imgRight: true, discBgKey: "accent", discInk: "#ffffff",
+                /* .fig: 할인율 배지는 OPTION 배지와 같은 t03Badge 색이다 (accent 아님) */
+                imgRight: true, discBgKey: "t03Badge", discInk: "#ffffff",
                 saleInk: "t03Ink", normalInk: "#999999",
                 cardDX: 10, cardW: 720, imgDX: 380, imgDY: 20, imgH: 320, optDX: 20,
                 textDY: 0, priceDY: 260,
                 /* .fig feed_02(03): 카드 920×460, 텍스트 card+20 437, img card+491,+26 409×409 */
                 fTextDY: 0, fPriceDY: 334, fImgDX: 491, fImgDY: 26, fOptDX: 20,
-                fImgW: 409, fImgH: 409, fOptW: 437 },
+                fImgW: 409, fImgH: 409, fOptW: 437,
+                /* .fig feed: 카드 테두리 24 (상세는 20), 배지 200×60 · 글자 30px */
+                fFrameW: 24, fBadgeW: 200, fBadgeH: 60, fBadgeSize: 30, fBadgeGap: 36,
+                fDiscD: 102 },
       };
       function nvCard5() { return NV_CARD[state.tpl] || NV_CARD["02"]; }
 
@@ -226,6 +231,11 @@
       function nvNoticeBg(th) {
         const k = nvCfg().noticeKey;
         return k === "white" ? "#f4f4f4" : th[k] || "#eee";
+      }
+      /* 알림 바 글자색 — 03 은 테마별(.fig green #65812d / blue #888888 / pink #c57f80) */
+      function nvNoticeInk(th) {
+        const k = nvCfg().noticeInkKey;
+        return (k && th[k]) || th.accent;
       }
       function nvCfg() { return NV_TPL[state.tpl] || NV_TPL["01"]; }
       /* 섹션 제목: 템플릿별(TemplateMaster) → 그룹 공통 → 폴백 */
@@ -702,7 +712,7 @@
             const nw = L.noticeFull ? L.bodyW : itemW;
             ctx.fillStyle = nvNoticeBg(th);
             ctx.fillRect(nx, y, nw, it.h);
-            ctx.fillStyle = th.accent;
+            ctx.fillStyle = nvNoticeInk(th);
             ctx.font = `400 ${O.noticeSize}px Pretendard`;
             ctx.textAlign = "center"; ctx.textBaseline = "middle";
             trk(ctx, state.notice, nx + nw / 2, y + it.h / 2, -0.48, "center");
@@ -786,7 +796,9 @@
           const nw = ctx.measureText(names).width;
           const gap = r.label ? K.listLabelGap : 0;
           let lx = cx - (lw + gap + nw) / 2;
-          ctx.textAlign = "left"; ctx.fillStyle = ink;
+          ctx.textAlign = "left";
+          /* .fig 03: 키즈/성인 줄은 제목과 다른 색 (green #65812d / blue #888888 / pink #c57f80) */
+          ctx.fillStyle = (C.listInkKey && th[C.listInkKey]) || ink;
           if (r.label) {
             ctx.font = `700 ${K.listSize}px Pretendard`;
             ctx.fillText(r.label, lx, ly + K.listLineH / 2);
@@ -831,6 +843,10 @@
              heading  960×72 @(0,80)  Gmarket Sans Bold 72px */
         opt: { headX: 60, headY: 118, headW: 960,
                eyebrow: 52, eyebrowLH: 52, headGap: 28, heading: 72, headingLH: 72,
+               /* 03 은 소제목 규격이 다르다 (.fig feed_02)
+                  "Option info." 대문자 O · Regular 60px · 박스48 / 제목 SemiBold 92px */
+               head03: { headY: 100, eyebrow: 60, eyebrowLH: 48, headGap: 20,
+                         heading: 92, headingLH: 72, eyebrowText: "Option info." },
                listX: 60, listY: 309, listW: 960, cardH: 468, listGap: 20,
                imgX: 10, imgY: 10, imgW: 416, imgH: 448,
                optX: 474, optW: 448, optGap: 47,
@@ -1083,7 +1099,8 @@
 
       /* 섹션 헤딩 (option info. / color info.) */
       function nvfHead(ctx, W, y, kind, th, onDark) {
-        const O = NVF.opt;
+        const O0 = NVF.opt;
+        const O = state.tpl === "03" ? { ...O0, ...O0.head03 } : O0;
         if (onDark === undefined) onDark = nvOnDark(kind);
         ctx.textAlign = "center"; ctx.textBaseline = "middle";
         const C = nvCfg();
@@ -1093,7 +1110,9 @@
            여기만 Playfair 로 고정돼 있어서 02·03 피드가 01 글꼴로 나왔다. */
         ctx.font = `400 ${O.eyebrow}px ${C.eyeFont}`;
         const eyebrow =
-          kind === "color" ? C.colorEyebrow || "Color info." : "option info.";
+          kind === "color"
+            ? C.colorEyebrow || "Color info."
+            : O.eyebrowText || "option info.";
         ctx.fillText(eyebrow, W / 2, y + O.eyebrowLH / 2);
         ctx.fillStyle = headInk;
         ctx.font = `${C.headWeight || 600} ${O.heading}px ${C.headFont}`;
@@ -1104,7 +1123,7 @@
       }
 
       /* 피드 옵션 카드 (960×468) */
-      function nvfCard(ctx, r, x, top, th, CW, CH) {
+      function nvfCard(ctx, r, x, top, th, CW, CH, idx) {
         const O = NVF.opt;
         const CSF = nvCard5();
         CW = CW || O.listW; CH = CH || O.cardH;
@@ -1121,7 +1140,7 @@
 
         const ix = x + (CSF.fOptDX ?? O.optX);
         const IW = CSF.fOptW || CW - O.optX - 38;
-        const badgeOn = r.badge !== "none";
+        const badgeOn = CSF.badgeText ? true : r.badge !== "none";
         // 내용 측정
         _mc.font = `600 ${O.nameSize}px Pretendard`;
         const lns = [];
@@ -1149,16 +1168,27 @@
         ctx.textAlign = "left"; ctx.textBaseline = "middle";
         let ny = iy;
         if (badgeOn) {
-          const bt = r.badge === "renewal" ? "RENEWAL!" : "NEW!";
-          ctx.font = `600 ${O.badgeSize}px Pretendard`;
-          const bw = Math.max(188, trkWidth(ctx, bt, -0.4) + 32);
-          ctx.strokeStyle = th.badgeBorder || th.accent;
-          ctx.lineWidth = 2;
-          roundRect(ctx, ix, ny, bw, O.badgeH, O.badgeH / 2);
-          ctx.stroke();
-          ctx.fillStyle = th.accent;
-          trk(ctx, bt, ix + bw / 2, ny + O.badgeH / 2, -0.4, "center");
-          ny += O.badgeH + O.nameGap;
+          if (CSF.badgeText) {
+            /* .fig 03 피드: 200×60 각진 사각 + 흰 Afacad Flux 30px */
+            const bt = CSF.badgeText(idx || 0);
+            ctx.fillStyle = th[CSF.badgeBgKey] || th.accent;
+            ctx.fillRect(ix, ny, CSF.fBadgeW, CSF.fBadgeH);
+            ctx.fillStyle = "#ffffff";
+            ctx.font = `600 ${CSF.fBadgeSize}px 'Afacad Flux', Pretendard`;
+            trk(ctx, bt, ix + CSF.fBadgeW / 2, ny + CSF.fBadgeH / 2, -2, "center");
+            ny += CSF.fBadgeH + (CSF.fBadgeGap ?? O.nameGap);
+          } else {
+            const bt = r.badge === "renewal" ? "RENEWAL!" : "NEW!";
+            ctx.font = `600 ${O.badgeSize}px Pretendard`;
+            const bw = Math.max(188, trkWidth(ctx, bt, -0.4) + 32);
+            ctx.strokeStyle = th.badgeBorder || th.accent;
+            ctx.lineWidth = 2;
+            roundRect(ctx, ix, ny, bw, O.badgeH, O.badgeH / 2);
+            ctx.stroke();
+            ctx.fillStyle = th.accent;
+            trk(ctx, bt, ix + bw / 2, ny + O.badgeH / 2, -0.4, "center");
+            ny += O.badgeH + O.nameGap;
+          }
         }
         // box-top: 좌 제품명블록 ┄ 우 할인원
         const btY = ny;
@@ -1327,7 +1357,7 @@
         ctx.fillRect(0, 0, W, H);
         const O = NVF.opt, S = NVF.size;
         if (p.t === "opt") {
-          nvfHead(ctx, W, O.headY, "option", th);
+          nvfHead(ctx, W, state.tpl === "03" ? O.head03.headY : O.headY, "option", th);
           if (nvCfg().optDark) {
             // 02·03: 진한 배경 위에 흰 컨테이너, 그 안에 카드
             const B = state.tpl === "03" ? NVF.optBox03 : NVF.optBox;
@@ -1338,11 +1368,11 @@
             let y = B.y + B.pad;
             p.rows.forEach((r, i) => {
               if (CSD2.frameKey && th[CSD2.frameKey]) {
-                const fw = CSD2.frameW;
+                const fw = CSD2.fFrameW || CSD2.frameW;
                 ctx.fillStyle = th[CSD2.frameKey];
                 ctx.fillRect(B.x + B.pad - fw, y - fw, B.cardW + fw * 2, B.cardH + fw * 2);
               }
-              nvfCard(ctx, r, B.x + B.pad, y, th, B.cardW, B.cardH);
+              nvfCard(ctx, r, B.x + B.pad, y, th, B.cardW, B.cardH, i);
               if (CSD2.divKey && th[CSD2.divKey] && i < p.rows.length - 1) {
                 ctx.fillStyle = th[CSD2.divKey];
                 ctx.fillRect(B.x + B.pad, y + B.cardH, B.cardW, CSD2.divFeedW || CSD2.divW);
