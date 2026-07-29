@@ -123,7 +123,7 @@
             localStorage.setItem(KEY, w);
           } catch (e) {}
           draw();
-          drawTplPreviews();
+          schedTplPreviews(false); // 폭이 바뀌면 전부 다시
         };
         const start = (e) => {
           dragging = true;
@@ -145,7 +145,7 @@
             localStorage.setItem(KEY, 600);
           } catch (e) {}
           draw();
-          drawTplPreviews();
+          schedTplPreviews(false); // 폭이 바뀌면 전부 다시
           renderFmt();
         });
       })();

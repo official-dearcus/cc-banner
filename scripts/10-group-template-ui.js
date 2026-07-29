@@ -62,7 +62,7 @@
           state.heroUrl = h.url;
           state.heroUpload = false;
           renderHeroList();
-          drawTplPreviews();
+          schedTplPreviews(true);
           draw();
         } catch (e) {
           /* 실패 시 히어로 없이 진행 */
@@ -281,10 +281,26 @@
               draw();
             }),
         );
-        requestAnimationFrame(drawTplPreviews);
+        requestAnimationFrame(() => drawTplPreviews()); // 전체 갱신(목록 재생성 직후)
       }
       /* 각 템플릿 히어로를 축소 렌더 */
-      function drawTplPreviews() {
+      /* 미리보기 갱신 요청을 한 프레임으로 합친다.
+         셀러명·타이틀을 타이핑하면 글자마다 3장을 다시 그리고 있었다.
+         onlyCurrent=true 면 지금 선택된 템플릿 카드 하나만 갱신한다
+         (양옆 카드가 같이 바뀌어 헷갈리던 것도 없어진다). */
+      let _tplReq = 0,
+        _tplAll = false;
+      function schedTplPreviews(onlyCurrent) {
+        if (!onlyCurrent) _tplAll = true;
+        if (_tplReq) return;
+        _tplReq = requestAnimationFrame(() => {
+          _tplReq = 0;
+          const all = _tplAll;
+          _tplAll = false;
+          drawTplPreviews(all ? null : state.tpl);
+        });
+      }
+      function drawTplPreviews(only) {
         const g = G()[state.group];
         if (!g.templates.length) return;
         /* ⚠ 예전에는 THEMES[t] 를 직접 읽었다.
@@ -299,6 +315,7 @@
         off.height = H;
         const octx = off.getContext("2d");
         g.templates.forEach((t) => {
+          if (only && t !== only) return; // 나머지 카드는 그대로 둔다
           const cv = document.querySelector(`[data-prev="${t}"]`);
           if (!cv) return;
           const tbl = themeTable(curFam(), t) || {};
@@ -371,7 +388,7 @@
               (el.onclick = () => {
                 state.theme = el.dataset.k;
                 renderThemes();
-                drawTplPreviews();
+                schedTplPreviews(true);
                 draw();
               }),
           );
