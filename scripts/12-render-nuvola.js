@@ -135,18 +135,22 @@
            01 카드 x=60 w=740 · img +10,+10 320×340 · 텍스트 +366
            02 카드 x=70 w=720 · img  +0, +0 320×340 · 텍스트 +356
            03 카드 x=70 w=720 · img +380,+20 320×320 · 텍스트  +20 */
-        /* .fig 2026-07-29 재실측 (이전 값은 7/24 파일 기준이라 어긋나 있었다)
+        /* .fig 2026-07-29 실측
              option        카드 +(366, 29) 342×302
-             price-wrap    카드 +(366,249) 342×82  → 249+82=331, 카드360 → 하단 29
-             텍스트 블록    가로 324 (Color/Size 값 최대폭 = 324 - 라벨48 - 간격8 = 268) */
-        "01": { style: "labels", txtOptW: 324, discGap: 12, priceH: 82,
-                vlLabelW: 48, vlValW: 268, fTxtW: 324,
+             txt_option    250 폭   (할인 원이 +262 에 있어 그 이상 넓히면 겹친다)
+             value 값 열   194 폭
+             price-wrap    카드 +(366,249) 342×82 → 249+82=331, 카드360 → 하단 29
+           ⚠ 324 로 넓혔더니 이름이 할인 원(+262~342)을 덮어 되돌림 */
+        "01": { style: "labels", txtOptW: 250, discGap: 12, priceH: 82,
+                vlLabelW: 48, vlValW: 194, fTxtW: 324,
                 /* 01 은 카드에 선이 없다 (.fig) */
                 cardDX: 0, cardW: 740, imgDX: 10, imgDY: 10, imgH: 340, optDX: 366,
                 textDY: 29, priceDY: 249,
                 /* .fig feed(01): 카드 960×468, img card+10,+10 416×448, 텍스트 card+474 */
                 fTextDY: 46, fPriceDY: 316, fImgDX: 10, fImgDY: 10,
-                fImgW: 416, fImgH: 448, fOptDX: 474, fOptW: 448 },
+                fImgW: 416, fImgH: 448, fOptDX: 474, fOptW: 448,
+                /* .fig feed_02: txt_option 324 · 라벨 60 · 값 256 (68 부터) */
+                fVlLabelW: 60, fVlColGap: 8, fVlValW: 256 },
         "02": { style: "inline", txtOptW: 342, priceH: 80,
                 vlLabelW: 53, vlValW: 281, fTxtW: 456,
                 discBgKey: "colorBgLight", discInk: null,
@@ -157,13 +161,15 @@
                 textDY: 28, priceDY: 232,
                 /* .fig feed_02: 카드 920×460, img card+0,+0 426×440, 텍스트 card+464 456 */
                 fTextDY: 28, fPriceDY: 304, fImgDX: 0, fImgDY: 0,
-                fImgW: 426, fImgH: 440, fOptDX: 464, fOptW: 456 },
+                fImgW: 426, fImgH: 440, fOptDX: 464, fOptW: 456,
+                /* .fig feed_02: txt_option 458 · 라벨 60 · 값 363 (95 부터) */
+                fVlLabelW: 60, fVlColGap: 35, fVlValW: 363 },
         /* 03 은 02 와 구조는 같지만 색과 이미지 위치가 다르다 (.fig 2026-07-29)
            - box-img 가 오른쪽(@380), 텍스트가 왼쪽
            - 할인율 배경 accent(#65812d) + 흰 글자   (02 는 연한 배경 + 진한 글자)
            - 혜택가 titleColor(#448122) / 정상가 #999999 */
         "03": { style: "inline", txtOptW: 342, priceH: 100,
-                vlLabelW: 60, vlValW: 274, fTxtW: 456,
+                vlLabelW: 60, vlValW: 274, fTxtW: 436,
                 /* .fig: 카드 사방 20px #f0f3dd 테두리 (선이 아니라 띠) */
                 /* .fig 03: 테두리·선·컬러섹션은 t03Frame, 배지는 t03Badge (테마별) */
                 frameKey: "t03Frame", frameW: 20,
@@ -181,6 +187,8 @@
                 /* .fig feed_02(03): 카드 920×460, 텍스트 card+20 437, img card+491,+26 409×409 */
                 fTextDY: 0, fPriceDY: 334, fImgDX: 491, fImgDY: 26, fOptDX: 20,
                 fImgW: 409, fImgH: 409, fOptW: 437,
+                /* .fig feed_02: txt_option 436 · 라벨 60 · 값 349 (87 부터) */
+                fVlLabelW: 60, fVlColGap: 27, fVlValW: 349,
                 /* .fig feed: 카드 테두리 24 (상세는 20), 배지 200×60 · 글자 30px */
                 fFrameW: 24, fBadgeW: 200, fBadgeH: 60, fBadgeSize: 30, fBadgeGap: 36,
                 fDiscD: 102 },
@@ -1161,7 +1169,7 @@
         const attrs = cardAttrs(r);
         const rowHs = attrs.map((a) => {
           _mc.font = `400 ${O.vlSize}px Pretendard`;
-          const vl = wrapText(_mc, String(a.value || ""), O.vlValW, -0.48);
+          const vl = wrapText(_mc, String(a.value || ""), CSF.fVlValW || O.vlValW, -0.48);
           return Math.max(O.vlRowH, vl.length * O.vlRowH);
         });
         const vlH = rowHs.length
@@ -1216,9 +1224,11 @@
           ctx.fillStyle = "#888888";
           ctx.font = `400 ${O.vlSize}px Pretendard`;
           _mc.font = `400 ${O.vlSize}px Pretendard`;
-          const vl = wrapText(_mc, String(a.value || ""), O.vlValW, -0.48);
+          const vl = wrapText(_mc, String(a.value || ""), CSF.fVlValW || O.vlValW, -0.48);
           vl.forEach((t, k) =>
-            trk(ctx, t, ix + O.vlLabelW + O.vlColGap, vy + O.vlRowH / 2 + k * O.vlRowH, -0.48, "left"),
+            trk(ctx, t,
+              ix + (CSF.fVlLabelW || O.vlLabelW) + (CSF.fVlColGap ?? O.vlColGap),
+              vy + O.vlRowH / 2 + k * O.vlRowH, -0.48, "left"),
           );
           vy += rowHs[i] + O.vlRowGap;
         });
