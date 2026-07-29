@@ -83,19 +83,50 @@ module.exports = async (req, res) => {
       signal: ac.signal,
       redirect: "follow",
       headers: {
-        /* 일부 쇼핑몰 CDN 은 UA/Referer 가 없으면 막는다 */
-        "User-Agent": "Mozilla/5.0 (compatible; cc-banner/1.0)",
+        /* 카페24 등 상용 쇼핑몰 CDN 은 "브라우저가 아닌 요청"을 막는 경우가 많다.
+           실제 크롬과 같은 헤더를 보내야 통과한다 (2026-07: dearcus.com 403 대응). */
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
+          "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
         Referer: target.origin + "/",
-        Accept: "image/*,*/*;q=0.8",
+        Accept:
+          "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+        "Accept-Language": "ko-KR,ko;q=0.9,en;q=0.8",
+        "Sec-Fetch-Dest": "image",
+        "Sec-Fetch-Mode": "no-cors",
+        "Sec-Fetch-Site": "cross-site",
       },
     });
 
-    if (!r.ok)
-      return fail(502, `원본 서버 응답 ${r.status} ${r.statusText}\n${target}`);
+    if (!r.ok) {
+      let why = "";
+      if (r.status === 403 || r.status === 406)
+        why =
+          "\n원본 서버가 외부 접근을 막고 있습니다(핫링크 차단). " +
+          "쇼핑몰 관리자에서 이미지 외부 링크 허용을 확인하세요.";
+      if (r.status === 404) why = "\n주소가 바뀌었거나 삭제된 이미지입니다.";
+      return fail(
+        502,
+        `원본 서버 응답 ${r.status} ${r.statusText}${why}\n${target}`,
+      );
+    }
 
-    const ctype = (r.headers.get("content-type") || "").toLowerCase();
-    if (ctype && !ctype.startsWith("image/"))
-      return fail(415, `이미지가 아닙니다 (${ctype})\n${target}`);
+    /* 일부 서버는 Content-Type 을 octet-stream 으로 준다.
+       확장자가 이미지면 통과시키고, 명백히 HTML 인 것만 막는다. */
+    let ctype = (r.headers.get("content-type") || "").toLowerCase().split(";")[0];
+    const extOk = /\.(jpe?g|png|gif|webp|avif|bmp|svg)$/i.test(target.pathname);
+    if (ctype && !ctype.startsWith("image/")) {
+      if (!extOk || /^text\/|^application\/(json|xml|xhtml)/.test(ctype))
+        return fail(415, `이미지가 아닙니다 (${ctype})\n${target}`);
+      ctype = ""; // 확장자를 믿고 아래에서 추론
+    }
+    if (!ctype) {
+      const m = target.pathname.match(/\.(jpe?g|png|gif|webp|avif|bmp|svg)$/i);
+      const e = (m ? m[1] : "jpeg").toLowerCase();
+      ctype =
+        "image/" +
+        (e === "jpg" ? "jpeg" : e === "svg" ? "svg+xml" : e);
+    }
 
     const len = Number(r.headers.get("content-length") || 0);
     if (len > MAX_BYTES)
@@ -104,7 +135,7 @@ module.exports = async (req, res) => {
     const buf = Buffer.from(await r.arrayBuffer());
     if (buf.length > MAX_BYTES) return fail(413, "이미지가 너무 큽니다");
 
-    res.setHeader("Content-Type", ctype || "image/jpeg");
+    res.setHeader("Content-Type", ctype);
     res.setHeader("Content-Length", String(buf.length));
     /* 브라우저 1시간 / CDN 30일. 같은 주소의 이미지가 바뀌는 일은 드물다. */
     res.setHeader(
