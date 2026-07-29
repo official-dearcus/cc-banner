@@ -277,6 +277,14 @@
               renderTplList();
               renderThemes();
               syncTplUI();
+              /* 템플릿을 바꾸면 히어로를 비우기만 하고 끝나서 매번 다시 골라야 했다.
+                 테마에 매핑된 히어로가 있으면 그걸, 없으면 해당 템플릿에서 랜덤으로. */
+              if (state.tpl !== prev) {
+                const mapped =
+                  typeof heroForTheme === "function" ? heroForTheme() : null;
+                if (mapped) pickHero(mapped.url);
+                else applyRandomHero();
+              }
               renderHeroList();
               draw();
             }),

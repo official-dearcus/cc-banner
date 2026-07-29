@@ -69,6 +69,9 @@
         // colorBox: 컬러 칩을 흰 컨테이너로 감싸는가 · chipLabel: 칩 이름 색
         "01": { main: "photo", optDark: false, colorDark: true, colorBox: false,
                 chipLabel: "#ffffff", noticeKey: "noticeBg",
+                /* 컬러 안내 글자 = 테마 accent (요청 2026-07-29, pink #7c6055)
+                   .fig 01-green 은 흰색이라 그린도 함께 바뀐다 */
+                colorInkKey: "accent",
                 optEyebrow: 36, optEyebrowLH: 40, optHeading: 56, optHeadingLH: 56,
                 colEyebrow: 36, colEyebrowLH: 40, colHeading: 56, colHeadingLH: 56,
                 headToList: 80,
@@ -1104,7 +1107,11 @@
         if (onDark === undefined) onDark = nvOnDark(kind);
         ctx.textAlign = "center"; ctx.textBaseline = "middle";
         const C = nvCfg();
-        const headInk = onDark ? "#ffffff" : th.accent;
+        /* 상세(nvOption/nvColor)와 같은 잉크 규칙을 쓴다.
+           여기만 accent 로 고정돼 있어서 03 피드 제목이 t03Ink 를 안 따랐다. */
+        const inkKey = kind === "color" ? C.colorInkKey : C.optInkKey;
+        const headInk =
+          (inkKey && th[inkKey]) || (onDark ? "#ffffff" : th.accent);
         ctx.fillStyle = (C.eyebrowInkKey && th[C.eyebrowInkKey]) || headInk;
         /* 상세와 같은 템플릿별 글꼴을 쓴다.
            여기만 Playfair 로 고정돼 있어서 02·03 피드가 01 글꼴로 나왔다. */
