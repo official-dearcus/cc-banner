@@ -69,21 +69,26 @@
         // colorBox: 컬러 칩을 흰 컨테이너로 감싸는가 · chipLabel: 칩 이름 색
         "01": { main: "photo", optDark: false, colorDark: true, colorBox: false,
                 chipLabel: "#ffffff", noticeKey: "noticeBg",
-                optEyebrow: 36, optEyebrowLH: 40, optHeading: 56,
-                colEyebrow: 36, colEyebrowLH: 40, colHeading: 56,
+                optEyebrow: 36, optEyebrowLH: 40, optHeading: 56, optHeadingLH: 56,
+                colEyebrow: 36, colEyebrowLH: 40, colHeading: 56, colHeadingLH: 56,
+                headToList: 80,
                 /* .fig 58:570 — 01 은 Playfair + Pretendard SemiBold */
                 eyeFont: "'Playfair Display'", headFont: "Pretendard", headWeight: 600 },
         "02": { main: "grad", optDark: true, colorDark: false, colorBox: false,
                 chipLabel: "accent", noticeKey: "white",
-                optEyebrow: 48, optEyebrowLH: 53, optHeading: 56,
-                colEyebrow: 48, colEyebrowLH: 53, colHeading: 56,
+                /* .fig 실측: eyebrow 박스 40 (53 아님), heading 박스 56 */
+                optEyebrow: 48, optEyebrowLH: 40, optHeading: 56, optHeadingLH: 56,
+                colEyebrow: 48, colEyebrowLH: 40, colHeading: 56, colHeadingLH: 56,
+                headToList: 76,
                 /* .fig 72:37 — 02 는 High Summit + Gmarket Sans Bold, 흰 글자에 그림자 */
                 eyeFont: "'High Summit'", headFont: "GmarketSans, Pretendard",
                 headWeight: 700, headShadow: true },
         "03": { main: "grid", optDark: true, colorDark: false, colorBox: true,
                 chipLabel: "#666666", noticeKey: "colorBgLight",
-                optEyebrow: 48, optEyebrowLH: 53, optHeading: 80,
-                colEyebrow: 48, colEyebrowLH: 53, colHeading: 72,
+                /* 03 은 글자 크기만 크고(80/72) 박스 높이는 56 이다 */
+                optEyebrow: 48, optEyebrowLH: 40, optHeading: 80, optHeadingLH: 56,
+                colEyebrow: 48, colEyebrowLH: 40, colHeading: 72, colHeadingLH: 56,
+                headToList: 76,
                 /* .fig 79:553 — 03 은 Afacad Flux (index.html 에서 로드) */
                 eyeFont: "'Afacad Flux', 'Playfair Display'",
                 headFont: "'Afacad Flux', Pretendard", headWeight: 600,
@@ -122,12 +127,16 @@
            03 카드 x=70 w=720 · img +380,+20 320×320 · 텍스트  +20 */
         "01": { style: "labels", txtOptW: 250, discGap: 12, priceH: 82,
                 vlLabelW: 48, vlValW: 194, fTxtW: 324,
-                cardDX: 0, cardW: 740, imgDX: 10, imgDY: 10, imgH: 340, optDX: 366 },
+                cardDX: 0, cardW: 740, imgDX: 10, imgDY: 10, imgH: 340, optDX: 366,
+                textDY: 29, priceDY: 273,
+                fTextDY: 46, fPriceDY: 316, fImgDX: 10, fImgDY: 10, fOptDX: 474 },
         "02": { style: "inline", txtOptW: 342, priceH: 80,
                 vlLabelW: 53, vlValW: 281, fTxtW: 456,
                 discBgKey: "colorBgLight", discInk: null,
                 saleInk: "#333333", normalInk: "#666666",
-                cardDX: 10, cardW: 720, imgDX: 0, imgDY: 0, imgH: 340, optDX: 356 },
+                cardDX: 10, cardW: 720, imgDX: 0, imgDY: 0, imgH: 340, optDX: 356,
+                textDY: 28, priceDY: 232,
+                fTextDY: 28, fPriceDY: 304, fImgDX: 0, fImgDY: 0, fOptDX: 464 },
         /* 03 은 02 와 구조는 같지만 색과 이미지 위치가 다르다 (.fig 2026-07-29)
            - box-img 가 오른쪽(@380), 텍스트가 왼쪽
            - 할인율 배경 accent(#65812d) + 흰 글자   (02 는 연한 배경 + 진한 글자)
@@ -136,7 +145,10 @@
                 vlLabelW: 60, vlValW: 274, fTxtW: 456,
                 imgRight: true, discBgKey: "accent", discInk: "#ffffff",
                 saleInk: "titleColor", normalInk: "#999999",
-                cardDX: 10, cardW: 720, imgDX: 380, imgDY: 20, imgH: 320, optDX: 20 },
+                cardDX: 10, cardW: 720, imgDX: 380, imgDY: 20, imgH: 320, optDX: 20,
+                textDY: 76, priceDY: 260,
+                fTextDY: 96, fPriceDY: 334, fImgDX: 491, fImgDY: 26, fOptDX: 20,
+                fImgW: 409, fImgH: 409 },
       };
       function nvCard5() { return NV_CARD[state.tpl] || NV_CARD["02"]; }
       function nvOnDark(which) {
@@ -176,8 +188,11 @@
       }
       function nvOptionH() {
         const O = NV.opt, C = nvCfg();
-        const head = C.optEyebrowLH + O.headGap + C.optHeading; // 01 = 124
-        return O.padTop + head + O.headToList + nvOptionListH() + O.padBottom;
+        const head = C.optEyebrowLH + O.headGap + (C.optHeadingLH || C.optHeading); // .fig 124
+        return (
+          O.padTop + head + (C.headToList ?? O.headToList) +
+          nvOptionListH() + O.padBottom
+        );
       }
       function nvCanvasH() { return NV.MAIN_H + nvOptionH() + nvColorMetrics().H; }
 
@@ -402,8 +417,10 @@
         const txtOptH = lns.length * O.nameLineH + (vlH ? O.txtOptGap + vlH : 0);
         const boxTopH = Math.max(txtOptH, O.discD);
         const nameWrapH = (badgeOn ? O.badgeH + O.nameGap : 0) + boxTopH;
+        /* .fig 는 카드 안에서 위(이름) / 아래(가격) 고정 배치다.
+           예전엔 내용 높이로 세로 중앙정렬해서, 글자 길이에 따라 가격줄이 떠다녔다. */
         const infoH = nameWrapH + O.optGap + O.priceH;
-        const iy = top + (O.cardH - infoH) / 2;
+        const iy = top + (CS0.textDY ?? (O.cardH - infoH) / 2);
 
         ctx.textAlign = "left"; ctx.textBaseline = "middle";
         let ny = iy;
@@ -449,7 +466,7 @@
            .fig 에는 그런 라벨이 없고 할인율도 가격줄 왼쪽 사각형이다. */
         const d = disc(r.normal, r.sale);
         const CS = nvCard5();
-        const py = iy + nameWrapH + O.optGap;
+        const py = top + (CS0.priceDY ?? (iy - top) + nameWrapH + O.optGap);
         const G0 = nvG();
 
         if (CS.style === "labels") {
@@ -535,11 +552,11 @@
         ctx.fillText(
           nvTitle("option"),
           cx,
-          oy + O.padTop + C.optEyebrowLH + O.headGap + C.optHeading / 2,
+          oy + O.padTop + C.optEyebrowLH + O.headGap + (C.optHeadingLH || C.optHeading) / 2,
         );
         nvClearShadow(ctx);
         ctx.textBaseline = "alphabetic";
-        let y = oy + O.padTop + C.optEyebrowLH + O.headGap + C.optHeading + O.headToList;
+        let y = oy + O.padTop + C.optEyebrowLH + O.headGap + (C.optHeadingLH || C.optHeading) + (C.headToList ?? O.headToList);
         const x = O.bodyX;
         state.rows.forEach((r) => { nvCard(ctx, r, x, y, th); y += O.cardH + O.listGap; });
         if (state.notice) {
@@ -574,7 +591,7 @@
         const imgH = chipW / COLOR_RATIO;
         const chipH = imgH + K.chipLabelGap + K.chipLabelH;
         const C = nvCfg();
-        const headH = C.colEyebrowLH + K.txtGap + C.colHeading; // 01 = 124
+        const headH = C.colEyebrowLH + K.txtGap + (C.colHeadingLH || C.colHeading);
         const nameH = L * K.listLineH + (L - 1) * K.listGap;
         const txtEnd = K.txtY + headH + K.txtGap + nameH;
         const optY = txtEnd + 60; // .fig: txt-wrap 끝 → color_option 간격 60
@@ -609,7 +626,7 @@
         ctx.fillText(
           nvTitle("color"),
           cx,
-          top + K.txtY + C.colEyebrowLH + K.txtGap + C.colHeading / 2,
+          top + K.txtY + C.colEyebrowLH + K.txtGap + (C.colHeadingLH || C.colHeading) / 2,
         );
         nvClearShadow(ctx);
         // 줄별 색상명
@@ -911,6 +928,7 @@
       /* 피드 옵션 카드 (960×468) */
       function nvfCard(ctx, r, x, top, th, CW, CH) {
         const O = NVF.opt;
+        const CSF = nvCard5();
         CW = CW || O.listW; CH = CH || O.cardH;
         ctx.fillStyle = "#fff"; ctx.fillRect(x, top, CW, CH);
         const imgH2 = CH - O.imgY * 2;
@@ -941,7 +959,8 @@
         const nameWrapH = (badgeOn ? O.badgeH + O.nameGap : 0) + boxTopH;
         const priceH = O.priceRowH * 2 + O.priceGap;
         const infoH = nameWrapH + O.optGap + priceH;
-        const iy = top + Math.max(8, (CH - infoH) / 2);
+        /* .fig 고정 배치 (예전엔 중앙정렬이라 가격줄이 글자 길이에 따라 떠다녔다) */
+        const iy = top + (CSF.fTextDY ?? Math.max(8, (CH - infoH) / 2));
 
         ctx.textAlign = "left"; ctx.textBaseline = "middle";
         let ny = iy;
@@ -985,7 +1004,7 @@
         const d = disc(r.normal, r.sale);
         const CS = nvCard5();
         const G0 = nvG();
-        const py = iy + nameWrapH + O.optGap;
+        const py = top + (CSF.fPriceDY ?? (iy - top) + nameWrapH + O.optGap);
 
         if (CS.style === "labels") {
           /* ── 01 피드: 할인 원 오른쪽 위 + 정상가/혜택가 2줄 ── */
