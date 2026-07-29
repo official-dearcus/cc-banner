@@ -96,7 +96,7 @@
                 eyeFont: "'Afacad Flux', 'Playfair Display'",
                 headFont: "'Afacad Flux', Pretendard", headWeight: 600,
                 colorEyebrow: "color info.", colorBgKey: "t03Frame",
-                optInkKey: "t03OptInk", colorInkKey: "t03Ink", chipLabelKey: "t03ChipLabel",
+                optInkKey: "t03OptInk", colorInkKey: "t03Ink",
                 noticeKey: "t03Frame", noticeInkKey: "t03ChipLabel", listInkKey: "t03ChipLabel" },  // 03 은 소문자 (02 는 "Color info.")
       };
       /* 섹션 배경 헬퍼 */
@@ -1296,7 +1296,9 @@
           const nw = ctx.measureText(names).width;
           const gap = r.label ? K.listLabelGap : 0;
           let lx = W / 2 - (lw + gap + nw) / 2;
-          ctx.textAlign = "left"; ctx.fillStyle = ink;
+          ctx.textAlign = "left";
+          /* 상세와 같은 규칙 — 키즈/성인 줄은 제목과 다른 색 (.fig t03ChipLabel) */
+          ctx.fillStyle = (nvCfg().listInkKey && th[nvCfg().listInkKey]) || ink;
           if (r.label) {
             ctx.font = `700 ${K.listSize}px Pretendard`;
             ctx.fillText(r.label, lx, ly + K.listLineH / 2);
