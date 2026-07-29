@@ -188,6 +188,9 @@
         });
 
         await Promise.all(jobs);
+        /* 이미지가 도착한 뒤 카드에 반영 (한 번만) */
+        _tplSig = "";
+        schedTplPreviews(false);
 
         if (fails.length)
           status(
@@ -288,7 +291,11 @@
               draw();
             }),
         );
-        requestAnimationFrame(() => drawTplPreviews()); // 전체 갱신(목록 재생성 직후)
+        /* ⚠ 여기서 캔버스가 새로 만들어져 내용이 비어 있다.
+           서명 캐시를 반드시 지워야 한다. 안 그러면 "변화 없음"으로 건너뛰어
+           카드가 빈 채로 남는다. */
+        _tplSig = "";
+        requestAnimationFrame(() => drawTplPreviews());
       }
       /* 각 템플릿 히어로를 축소 렌더 */
       /* 미리보기 갱신 요청을 한 프레임으로 합친다.
@@ -369,7 +376,7 @@
             saveHero = state.hero;
           state.tpl = t;
           const own = tplHeroImg(t);
-          if (own) state.hero = own;
+          if (own) state.hero = own; // 없으면 현재 히어로로라도 그린다(빈 카드 방지)
           try {
             if (nv) nvMain(octx, 860, th);
             else t === "01" ? hero01(octx, 860, th) : hero02(octx, 860, th);
