@@ -10,7 +10,10 @@
         green: { label: "그린", accent: "#65812d", badgeBorder: "#d0dfb1",
                  noticeBg: "#e1e5c6", colorBg: "#b9ca7d", colorBgLight: "#f0f3dd",
                  pillBg: "#91a36e", titleColor: "#448122", mainBg: "#f8fbe1",
-                 discInk: "#254631" },
+                 discInk: "#254631",
+                 /* 템플릿 02 의 "option info./Color info." 전용 색. .fig 실측(green).
+                    나머지 5색은 피그마에 02 실물이 없어 제목 색으로 폴백한다. */
+                 eyebrowInk: "#31522d" },
         blue: { label: "블루", accent: "#2d6181", badgeBorder: "#b3c7da",
                 noticeBg: "#dbe6ee", colorBg: "#7d9eca", colorBgLight: "#eaf3f6",
                 pillBg: "#6e89a3", titleColor: "#1d5a80", mainBg: "#f6f9fe" },

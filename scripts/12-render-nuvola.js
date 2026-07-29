@@ -82,7 +82,10 @@
                 headToList: 76,
                 /* .fig 72:37 — 02 는 High Summit + Gmarket Sans Bold, 흰 글자에 그림자 */
                 eyeFont: "'High Summit'", headFont: "GmarketSans, Pretendard",
-                headWeight: 700, headShadow: true },
+                headWeight: 700, headShadow: true,
+                /* .fig: 02 만 eyebrow 가 제목과 다른 색(#31522d)이다.
+                   01·03 은 eyebrow 와 제목이 같은 색이라 이 키가 없다. */
+                eyebrowInkKey: "eyebrowInk" },
         "03": { main: "grid", optDark: true, colorDark: false, colorBox: true,
                 chipLabel: "#666666", noticeKey: "colorBgLight",
                 /* 03 은 글자 크기만 크고(80/72) 박스 높이는 56 이다 */
@@ -151,6 +154,45 @@
                 fImgW: 409, fImgH: 409 },
       };
       function nvCard5() { return NV_CARD[state.tpl] || NV_CARD["02"]; }
+
+      /* 옵션 리스트는 .fig 에서 "컨테이너 + 패딩 + 간격" 구조다.
+         예전 코드는 카드마다 흰 사각형을 따로 그려서 02 처럼 컨테이너가 흰
+         템플릿에서 카드 사이에 배경색이 비쳤다.
+           01 : option-list 투명, 패딩 0  — 카드마다 흰 배경
+           02 : option-list #ffffff, 패딩 20 — 카드가 한 덩어리로 보인다
+           03 : option-list 투명, 패딩 20 — 순서가 카드·사이즈·알림(전폭)
+         (.fig 2026-07-29 실측) */
+      const NV_LIST = {
+        "01": { bodyX: 60, bodyW: 740, listTop: 204, pad: 0, gap: 20,
+                listBg: null, order: ["cards", "notice", "size"],
+                sizeH: 552, noticeFull: false, noticeH: 80 },
+        "02": { bodyX: 50, bodyW: 760, listTop: 180, pad: 20, gap: 20,
+                listBg: "#ffffff", order: ["cards", "notice", "size"],
+                sizeH: 538, noticeFull: false, noticeH: 80 },
+        "03": { bodyX: 50, bodyW: 760, listTop: 180, pad: 20, gap: 20,
+                listBg: null, order: ["cards", "size", "notice"],
+                sizeH: 538, noticeFull: true, noticeH: 100 },
+      };
+      function nvList() { return NV_LIST[state.tpl] || NV_LIST["02"]; }
+
+      /* 리스트 안쪽 항목들의 높이 목록 (패딩 제외) */
+      function nvListItems() {
+        const L = nvList();
+        const items = [];
+        const sImg = state.sizeInfoOn ? nvSizeInfoImg() : null;
+        for (const kind of L.order) {
+          if (kind === "cards") state.rows.forEach((r) => items.push({ kind: "card", r, h: NV.opt.cardH }));
+          else if (kind === "notice" && state.notice) items.push({ kind: "notice", h: L.noticeH });
+          else if (kind === "size" && sImg) items.push({ kind: "size", img: sImg, h: L.sizeH });
+        }
+        return items;
+      }
+      function nvListH() {
+        const L = nvList(), it = nvListItems();
+        if (!it.length) return 0;
+        const inner = it.reduce((a, b) => a + b.h, 0) + (it.length - 1) * L.gap;
+        return inner + L.pad * 2;
+      }
       function nvOnDark(which) {
         const C = nvCfg();
         return which === "color" ? C.colorDark : C.optDark;
@@ -178,21 +220,11 @@
       function nvG() { return G()[state.group] || {}; }
 
       /* ── 높이 계산 (auto-layout 합산) ── */
-      function nvOptionListH() {
-        const O = NV.opt;
-        let n = state.rows.length, h = n * O.cardH;
-        if (state.notice) { h += O.noticeH; n++; }
-        if (state.sizeInfoOn && nvSizeInfoImg()) { h += O.sizeInfoH; n++; }
-        if (n > 1) h += (n - 1) * O.listGap;
-        return h;
-      }
+      function nvOptionListH() { return nvListH(); }
       function nvOptionH() {
         const O = NV.opt, C = nvCfg();
-        const head = C.optEyebrowLH + O.headGap + (C.optHeadingLH || C.optHeading); // .fig 124
-        return (
-          O.padTop + head + (C.headToList ?? O.headToList) +
-          nvOptionListH() + O.padBottom
-        );
+        /* .fig: option-body y=150, 그 안에서 option-list 는 listTop 아래 */
+        return O.padTop + nvList().listTop + nvOptionListH() + O.padBottom;
       }
       function nvCanvasH() { return NV.MAIN_H + nvOptionH() + nvColorMetrics().H; }
 
@@ -382,12 +414,13 @@
       }
 
       /* ── 옵션 카드 (740×360) ── */
-      function nvCard(ctx, r, x, top, th) {
+      function nvCard(ctx, r, x, top, th, cardW, ownBg) {
         const O = NV.opt;
         const CS0 = nvCard5();
-        const cx0 = x + (CS0.cardDX || 0);
-        const cw0 = CS0.cardW || O.bodyW;
-        ctx.fillStyle = "#fff"; ctx.fillRect(cx0, top, cw0, O.cardH);
+        const cx0 = x;
+        const cw0 = cardW || CS0.cardW || O.bodyW;
+        /* 컨테이너가 이미 흰색이면(02) 카드 배경을 또 칠하지 않는다 */
+        if (ownBg !== false) { ctx.fillStyle = "#fff"; ctx.fillRect(cx0, top, cw0, O.cardH); }
         ctx.fillStyle = "#f8f8f8";
         const imgLeft = cx0 + (CS0.imgDX ?? O.imgX);
         const imgTop = top + (CS0.imgDY ?? O.imgY);
@@ -544,9 +577,11 @@
         ctx.textAlign = "center"; ctx.textBaseline = "middle";
         const C = nvCfg();
         const optInk = nvOnDark("option") ? "#ffffff" : th.accent;
-        ctx.fillStyle = optInk;
+        const eyeInk = (C.eyebrowInkKey && th[C.eyebrowInkKey]) || optInk;
+        ctx.fillStyle = eyeInk;
         ctx.font = `400 ${C.optEyebrow}px ${C.eyeFont}`;
         ctx.fillText("option info.", cx, oy + O.padTop + C.optEyebrowLH / 2);
+        ctx.fillStyle = optInk; // 제목은 eyebrow 와 색이 다를 수 있다
         ctx.font = `${C.headWeight || 600} ${C.optHeading}px ${C.headFont}`;
         nvHeadShadow(ctx, C.headShadow);
         ctx.fillText(
@@ -556,25 +591,37 @@
         );
         nvClearShadow(ctx);
         ctx.textBaseline = "alphabetic";
-        let y = oy + O.padTop + C.optEyebrowLH + O.headGap + (C.optHeadingLH || C.optHeading) + (C.headToList ?? O.headToList);
-        const x = O.bodyX;
-        state.rows.forEach((r) => { nvCard(ctx, r, x, y, th); y += O.cardH + O.listGap; });
-        if (state.notice) {
-          ctx.fillStyle = nvNoticeBg(th);
-          ctx.fillRect(x, y, O.bodyW, O.noticeH);
-          ctx.fillStyle = th.accent;
-          ctx.font = `400 ${O.noticeSize}px Pretendard`;
-          ctx.textAlign = "center"; ctx.textBaseline = "middle";
-          trk(ctx, state.notice, x + O.bodyW / 2, y + O.noticeH / 2, -0.48, "center");
-          ctx.textBaseline = "alphabetic";
-          y += O.noticeH + O.listGap;
+        /* ── 리스트: 컨테이너 → 패딩 → 항목 순서 (.fig option-list) ── */
+        const L = nvList();
+        const listX = L.bodyX;
+        const listY = oy + O.padTop + L.listTop;
+        const listH = nvListH();
+        if (L.listBg) {
+          ctx.fillStyle = L.listBg;
+          ctx.fillRect(listX, listY, L.bodyW, listH);
         }
-        const sImg = state.sizeInfoOn ? nvSizeInfoImg() : null;
-        if (sImg) {
-          clipRect(ctx, x, y, O.bodyW, O.sizeInfoH, () =>
-            cover(ctx, sImg, x, y, O.bodyW, O.sizeInfoH),
-          );
-          y += O.sizeInfoH + O.listGap;
+        const itemX = listX + L.pad;
+        const itemW = L.bodyW - L.pad * 2;
+        let y = listY + L.pad;
+        for (const it of nvListItems()) {
+          if (it.kind === "card") {
+            nvCard(ctx, it.r, itemX, y, th, itemW, !L.listBg);
+          } else if (it.kind === "notice") {
+            const nx = L.noticeFull ? listX : itemX;
+            const nw = L.noticeFull ? L.bodyW : itemW;
+            ctx.fillStyle = nvNoticeBg(th);
+            ctx.fillRect(nx, y, nw, it.h);
+            ctx.fillStyle = th.accent;
+            ctx.font = `400 ${O.noticeSize}px Pretendard`;
+            ctx.textAlign = "center"; ctx.textBaseline = "middle";
+            trk(ctx, state.notice, nx + nw / 2, y + it.h / 2, -0.48, "center");
+            ctx.textBaseline = "alphabetic";
+          } else if (it.kind === "size") {
+            clipRect(ctx, itemX, y, itemW, it.h, () =>
+              cover(ctx, it.img, itemX, y, itemW, it.h),
+            );
+          }
+          y += it.h + L.gap;
         }
       }
 
@@ -618,9 +665,10 @@
         ctx.textAlign = "center"; ctx.textBaseline = "middle";
         ctx.fillStyle = ink;
         const C = nvCfg();
-        ctx.fillStyle = ink;
+        ctx.fillStyle = (C.eyebrowInkKey && th[C.eyebrowInkKey]) || ink;
         ctx.font = `400 ${C.colEyebrow}px ${C.eyeFont}`;
         ctx.fillText(C.colorEyebrow || "Color info.", cx, top + K.txtY + C.colEyebrowLH / 2);
+        ctx.fillStyle = ink;
         ctx.font = `${C.headWeight || 600} ${C.colHeading}px ${C.headFont}`;
         nvHeadShadow(ctx, C.headShadow);
         ctx.fillText(
@@ -911,13 +959,15 @@
         if (onDark === undefined) onDark = nvOnDark(kind);
         ctx.textAlign = "center"; ctx.textBaseline = "middle";
         const C = nvCfg();
-        ctx.fillStyle = onDark ? "#ffffff" : th.accent;
+        const headInk = onDark ? "#ffffff" : th.accent;
+        ctx.fillStyle = (C.eyebrowInkKey && th[C.eyebrowInkKey]) || headInk;
         /* 상세와 같은 템플릿별 글꼴을 쓴다.
            여기만 Playfair 로 고정돼 있어서 02·03 피드가 01 글꼴로 나왔다. */
         ctx.font = `400 ${O.eyebrow}px ${C.eyeFont}`;
         const eyebrow =
           kind === "color" ? C.colorEyebrow || "Color info." : "option info.";
         ctx.fillText(eyebrow, W / 2, y + O.eyebrowLH / 2);
+        ctx.fillStyle = headInk;
         ctx.font = `${C.headWeight || 600} ${O.heading}px ${C.headFont}`;
         nvHeadShadow(ctx, C.headShadow);
         ctx.fillText(nvTitle(kind), W / 2, y + O.eyebrowLH + O.headGap + O.headingLH / 2);
