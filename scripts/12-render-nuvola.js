@@ -68,15 +68,23 @@
         "01": { main: "photo", optDark: false, colorDark: true, colorBox: false,
                 chipLabel: "#ffffff", noticeKey: "noticeBg",
                 optEyebrow: 36, optEyebrowLH: 40, optHeading: 56,
-                colEyebrow: 36, colEyebrowLH: 40, colHeading: 56 },
+                colEyebrow: 36, colEyebrowLH: 40, colHeading: 56,
+                /* .fig 58:570 — 01 은 Playfair + Pretendard SemiBold */
+                eyeFont: "'Playfair Display'", headFont: "Pretendard", headWeight: 600 },
         "02": { main: "grad", optDark: true, colorDark: false, colorBox: false,
                 chipLabel: "accent", noticeKey: "white",
                 optEyebrow: 48, optEyebrowLH: 53, optHeading: 56,
-                colEyebrow: 48, colEyebrowLH: 53, colHeading: 56 },
+                colEyebrow: 48, colEyebrowLH: 53, colHeading: 56,
+                /* .fig 72:37 — 02 는 High Summit + Gmarket Sans Bold, 흰 글자에 그림자 */
+                eyeFont: "'High Summit'", headFont: "GmarketSans, Pretendard",
+                headWeight: 700, headShadow: true },
         "03": { main: "grid", optDark: true, colorDark: false, colorBox: true,
                 chipLabel: "#666666", noticeKey: "colorBgLight",
                 optEyebrow: 48, optEyebrowLH: 53, optHeading: 80,
-                colEyebrow: 48, colEyebrowLH: 53, colHeading: 72 },
+                colEyebrow: 48, colEyebrowLH: 53, colHeading: 72,
+                /* .fig 79:553 — 03 은 Afacad Flux (index.html 에서 로드) */
+                eyeFont: "'Afacad Flux', 'Playfair Display'",
+                headFont: "'Afacad Flux', Pretendard", headWeight: 600 },
       };
       /* 섹션 배경 헬퍼 */
       function nvOptBg(th) {
@@ -86,6 +94,16 @@
       function nvColorBg(th) {
         const C = nvCfg();
         return C.colorDark ? th.colorBg : th.colorBgLight;
+      }
+      /* 02 제목은 .fig 에 text-shadow 0 0 6.6px rgba(0,0,0,.25) 가 걸려 있다 */
+      function nvHeadShadow(ctx, on) {
+        if (!on) return;
+        ctx.shadowColor = "rgba(0,0,0,0.25)";
+        ctx.shadowBlur = 6.6;
+      }
+      function nvClearShadow(ctx) {
+        ctx.shadowColor = "transparent";
+        ctx.shadowBlur = 0;
       }
       function nvOnDark(which) {
         const C = nvCfg();
@@ -435,14 +453,16 @@
         const C = nvCfg();
         const optInk = nvOnDark("option") ? "#ffffff" : th.accent;
         ctx.fillStyle = optInk;
-        ctx.font = `400 ${C.optEyebrow}px 'High Summit'`; // .fig: 손글씨 스크립트체
+        ctx.font = `400 ${C.optEyebrow}px ${C.eyeFont}`;
         ctx.fillText("option info.", cx, oy + O.padTop + C.optEyebrowLH / 2);
-        ctx.font = `600 ${C.optHeading}px Pretendard`;
+        ctx.font = `${C.headWeight || 600} ${C.optHeading}px ${C.headFont}`;
+        nvHeadShadow(ctx, C.headShadow);
         ctx.fillText(
           nvTitle("option"),
           cx,
           oy + O.padTop + C.optEyebrowLH + O.headGap + C.optHeading / 2,
         );
+        nvClearShadow(ctx);
         ctx.textBaseline = "alphabetic";
         let y = oy + O.padTop + C.optEyebrowLH + O.headGap + C.optHeading + O.headToList;
         const x = O.bodyX;
@@ -507,14 +527,16 @@
         ctx.fillStyle = ink;
         const C = nvCfg();
         ctx.fillStyle = ink;
-        ctx.font = `400 ${C.colEyebrow}px 'High Summit'`; // .fig: 손글씨 스크립트체
+        ctx.font = `400 ${C.colEyebrow}px ${C.eyeFont}`;
         ctx.fillText("Color info.", cx, top + K.txtY + C.colEyebrowLH / 2);
-        ctx.font = `600 ${C.colHeading}px Pretendard`;
+        ctx.font = `${C.headWeight || 600} ${C.colHeading}px ${C.headFont}`;
+        nvHeadShadow(ctx, C.headShadow);
         ctx.fillText(
           nvTitle("color"),
           cx,
           top + K.txtY + C.colEyebrowLH + K.txtGap + C.colHeading / 2,
         );
+        nvClearShadow(ctx);
         // 줄별 색상명
         let ly = top + K.txtY + M.headH + K.txtGap;
         for (const r of M.rows) {
@@ -570,9 +592,13 @@
                imgX: 10, imgY: 10, imgW: 416, imgH: 448,
                optX: 474, optW: 448, optGap: 47,
                badgeH: 49, badgeSize: 28, nameGap: 20, boxTopGap: 16,
-               txtW: 324, txtGap: 24, nameSize: 40, nameLineH: 52,
-               vlLabelW: 60, vlColGap: 8, vlValW: 256, vlSize: 24, vlRowH: 32, vlRowGap: 8,
-               discD: 104, discSize: 36,
+               /* .fig node 80:886 — 제품명은 456 전체 폭. 324 로 좁혀놓고
+                  그 옆에 할인 원을 그려서 배지가 이름을 덮고 있었다. */
+               txtW: 456, txtGap: 12, nameSize: 40, nameLineH: 52,
+               /* .fig value_list: 폭 458, 열 1fr:4fr, 열간격 4 → 91 / 4 / 363 */
+               vlLabelW: 91, vlColGap: 4, vlValW: 363, vlSize: 24, vlRowH: 32, vlRowGap: 8,
+               /* 할인율 — .fig 는 108×108 정사각형, Gmarket Sans 36 */
+               discD: 108, discSize: 36, priceGapX: 24, priceNumGap: 20,
                priceRowH: 47, priceGap: 12, normalSize: 28, saleSize: 40 },
         // 사이즈 안내 슬라이드
         // boxX: .fig 는 40 이라 20px 틀어져 있어 가운데(60)로 보정
@@ -865,35 +891,35 @@
           );
           vy += rowHs[i] + O.vlRowGap;
         });
-        // 할인원
+        /* 가격줄 — .fig node 80:897 option_price-wrap
+           [할인율 108×108 사각] gap24 [혜택가 Bold40 #333] gap20 [정상가 Regular28 #666 취소선]
+           상세 카드와 같은 구조다. 예전엔 여기만 옛 방식(원 + 정상가/혜택가 라벨)이 남아 있었다. */
         const d = disc(r.normal, r.sale);
-        // .fig: discount_rate 상단 정렬
-        const dcx = ix + IW - O.discD / 2, dcy = btY + O.discD / 2;
-        ctx.fillStyle = th.accent;
-        ctx.beginPath(); ctx.arc(dcx, dcy, O.discD / 2, 0, 7); ctx.fill();
-        ctx.fillStyle = "#fff";
+        const py = iy + nameWrapH + O.optGap;
+        const pcy = py + O.discD / 2;
+
+        ctx.fillStyle = th.colorBgLight || th.sectionBg || "#f0f3dd";
+        ctx.fillRect(ix, py, O.discD, O.discD);
+        ctx.fillStyle = th.discInk || th.accent;
         ctx.font = `700 ${O.discSize}px GmarketSans, Pretendard`;
         ctx.textAlign = "center";
-        trk(ctx, d != null ? d + "%" : "—", dcx, dcy, -0.5, "center");
-        // 가격
-        const G0 = nvG();
-        const py = iy + nameWrapH + O.optGap;
-        const pcy = py + O.priceRowH / 2;
-        ctx.textAlign = "left"; ctx.fillStyle = "#666666";
-        ctx.font = `600 ${O.normalSize}px Pretendard`;
-        trk(ctx, G0.normalLabel || "정상가", ix, pcy, -0.56, "left");
+        trk(ctx, d != null ? d + "%" : "—", ix + O.discD / 2, pcy, -0.72, "center");
+
+        ctx.textAlign = "left";
+        let fx = ix + O.discD + O.priceGapX;
+        ctx.fillStyle = "#333333";
+        ctx.font = `700 ${O.saleSize}px Pretendard`;
+        const slT = won(r.sale);
+        trk(ctx, slT, fx, pcy, -0.8, "left");
+        fx += trkWidth(ctx, slT, -0.8) + O.priceNumGap;
+
+        ctx.fillStyle = "#666666";
         ctx.font = `400 ${O.normalSize}px Pretendard`;
         const npT = won(r.normal);
-        trk(ctx, npT, ix + IW, pcy, -0.56, "right");
+        trk(ctx, npT, fx, pcy, -0.56, "left");
         const npW = trkWidth(ctx, npT, -0.56);
         ctx.strokeStyle = "#666666"; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.moveTo(ix + IW - npW, pcy); ctx.lineTo(ix + IW, pcy); ctx.stroke();
-        const pcy2 = py + O.priceRowH + O.priceGap + O.priceRowH / 2;
-        ctx.fillStyle = "#333333";
-        ctx.font = `600 ${O.saleSize}px Pretendard`;
-        trk(ctx, G0.saleLabel || "혜택가", ix, pcy2, -0.8, "left");
-        ctx.font = `700 ${O.saleSize}px Pretendard`;
-        trk(ctx, won(r.sale), ix + IW, pcy2, -0.8, "right");
+        ctx.beginPath(); ctx.moveTo(fx, pcy); ctx.lineTo(fx + npW, pcy); ctx.stroke();
         ctx.textBaseline = "alphabetic";
       }
 

@@ -141,6 +141,9 @@
             document.fonts.load("600 32px Pretendard"),
             document.fonts.load("700 28px Pretendard"),
             document.fonts.load("700 28px GmarketSans"),
+            /* 누볼라 03 소제목 (.fig 79:553) */
+            document.fonts.load("400 48px 'Afacad Flux'"),
+            document.fonts.load("600 80px 'Afacad Flux'"),
           ]);
           await document.fonts.ready;
           status("준비됨");

@@ -1,8 +1,4 @@
-# 구글 서비스 계정 키가 실수로 올라가는 것을 막는다.
-# 루트의 .json 은 전부 무시하고 vercel.json 만 예외로 허용.
-/*.json
-!/vercel.json
-
-.env
-.env.local
-.vercel
+cc-banner  build 2026-07-29-b
+- 누볼라 옵션카드 .fig 정렬 (상세 + 피드)
+- 소제목 글꼴 템플릿별 분리 (01 Playfair / 02 High Summit+Gmarket / 03 Afacad Flux)
+- 미리보기 부분 갱신
