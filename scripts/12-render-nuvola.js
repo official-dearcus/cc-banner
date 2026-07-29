@@ -95,7 +95,7 @@
                 /* .fig 79:553 — 03 은 Afacad Flux (index.html 에서 로드) */
                 eyeFont: "'Afacad Flux', 'Playfair Display'",
                 headFont: "'Afacad Flux', Pretendard", headWeight: 600,
-                colorEyebrow: "color info." },  // 03 은 소문자 (02 는 "Color info.")
+                colorEyebrow: "color info.", colorBgKey: "t03Frame" },  // 03 은 소문자 (02 는 "Color info.")
       };
       /* 섹션 배경 헬퍼 */
       function nvOptBg(th) {
@@ -103,8 +103,10 @@
         return C.optDark ? th.colorBg : th.colorBgLight;
       }
       function nvColorBg(th) {
+        /* .fig 03 은 컬러 섹션 배경도 t03Frame 이다 (테마별 무채/연한 톤) */
         const C = nvCfg();
-        return C.colorDark ? th.colorBg : th.colorBgLight;
+        if (C.colorBgKey && th[C.colorBgKey]) return th[C.colorBgKey];
+        return nvOnDark("color") ? th.colorBg : th.colorBgLight;
       }
       /* 02 제목은 .fig 에 text-shadow 0 0 6.6px rgba(0,0,0,.25) 가 걸려 있다 */
       function nvHeadShadow(ctx, on) {
@@ -154,7 +156,10 @@
         "03": { style: "inline", txtOptW: 342, priceH: 100,
                 vlLabelW: 60, vlValW: 274, fTxtW: 456,
                 /* .fig: 카드 사방 20px #f0f3dd 테두리 (선이 아니라 띠) */
-                frameKey: "colorBgLight", frameW: 20,
+                /* .fig 03: 테두리·선·컬러섹션은 t03Frame, 배지는 t03Badge (테마별) */
+                frameKey: "t03Frame", frameW: 20,
+                badgeW: 160, badgeH: 52, badgeSize: 24, badgeBgKey: "t03Badge",
+                badgeText: (i) => `OPTION ${i + 1}.`,
                 /* .fig: 03 의 discount_rate 는 반경 20 둥근 사각 (02 는 각짐) */
                 discR: 20, fDiscR: 25.56,
                 imgRight: true, discBgKey: "accent", discInk: "#ffffff",
@@ -193,7 +198,7 @@
         const items = [];
         const sImg = state.sizeInfoOn ? nvSizeInfoImg() : null;
         for (const kind of L.order) {
-          if (kind === "cards") state.rows.forEach((r) => items.push({ kind: "card", r, h: NV.opt.cardH }));
+          if (kind === "cards") state.rows.forEach((r, i) => items.push({ kind: "card", r, idx: i, h: NV.opt.cardH }));
           else if (kind === "notice" && state.notice) items.push({ kind: "notice", h: L.noticeH });
           else if (kind === "size" && sImg) items.push({ kind: "size", img: sImg, h: L.sizeH });
         }
@@ -401,10 +406,21 @@
              Rectangle 2  흰 판 + DROP_SHADOW blur6.5 (테마색 gridShadow)
              셀 345×260 을 (85,417)/(440,417)/(85,687)/(440,687)
          예전 코드는 02 구조(사진 배경 + 알약 + 좌측정렬 Pretendard)를 쓰고 있었다. */
+      /* .fig: main-img 는 fill 이 둘 — 테마 단색 위에 깅엄 패턴을 30% 로 얹는다 */
+      const NV03_PAT = { img: null, src: "assets/nuvola03-pattern.png" };
+      function nvPattern(ctx, W, H) {
+        if (!NV03_PAT.img) return;
+        ctx.save();
+        ctx.globalAlpha = 0.3;
+        const pt = ctx.createPattern(NV03_PAT.img, "repeat");
+        if (pt) { ctx.fillStyle = pt; ctx.fillRect(0, 0, W, H); }
+        ctx.restore();
+      }
       function nvMain03(ctx, W, H, th) {
         const M = NVM, G = NVM.grid, T = NVM.t03;
         ctx.fillStyle = th.mainBg || "#f8fbe1";
         ctx.fillRect(0, 0, W, H);
+        nvPattern(ctx, W, H);
 
         const cx = W / 2;
         ctx.textAlign = "center";
@@ -461,7 +477,7 @@
       }
 
       /* ── 옵션 카드 (740×360) ── */
-      function nvCard(ctx, r, x, top, th, cardW, ownBg) {
+      function nvCard(ctx, r, x, top, th, cardW, ownBg, idx) {
         const O = NV.opt;
         const CS0 = nvCard5();
         const cx0 = x;
@@ -477,7 +493,7 @@
           drawThumbCover(ctx, r.thumb, imgLeft, imgTop, O.imgW, imgH0);
 
         const ix = cx0 + (CS0.optDX ?? O.optX);
-        const badgeOn = r.badge !== "none";
+        const badgeOn = CS0.badgeText ? true : r.badge !== "none";
         // 내용 측정 → 높이 계산
         _mc.font = `600 ${O.nameSize}px Pretendard`;
         const lns = [];
@@ -505,16 +521,28 @@
         ctx.textAlign = "left"; ctx.textBaseline = "middle";
         let ny = iy;
         if (badgeOn) {
-          const bt = r.badge === "renewal" ? "RENEWAL!" : "NEW!";
-          ctx.font = `600 ${O.badgeSize}px Pretendard`;
-          const bw = Math.max(O.badgeW, trkWidth(ctx, bt, -0.4) + 36);
-          ctx.strokeStyle = th.badgeBorder || th.accent;
-          ctx.lineWidth = 2;
-          roundRect(ctx, ix, ny, bw, O.badgeH, O.badgeH / 2);
-          ctx.stroke();
-          ctx.fillStyle = th.accent;
-          trk(ctx, bt, ix + bw / 2, ny + O.badgeH / 2, -0.4, "center");
-          ny += O.badgeH + O.nameGap;
+          if (CS0.badgeText) {
+            /* .fig 03: 160×52 각진 사각형, 테마색 배경 + 흰 글자
+               "OPTION 1." 처럼 카드 순번이 들어간다 (리뉴얼/신상 배지가 아니다) */
+            const bt = CS0.badgeText(idx || 0);
+            ctx.fillStyle = th[CS0.badgeBgKey] || th.accent;
+            ctx.fillRect(ix, ny, CS0.badgeW, CS0.badgeH);
+            ctx.fillStyle = "#ffffff";
+            ctx.font = `600 ${CS0.badgeSize}px 'Afacad Flux', Pretendard`;
+            trk(ctx, bt, ix + CS0.badgeW / 2, ny + CS0.badgeH / 2, -2, "center");
+            ny += CS0.badgeH + O.nameGap;
+          } else {
+            const bt = r.badge === "renewal" ? "RENEWAL!" : "NEW!";
+            ctx.font = `600 ${O.badgeSize}px Pretendard`;
+            const bw = Math.max(O.badgeW, trkWidth(ctx, bt, -0.4) + 36);
+            ctx.strokeStyle = th.badgeBorder || th.accent;
+            ctx.lineWidth = 2;
+            roundRect(ctx, ix, ny, bw, O.badgeH, O.badgeH / 2);
+            ctx.stroke();
+            ctx.fillStyle = th.accent;
+            trk(ctx, bt, ix + bw / 2, ny + O.badgeH / 2, -0.4, "center");
+            ny += O.badgeH + O.nameGap;
+          }
         }
         // box-top: [txt_option 250] gap12 [discount 80] — 둘 다 세로 중앙
         const btY = ny;
@@ -663,7 +691,7 @@
               ctx.fillStyle = th[CSD.frameKey];
               ctx.fillRect(itemX - fw, y - fw, itemW + fw * 2, it.h + fw * 2);
             }
-            nvCard(ctx, it.r, itemX, y, th, itemW, !L.listBg);
+            nvCard(ctx, it.r, itemX, y, th, itemW, !L.listBg, it.idx);
             /* 02: 카드 아래 1px 구분선 — 마지막 카드 뒤에는 긋지 않는다 */
             if (CSD.divKey && th[CSD.divKey] && i !== lastCard) {
               ctx.fillStyle = th[CSD.divKey];
@@ -680,6 +708,12 @@
             trk(ctx, state.notice, nx + nw / 2, y + it.h / 2, -0.48, "center");
             ctx.textBaseline = "alphabetic";
           } else if (it.kind === "size") {
+            /* .fig 03: size_info 에도 카드와 같은 20px 테두리 */
+            if (CSD.frameKey && th[CSD.frameKey]) {
+              const fw = CSD.frameW;
+              ctx.fillStyle = th[CSD.frameKey];
+              ctx.fillRect(itemX - fw, y - fw, itemW + fw * 2, it.h + fw * 2);
+            }
             clipRect(ctx, itemX, y, itemW, it.h, () =>
               cover(ctx, it.img, itemX, y, itemW, it.h),
             );
