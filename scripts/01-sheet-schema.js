@@ -425,6 +425,7 @@
           if (!g) continue; // 제품 없는 템플릿은 무시
           if (t.enabled === false) continue;
           if (knownTemplateIds && !knownTemplateIds.includes(t.templateId)) {
+            /* includes 는 배열이든 규칙 객체든 동작한다 (06-config-store) */
             errs.push(mkErr("E302", `templateId="${t.templateId}"`, t._row));
             continue;
           }

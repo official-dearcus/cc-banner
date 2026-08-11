@@ -49,15 +49,28 @@
                 pillBg: "#6cb3a2", titleColor: "#1f7562", mainBg: "#f2fbf8",
                 t01ColorInk: "#ffffff" },
       };
-      /* 템플릿 ID → { fam, key }.  "nuvolafamily_03" → {fam:"nuvola", key:"03"} */
+      /* 템플릿 ID → { fam, key }.  "nuvolafamily_03" → {fam:"nuvola", key:"03"}
+
+         패밀리 = 어느 렌더러로 그릴지.
+           bamboo : 구형 렌더러 (13·14·15·16) — 01·02 만 있다
+           nuvola : 신형 렌더러 (12)          — 01·02·03 이 다 있다
+         bamboo* 로 시작하는 제품군만 구형이고, 새로 등록하는 제품라인은
+         전부 신형이다. 그래야 새 라인이 템플릿 3개를 그대로 받는다.
+         (예전 규칙은 "nuvola* 만 신형, 나머지 구형" 이었는데, 그러면 새 라인이
+          03 없는 구형으로 떨어졌다. bamboo500 은 아래 규칙에서도 그대로 구형이다.) */
+      const LEGACY_FAM_RE = /^bamboo/i;
       function tplParts(id) {
         const m = String(id || "").match(/^(.*)_(\d+)$/);
         if (!m) return { fam: "bamboo", key: "01" };
-        return { fam: /^nuvola/i.test(m[1]) ? "nuvola" : "bamboo", key: m[2] };
+        return { fam: LEGACY_FAM_RE.test(m[1]) ? "bamboo" : "nuvola", key: m[2] };
       }
       function tplIdToFam(id) { return tplParts(id).fam; }
-      /* 패밀리별 테마 표 */
+      /* 패밀리별 테마 표.
+         03 은 구형 렌더러에 없던 템플릿이라 THEMES 에 "03" 항목 자체가 없다.
+         03 은 패밀리와 무관하게 신형(누볼라) 레이아웃으로 그리므로 테마도 같이 쓴다.
+         → 뱀부 제품군도 03 을 고를 수 있고, 색·배지가 누볼라 03 과 똑같이 나온다. */
       function themeTable(fam, key) {
+        if (key === "03") return THEMES_NUVOLA;
         return fam === "nuvola" ? THEMES_NUVOLA : THEMES[key] || {};
       }
       /* 현재 제품군의 패밀리 */
@@ -71,6 +84,8 @@
         "03": { label: "03 · 그리드형", desc: "타이틀 + 제품 이미지 4컷" },
       };
       function tplMeta(fam, key) {
+        /* 03 은 패밀리와 무관하게 신형 레이아웃이므로 설명도 신형 것을 쓴다 */
+        if (key === "03") return TPL_META_NUVOLA["03"];
         const t = (fam === "nuvola" ? TPL_META_NUVOLA : TPL_META)[key];
         return t || { label: key, desc: "" };
       }

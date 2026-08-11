@@ -281,7 +281,11 @@
           (kind === "option" ? "" : `${g.label || ""} 컬러 안내`)
         );
       }
-      function nvIsOn() { return curFam() === "nuvola"; }
+      /* 신형(누볼라) 렌더러를 쓸 조건.
+         03 은 구형 렌더러에 아예 없는 템플릿이라, 뱀부 제품군이 03 을 고르면
+         여기서 신형으로 넘긴다 → 뱀부 03 = 누볼라 03 과 같은 화면.
+         canvasH / drawDetailTo / drawThumb / drawFeedSlide 가 전부 이 함수로 갈린다. */
+      function nvIsOn() { return curFam() === "nuvola" || state.tpl === "03"; }
       function nvG() { return G()[state.group] || {}; }
 
       /* ── 높이 계산 (auto-layout 합산) ── */
@@ -291,7 +295,11 @@
         /* .fig: option-body y=150, 그 안에서 option-list 는 listTop 아래 */
         return O.padTop + nvList().listTop + nvOptionListH() + O.padBottom;
       }
-      function nvCanvasH() { return NV.MAIN_H + nvOptionH() + nvColorMetrics().H; }
+      /* 컬러 섹션 높이. 색이 하나도 없는 제품군(뱀부 화장지 등)은 0 —
+         예전엔 무조건 K.H 를 더해서 빈 섹션이 통으로 붙었다.
+         피드는 이미 hasColors() 로 걸렀는데 상세만 안 걸렀다. */
+      function nvColorH() { return hasColors() ? nvColorMetrics().H : 0; }
+      function nvCanvasH() { return NV.MAIN_H + nvOptionH() + nvColorH(); }
 
       /* ── section-main : 01 사진형 / 02 그라데이션형 / 03 그리드형 ── */
       const NVM = {
@@ -516,6 +524,21 @@
         });
       }
 
+      /* 라벨 칸 처리 — 상세(nvCard)와 피드(nvfCard)가 같은 규칙을 쓴다.
+         라벨을 비워 두면 값이 라벨 자리(왼쪽 끝)부터 시작하고, 폭도 라벨 칸까지
+         합쳐서 쓴다. 구형 렌더러의 drawAttrs 가 하던 처리와 같다.
+           라벨 있음  [Color____] gap [값 ..............]   ← 예전 그대로
+           라벨 없음  [값 .............................]   ← 왼쪽 끝부터, 더 넓게
+         라벨이 있는 줄은 이 함수가 예전과 완전히 같은 값을 돌려주므로
+         지금 나와 있는 누볼라 카드는 1px 도 안 움직인다.
+         측정(rowHs)과 그리기가 반드시 이 함수를 같이 써야 줄 수가 안 어긋난다. */
+      function vlSlot(a, labelW, colGap, valW) {
+        const has = String((a && a.label) ?? "").trim().length > 0;
+        return has
+          ? { dx: labelW + colGap, w: valW, label: true }
+          : { dx: 0, w: labelW + colGap + valW, label: false };
+      }
+
       /* 카드 높이 측정 — .fig auto-layout(hug)과 동일하게 내용에서 계산한다.
          nvListItems(높이 배분)와 nvCard(그리기)가 반드시 같은 값을 써야
          카드가 겹치거나 뜨지 않는다.
@@ -534,7 +557,8 @@
         const lineH = CS0.vlLineH ?? O.vlLineH ?? rowH;
         const rowHs = attrs.map((a) => {
           _mc.font = `400 ${O.vlSize}px Pretendard`;
-          const vl = wrapText(_mc, String(a.value || ""), CS0.vlValW, -0.36);
+          const sl = vlSlot(a, CS0.vlLabelW, O.vlColGap, CS0.vlValW);
+          const vl = wrapText(_mc, String(a.value || ""), sl.w, -0.36);
           return Math.max(rowH, vl.length * lineH);
         });
         const vlH = rowHs.length
@@ -621,15 +645,18 @@
         let vy = tY + lns.length * O.nameLineH + O.txtOptGap;
         attrs.forEach((a, i) => {
           // .fig 2026-08: 라벨/값 22px · 라벨 Bold #666666 / 값 Regular #888888
-          ctx.font = `700 ${O.vlSize}px Pretendard`;
-          ctx.fillStyle = "#666666";
-          trk(ctx, a.label || "", ix, vy + rowH0 / 2, -0.36, "left");
+          const sl = vlSlot(a, CS0.vlLabelW, O.vlColGap, CS0.vlValW);
+          if (sl.label) {
+            ctx.font = `700 ${O.vlSize}px Pretendard`;
+            ctx.fillStyle = "#666666";
+            trk(ctx, a.label, ix, vy + rowH0 / 2, -0.36, "left");
+          }
           ctx.fillStyle = "#888888";
           ctx.font = `400 ${O.vlSize}px Pretendard`; // 값은 Regular
           _mc.font = `400 ${O.vlSize}px Pretendard`;
-          const vl = wrapText(_mc, String(a.value || ""), nvCard5().vlValW, -0.36);
+          const vl = wrapText(_mc, String(a.value || ""), sl.w, -0.36);
           vl.forEach((t, k) =>
-            trk(ctx, t, ix + nvCard5().vlLabelW + O.vlColGap, vy + rowH0 / 2 + k * lineH0, -0.36, "left"),
+            trk(ctx, t, ix + sl.dx, vy + rowH0 / 2 + k * lineH0, -0.36, "left"),
           );
           vy += rowHs[i] + O.vlRowGap;
         });
@@ -1211,9 +1238,12 @@
           if (t) lns.push(...wrapText(_mc, t, nvCard5().fTxtW, -0.8));
         }
         const attrs = cardAttrs(r);
+        const fLabW = CSF.fVlLabelW || O.vlLabelW;
+        const fColGap = CSF.fVlColGap ?? O.vlColGap;
+        const fValW = CSF.fVlValW || O.vlValW;
         const rowHs = attrs.map((a) => {
           _mc.font = `400 ${O.vlSize}px Pretendard`;
-          const vl = wrapText(_mc, String(a.value || ""), CSF.fVlValW || O.vlValW, -0.48);
+          const vl = wrapText(_mc, String(a.value || ""), vlSlot(a, fLabW, fColGap, fValW).w, -0.48);
           return Math.max(O.vlRowH, vl.length * O.vlRowH);
         });
         const vlH = rowHs.length
@@ -1262,17 +1292,18 @@
         );
         let vy = tY + lns.length * O.nameLineH + O.txtGap;
         attrs.forEach((a, i) => {
-          ctx.font = `700 ${O.vlSize}px Pretendard`;
-          ctx.fillStyle = "#666666";
-          trk(ctx, a.label || "", ix, vy + O.vlRowH / 2, -0.48, "left");
+          const sl = vlSlot(a, fLabW, fColGap, fValW);
+          if (sl.label) {
+            ctx.font = `700 ${O.vlSize}px Pretendard`;
+            ctx.fillStyle = "#666666";
+            trk(ctx, a.label, ix, vy + O.vlRowH / 2, -0.48, "left");
+          }
           ctx.fillStyle = "#888888";
           ctx.font = `400 ${O.vlSize}px Pretendard`;
           _mc.font = `400 ${O.vlSize}px Pretendard`;
-          const vl = wrapText(_mc, String(a.value || ""), CSF.fVlValW || O.vlValW, -0.48);
+          const vl = wrapText(_mc, String(a.value || ""), sl.w, -0.48);
           vl.forEach((t, k) =>
-            trk(ctx, t,
-              ix + (CSF.fVlLabelW || O.vlLabelW) + (CSF.fVlColGap ?? O.vlColGap),
-              vy + O.vlRowH / 2 + k * O.vlRowH, -0.48, "left"),
+            trk(ctx, t, ix + sl.dx, vy + O.vlRowH / 2 + k * O.vlRowH, -0.48, "left"),
           );
           vy += rowHs[i] + O.vlRowGap;
         });
@@ -1481,5 +1512,5 @@
         nvMain(ctx, W, th);
         const oy = NV.MAIN_H;
         nvOption(ctx, W, oy, th);
-        nvColor(ctx, W, oy + nvOptionH(), th);
+        if (hasColors()) nvColor(ctx, W, oy + nvOptionH(), th);
       }

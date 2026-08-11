@@ -3,13 +3,18 @@
       /* ============================================================
    시트 연동 (§1.1 조회/캐시/동기화)
    ============================================================ */
-      /* 렌더러가 구현된 템플릿 ID 목록.
-         여기 없는 templateId 는 E302 로 걸러진다(잘못된 레이아웃 방지).
-         누볼라 02·03 은 렌더러 구현 후 추가할 것. */
-      const KNOWN_TPL = [
-        "bamboo500_01", "bamboo500_02",
-        "nuvolafamily_01", "nuvolafamily_02", "nuvolafamily_03",
-      ];
+      /* 템플릿 ID 규칙.  <제품군키>_01 | _02 | _03
+         예전에는 제품군마다 ID 를 손으로 등록해야 했다(bamboo500_01 ...).
+         그래서 새 제품라인을 시트에 넣으면 전부 E302 로 막혔다.
+         이제는 규칙만 맞으면 통과하고, 새 제품군은 01·02·03 이 자동으로 생긴다.
+         오타(bamboo500_1, bamboo500_04)는 여전히 E302 로 걸린다. */
+      const TPL_KEYS = ["01", "02", "03"];
+      function isKnownTpl(id) {
+        const m = String(id || "").match(/^([A-Za-z0-9][A-Za-z0-9-]*)_(\d{2})$/);
+        return !!m && TPL_KEYS.includes(m[2]);
+      }
+      /* 옛 이름 호환 — includes() 로 쓰던 자리를 그대로 살린다 */
+      const KNOWN_TPL = { includes: isKnownTpl };
       const src = { mode: "sample", csv: "auto", syncedAt: null };
 
       /* ---- 접속 설정 저장 (§1.1.1 환경설정) ----
