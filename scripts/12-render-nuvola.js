@@ -970,12 +970,17 @@
                 logoW: 136, logoH: 23,
                 size: 96, lineH: 104, titleGap: 8, dateSize: 40,
                 barY: 980, barH: 100, copySize: 44 },
-        /* .fig thumb 실측 — 배경은 사진(그라데이션 없음) */
+        /* .fig thumb 실측 — 배경은 사진(그라데이션 없음)
+           2026-08-11: 썸네일만 날짜를 뺐다 (dateOff). 상세·피드는 날짜 그대로다.
+           비운 자리를 그리드가 그대로 먹는다 — 아래는 1000 에 그대로 두고 위만 올린다.
+             y     430 → 340   (예전 날짜가 시작하던 자리. 대제목과의 간격 48 유지)
+             h     570 → 660   (아래 끝 1000 · 하단 여백 80 그대로)
+             ch    260 → 305   (305×2 + gy10 + pad40 = 660) */
         th03: { font: "'Afacad Flux', Pretendard", track: -2, lineH: 80,
                 sellerY: 120, sellerSize: 60,
                 titleY2: 212, titleSize: 120,
-                dateY: 340, dateH: 34, dateSize: 48,
-                grid: { x: 60, y: 430, w: 960, h: 570, pad: 20, cw: 455, ch: 260, gx: 10, gy: 10, shadowBlur: 6.5 } },
+                dateOff: true,
+                grid: { x: 60, y: 340, w: 960, h: 660, pad: 20, cw: 455, ch: 305, gx: 10, gy: 10, shadowBlur: 6.5 } },
         // 02·03 옵션 슬라이드: 흰 컨테이너로 카드 감쌈
         /* .fig feed 옵션 슬라이드
              02 : option-list rel(60,330) 960×960 #ffffff, 카드 920×460 @+20,+20, 간격 20
@@ -1176,9 +1181,12 @@
           trk(ctx, l, cx, C.titleY2 + C.lineH / 2 + i * C.lineH, C.track, "center"),
         );
 
-        ctx.fillStyle = th.t03Date || th.pillBg || th.accent;
-        ctx.font = `400 ${C.dateSize}px ${C.font}`;
-        trk(ctx, range03(state.d1, state.d2), cx, C.dateY + C.dateH / 2, C.track, "center");
+        /* 썸네일(th03)만 날짜를 안 그린다. 피드(t03)·상세(nvMain03)는 그대로 */
+        if (!C.dateOff) {
+          ctx.fillStyle = th.t03Date || th.pillBg || th.accent;
+          ctx.font = `400 ${C.dateSize}px ${C.font}`;
+          trk(ctx, range03(state.d1, state.d2), cx, C.dateY + C.dateH / 2, C.track, "center");
+        }
         ctx.textBaseline = "alphabetic";
         nvfGrid(ctx, C.grid, th);
       }
