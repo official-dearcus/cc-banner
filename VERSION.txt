@@ -1,4 +1,42 @@
-cc-banner  build 2026-08-11-I
+cc-banner  build 2026-08-11-J
+이벤트 배너 신설 (.fig event_comp01·02·03 실측 · 요청 2026-08-11)
+  scripts/23-render-event.js 신설. 상세 마지막 섹션 + 인스타 피드 슬라이드.
+  이벤트가 하나도 없으면 섹션 높이 0 — 기존 배너는 아무 것도 안 바뀐다.
+
+  문장   제목  [titleLabel] (인원명)                 40 Bold #605a4b
+         본문  [bodyLabel][인원]명에게                32 Regular #555555
+               [선물][을/를] 드립니다.                 선물만 SemiBold
+  ⚠ vari_name 이 제목과 본문에서 내용이 다르다 → titleLabel / bodyLabel 로 분리.
+
+  조사 을/를 자동 (evParticle). 끝의 괄호를 떼고 받침을 본다 —
+    "뮤직페어링 디퓨저(향 랜덤)" 는 디퓨저 기준이라 "를". 숫자도 표로 처리.
+    GiftMaster.particle 에 적으면 그 값이 이긴다.
+
+  줄바꿈은 낱말 단위 (evWrap). 조사는 앞 낱말과 절대 안 떨어진다.
+  카드 높이는 줄 수가 정한다 — .fig 와 1px 오차 없이 일치:
+    01  280/320/280   02  240/280/240   03  260/300/260
+    섹션 전체        1255 / 1148 / 1245
+
+  껍데기는 기존 템플릿 규칙 그대로
+    01 colorBg      Pretendard 80 흰색   카드 740 · 이미지 오른쪽
+    02 colorBgLight Gmarket 56 accent    카드 688 · 이미지 왼쪽 · 1px 구분선
+    03 accent       Afacad Flux 92 흰색  카드 716 · colorBgLight 띠
+
+  피드(1080×1350)는 .fig 에 없어서 본문 폭 960 기준으로 확대(k=960/bodyW).
+    슬라이드당 2장. 3줄 카드 두 장이어도 971~1109px 로 1350 안에 들어간다.
+    줄바꿈 지점은 상세와 같게 두고 x 좌표만 확대한다.
+
+  시트 두 탭 신설 (없어도 동작) — tools/EVENT_SHEET.md 참고
+    EventMaster  typeKey · titleLabel · bodyLabel · enabled · sortOrder
+    GiftMaster   giftKey · label · particle · url · enabled · sortOrder
+    07-sheet-sync 의 세 경로(수동 URL·게시 탭·Apps Script) 모두에 연결.
+    urlE/urlG 입력칸과 PRESET(/api/sheet?tab=…) 추가.
+
+  행사 설정 [5] 이벤트 — [+ 이벤트 추가] 로 계속 늘린다 (22-setup-flow).
+    한 줄 = 종류 · 인원 · 선물. 아래에 완성 문장을 바로 보여준다(조사 확인용).
+    SESSION.events 에 저장 — 행사 단위라 제품군이 달라도 같이 나간다.
+
+이전:
 행사 세션에서 테마는 블루인데 히어로만 딴 색이던 문제 (요청 2026-08-11)
   순서가 문제였다.
     selectGroup  ① state.theme = pickInitialTheme(...)   ← 랜덤
@@ -12,12 +50,3 @@ cc-banner  build 2026-08-11-I
     sessionTheme() — 인자 없이 불린 경로(좌측 제품군 버튼 등)도 세션이 진행
     중이면 공통 테마를 쓴다. 세션 밖에서는 예전처럼 랜덤 그대로다.
   공통 테마가 그 템플릿에 없으면 예전처럼 랜덤으로 떨어진다.
-
-이전:
-행사 설정 [4] 테마 맨 뒤에 "랜덤" (요청 2026-08-11)
-  주사위지 모드가 아니다 — 누르는 순간 여섯 색 중 하나로 정해진다.
-  그래서 SESSION.theme 은 늘 실제 색 키다 → 제품군 탭의 "테마 통일 (green)"
-  버튼과 불일치 뱃지가 예전 그대로 동작한다(랜덤 sentinel 을 안 남긴다).
-  지금 색은 후보에서 뺀다 — 다시 눌렀는데 안 바뀌면 고장으로 오해한다.
-  색이 1종뿐인 행사에서는 버튼을 아예 안 띄운다.
-  RAND_T="__rand" (실제 테마 키와 안 겹침) · styles/06-setup.css .themepick .rand

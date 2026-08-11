@@ -67,6 +67,7 @@
     <script defer src="scripts/20-history-share.js"></script>
     <script defer src="scripts/21-bindings-boot.js"></script>
     <script defer src="scripts/22-setup-flow.js"></script>
+    <script defer src="scripts/23-render-event.js"></script>
   </head>
   <body>
     <!-- ============================================================
@@ -117,6 +118,16 @@
         <div class="setup-step">
           <div class="h"><span class="num">4</span> 테마 <span class="opt">전체 공통 · 나중에 제품군별로 바꿀 수 있습니다</span></div>
           <div class="themepick" id="suThemes"></div>
+        </div>
+
+        <div class="setup-step">
+          <div class="h">
+            <span class="num">5</span> 이벤트
+            <span class="opt">선택 · 상세 마지막 섹션과 인스타 피드에 들어갑니다</span>
+          </div>
+          <div class="evpick" id="suEvents"></div>
+          <button class="evadd" id="suEvAdd">+ 이벤트 추가</button>
+          <div class="hint" id="suEvHint"></div>
         </div>
       </div>
       <div class="setup-bar">
@@ -209,6 +220,18 @@
                   type="url"
                   id="urlC"
                   placeholder="ColorMaster 게시 CSV URL (선택)"
+                  style="margin-top: 6px"
+                />
+                <input
+                  type="text"
+                  id="urlE"
+                  placeholder="EventMaster 게시 CSV URL (선택)"
+                  style="margin-top: 6px"
+                />
+                <input
+                  type="text"
+                  id="urlG"
+                  placeholder="GiftMaster 게시 CSV URL (선택)"
                   style="margin-top: 6px"
                 />
               </div>
