@@ -1,4 +1,26 @@
-cc-banner  build 2026-08-11-F
+cc-banner  build 2026-08-11-G
+테마 ↔ 히어로 이미지 매핑 (요청 2026-08-11)
+  기능 자체는 이미 있었다 — HeroMaster 의 theme 열에 테마 키를 적으면
+  그 테마를 고를 때 heroForTheme() 이 찾아 pickHero() 한다.
+  그래서 코드가 아니라 시트를 채우면 되는 건이었다. 다만 구멍이 둘 있었다.
+
+  ① 제품군을 고를 때는 매핑을 안 봤다 (10-group-template-ui applyRandomHero)
+     템플릿 전환만 heroForTheme() 을 보고, 제품군 선택은 무조건 랜덤이었다.
+     → 제품군을 고른 직후엔 테마와 다른 사진이 떴다.
+     applyRandomHero 가 heroForTheme() 을 먼저 보고, 없을 때만 랜덤으로.
+  ② 어떤 히어로가 어느 테마에 묶였는지 화면에서 확인할 길이 없었다
+     heroThemeTag() — 히어로 썸네일 오른쪽 위에 테마색 점.
+     theme 열이 비면 안 붙는다(수동 선택용).
+     이 템플릿에 없는 테마 키(오타)는 빨간 "키?" 로 보인다.
+     styles/04-panels.css 에 .herotag 추가.
+
+  시트 채우는 법 (nuvolafamily_03 기준)
+    HeroMaster   groupKey=nuvolafamily · templateId=nuvolafamily_03
+                 theme=green|pink|blue · url=사진 주소
+    templateId 를 비우면 그 제품군 전 템플릿에 적용된다 (03 만 원하면 반드시 채울 것).
+    직접 업로드한 이미지(state.heroUpload)는 테마를 바꿔도 안 건드린다.
+
+이전:
 03 썸네일만 날짜 제거 + 4컷 그리드 확대 (요청 2026-08-11)
   nvfHero03 은 피드(NVF.t03)와 썸네일(NVF.th03)이 같이 쓰는 함수라
   좌표만 바꾸면 피드까지 따라간다. th03 에 dateOff 플래그를 두고 갈랐다.
@@ -8,16 +30,3 @@ cc-banner  build 2026-08-11-F
     h   570 → 660   하단 여백 80 그대로
     ch  260 → 305   305×2 + gy10 + pad40 = 660   (칸 455×305, +45px)
   상세(nvMain03 grid y397 740×600)·피드(t03 grid y450 h764)는 안 건드렸다.
-
-이전:
-라벨을 비워 두면 값을 왼쪽 끝부터 (신형 렌더러, 상세+피드 전 템플릿)
-  vlSlot(a, labelW, colGap, valW) 신설 — 측정과 그리기가 같은 규칙을 쓴다.
-    라벨 있음  dx = labelW+colGap,  w = valW            ← 예전과 완전히 동일
-    라벨 없음  dx = 0,              w = labelW+colGap+valW
-  빈 라벨은 아예 안 그린다(예전엔 "" 를 그렸다).
-  값 폭이 라벨 칸까지 넓어지므로 줄 수가 줄기도 한다 → 카드가 낮아진다.
-  적용 4곳: nvMeasureCard / nvCard / nvfCard 측정 / nvfCard 그리기.
-  이제 뱀부처럼 "개당 663원" 한 줄짜리 데이터도 신형 템플릿에서 제대로 나온다.
-
-  ⚠ 기존 배너는 안 움직인다 — 라벨이 있는 줄은 vlSlot 이 예전과 같은 값을 준다.
-    회귀 확인(라벨 있는 카드 높이): 01 479/367 · 02 410/358 · 03 368/340 그대로.
