@@ -29,7 +29,10 @@
           imgTop: 10.55,
         },
         name: { size: 32, lineH: 40, tracking: -0.64 },
-        unit: { size: 18, lineH: 36, tracking: -0.36 },
+        /* .fig 2026-08: 옵션 값 텍스트 22px (누볼라 value_list 와 통일).
+           뱀부는 figma 에 Color/Size value_list 가 없어 단위가(예 "1롤당 663원")
+           텍스트 크기만 22 로 맞춘다. */
+        unit: { size: 22, lineH: 36, tracking: -0.36 },
       };
       /* High Summit hhea 실측: (1829-(-1091))/2048 = 1.426 — CSS leading-normal 비율 */
       const HS_LH = 1.426;

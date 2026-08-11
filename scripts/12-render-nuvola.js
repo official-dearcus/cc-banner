@@ -43,7 +43,7 @@
           /* 제품명은 342 전체 폭을 쓴다. 예전엔 250 으로 좁혀놓고 그 옆에
              할인율 원을 그려서, 이름이 두 줄로 접히고 배지와 겹쳤다. */
           nameSize: 32, nameLineH: 40, txtOptW: 342, txtOptGap: 24,
-          vlLabelW: 53, vlColGap: 8, vlValW: 281, vlRowH: 24, vlRowGap: 8, vlSize: 18,
+          vlLabelW: 53, vlColGap: 8, vlValW: 281, vlRowH: 30, vlRowGap: 8, vlSize: 22, vlLineH: 30,
           /* 할인율 — .fig 는 원이 아니라 80×80 정사각형.
              배경 = 테마 sectionBg(연한색), 글자 = 테마 accent(진한색), Gmarket Sans */
           discD: 80, discSize: 28,
@@ -142,7 +142,8 @@
              price-wrap    카드 +(366,249) 342×82 → 249+82=331, 카드360 → 하단 29
            ⚠ 324 로 넓혔더니 이름이 할인 원(+262~342)을 덮어 되돌림 */
         "01": { style: "labels", txtOptW: 250, discGap: 12, priceH: 82,
-                vlLabelW: 48, vlValW: 194, fTxtW: 324,
+                /* .fig 2026-08: value_list 22px · fr 1.2:4 (라벨56 값186) · 카드 hug */
+                vlLabelW: 56, vlValW: 186, cardGap: 24, cardPadBot: 30, fTxtW: 324,
                 /* 01 은 카드에 선이 없다 (.fig) */
                 cardDX: 0, cardW: 740, imgDX: 10, imgDY: 10, imgH: 340, optDX: 366,
                 textDY: 29, priceDY: 249,
@@ -152,7 +153,8 @@
                 /* .fig feed_02: txt_option 324 · 라벨 60 · 값 256 (68 부터) */
                 fVlLabelW: 60, fVlColGap: 8, fVlValW: 256 },
         "02": { style: "inline", txtOptW: 342, priceH: 80,
-                vlLabelW: 53, vlValW: 281, fTxtW: 456,
+                /* .fig 2026-08: value_list 22px · fr 1:4 (라벨67 값267) · 카드 hug */
+                vlLabelW: 67, vlValW: 267, cardGap: 36, cardPadBot: 52, fTxtW: 456,
                 discBgKey: "colorBgLight", discInk: null,
                 saleInk: "#333333", normalInk: "#666666",
                 /* .fig: 카드 아래 1px #d0dfb1 (badgeBorder). 마지막 카드 뒤에는 없다 */
@@ -169,7 +171,8 @@
            - 할인율 배경 accent(#65812d) + 흰 글자   (02 는 연한 배경 + 진한 글자)
            - 혜택가 titleColor(#448122) / 정상가 #999999 */
         "03": { style: "inline", txtOptW: 342, priceH: 100,
-                vlLabelW: 60, vlValW: 274, fTxtW: 436,
+                /* .fig 2026-08: value_list 22px · fr 1:4 (라벨60 값274) · 행높이 28 · 카드 hug */
+                vlLabelW: 60, vlValW: 274, vlRowH: 28, vlLineH: 28, cardGap: 36, cardPadBot: 0, fTxtW: 436,
                 /* .fig: 카드 사방 20px #f0f3dd 테두리 (선이 아니라 띠) */
                 /* .fig 03: 테두리·선·컬러섹션은 t03Frame, 배지는 t03Badge (테마별) */
                 frameKey: "t03Frame", frameW: 20,
@@ -221,7 +224,7 @@
         const items = [];
         const sImg = state.sizeInfoOn ? nvSizeInfoImg() : null;
         for (const kind of L.order) {
-          if (kind === "cards") state.rows.forEach((r, i) => items.push({ kind: "card", r, idx: i, h: NV.opt.cardH }));
+          if (kind === "cards") state.rows.forEach((r, i) => items.push({ kind: "card", r, idx: i, h: nvMeasureCard(r).cardH }));
           else if (kind === "notice" && state.notice) items.push({ kind: "notice", h: L.noticeH });
           else if (kind === "size" && sImg) items.push({ kind: "size", img: sImg, h: L.sizeH });
         }
@@ -498,14 +501,52 @@
         });
       }
 
-      /* ── 옵션 카드 (740×360) ── */
+      /* 카드 높이 측정 — .fig auto-layout(hug)과 동일하게 내용에서 계산한다.
+         nvListItems(높이 배분)와 nvCard(그리기)가 반드시 같은 값을 써야
+         카드가 겹치거나 뜨지 않는다.
+         cardH = 위여백(textDY) + name-wrap + gap(cardGap) + 가격(priceH) + 아래여백(cardPadBot) */
+      function nvMeasureCard(r) {
+        const O = NV.opt, CS0 = nvCard5();
+        const badgeOn = CS0.badgeText ? true : r.badge !== "none";
+        _mc.font = `600 ${O.nameSize}px Pretendard`;
+        const lns = [];
+        for (const para of String(rowName(r)).split(/\r?\n/)) {
+          const t = para.trim();
+          if (t) lns.push(...wrapText(_mc, t, CS0.txtOptW, -0.64));
+        }
+        const attrs = cardAttrs(r);
+        const rowH = CS0.vlRowH ?? O.vlRowH;
+        const lineH = CS0.vlLineH ?? O.vlLineH ?? rowH;
+        const rowHs = attrs.map((a) => {
+          _mc.font = `400 ${O.vlSize}px Pretendard`;
+          const vl = wrapText(_mc, String(a.value || ""), CS0.vlValW, -0.36);
+          return Math.max(rowH, vl.length * lineH);
+        });
+        const vlH = rowHs.length
+          ? rowHs.reduce((a, b) => a + b, 0) + (rowHs.length - 1) * O.vlRowGap
+          : 0;
+        const txtOptH = lns.length * O.nameLineH + (vlH ? O.txtOptGap + vlH : 0);
+        const boxTopH = Math.max(txtOptH, O.discD);
+        const nameWrapH =
+          (badgeOn ? (CS0.badgeH || O.badgeH) + (CS0.badgeGap ?? O.nameGap) : 0) +
+          boxTopH;
+        const cardH =
+          (CS0.textDY ?? 0) + nameWrapH + (CS0.cardGap ?? O.optGap) +
+          CS0.priceH + (CS0.cardPadBot ?? 0);
+        return { lns, rowHs, attrs, rowH, lineH, txtOptH, boxTopH, nameWrapH, badgeOn, cardH };
+      }
+
+      /* ── 옵션 카드 (내용에 맞춰 높이 가변) ── */
       function nvCard(ctx, r, x, top, th, cardW, ownBg, idx) {
         const O = NV.opt;
         const CS0 = nvCard5();
         const cx0 = x;
         const cw0 = cardW || CS0.cardW || O.bodyW;
+        const m = nvMeasureCard(r);
+        const { lns, rowHs, attrs, txtOptH, boxTopH, nameWrapH, badgeOn } = m;
+        const cardH = m.cardH, rowH0 = m.rowH, lineH0 = m.lineH;
         /* 컨테이너가 이미 흰색이면(02) 카드 배경을 또 칠하지 않는다 */
-        if (ownBg !== false) { ctx.fillStyle = "#fff"; ctx.fillRect(cx0, top, cw0, O.cardH); }
+        if (ownBg !== false) { ctx.fillStyle = "#fff"; ctx.fillRect(cx0, top, cw0, cardH); }
         ctx.fillStyle = "#f8f8f8";
         const imgLeft = cx0 + (CS0.imgDX ?? O.imgX);
         const imgTop = top + (CS0.imgDY ?? O.imgY);
@@ -515,30 +556,8 @@
           drawThumbCover(ctx, r.thumb, imgLeft, imgTop, O.imgW, imgH0);
 
         const ix = cx0 + (CS0.optDX ?? O.optX);
-        const badgeOn = CS0.badgeText ? true : r.badge !== "none";
-        // 내용 측정 → 높이 계산
-        _mc.font = `600 ${O.nameSize}px Pretendard`;
-        const lns = [];
-        for (const para of String(rowName(r)).split(/\r?\n/)) {
-          const t = para.trim();
-          if (t) lns.push(...wrapText(_mc, t, nvCard5().txtOptW, -0.64));
-        }
-        const attrs = cardAttrs(r);
-        const rowHs = attrs.map((a) => {
-          _mc.font = `400 ${O.vlSize}px Pretendard`;
-          const vl = wrapText(_mc, String(a.value || ""), nvCard5().vlValW, -0.36);
-          return Math.max(O.vlRowH, vl.length * 24);
-        });
-        const vlH = rowHs.length
-          ? rowHs.reduce((a, b) => a + b, 0) + (rowHs.length - 1) * O.vlRowGap
-          : 0;
-        const txtOptH = lns.length * O.nameLineH + (vlH ? O.txtOptGap + vlH : 0);
-        const boxTopH = Math.max(txtOptH, O.discD);
-        const nameWrapH = (badgeOn ? O.badgeH + O.nameGap : 0) + boxTopH;
-        /* .fig 는 카드 안에서 위(이름) / 아래(가격) 고정 배치다.
-           예전엔 내용 높이로 세로 중앙정렬해서, 글자 길이에 따라 가격줄이 떠다녔다. */
-        const infoH = nameWrapH + O.optGap + O.priceH;
-        const iy = top + (CS0.textDY ?? (O.cardH - infoH) / 2);
+        /* .fig 는 카드 안에서 위(이름) / 아래(가격) 배치다. 높이는 내용이 정한다. */
+        const iy = top + (CS0.textDY ?? 0);
 
         ctx.textAlign = "left"; ctx.textBaseline = "middle";
         let ny = iy;
@@ -577,16 +596,16 @@
         );
         let vy = tY + lns.length * O.nameLineH + O.txtOptGap;
         attrs.forEach((a, i) => {
-          // .fig: 라벨 18px Bold #666666 / 값 18px Regular #888888
+          // .fig 2026-08: 라벨/값 22px · 라벨 Bold #666666 / 값 Regular #888888
           ctx.font = `700 ${O.vlSize}px Pretendard`;
           ctx.fillStyle = "#666666";
-          trk(ctx, a.label || "", ix, vy + 12, -0.36, "left");
+          trk(ctx, a.label || "", ix, vy + rowH0 / 2, -0.36, "left");
           ctx.fillStyle = "#888888";
           ctx.font = `400 ${O.vlSize}px Pretendard`; // 값은 Regular
           _mc.font = `400 ${O.vlSize}px Pretendard`;
           const vl = wrapText(_mc, String(a.value || ""), nvCard5().vlValW, -0.36);
           vl.forEach((t, k) =>
-            trk(ctx, t, ix + nvCard5().vlLabelW + O.vlColGap, vy + 12 + k * 24, -0.36, "left"),
+            trk(ctx, t, ix + nvCard5().vlLabelW + O.vlColGap, vy + rowH0 / 2 + k * lineH0, -0.36, "left"),
           );
           vy += rowHs[i] + O.vlRowGap;
         });
@@ -596,7 +615,8 @@
            .fig 에는 그런 라벨이 없고 할인율도 가격줄 왼쪽 사각형이다. */
         const d = disc(r.normal, r.sale);
         const CS = nvCard5();
-        const py = top + (CS0.priceDY ?? (iy - top) + nameWrapH + O.optGap);
+        /* 가격은 name-wrap 바로 아래로 흐른다 (.fig hug). priceDY(고정)는 더 안 쓴다. */
+        const py = iy + nameWrapH + (CS0.cardGap ?? O.optGap);
         const G0 = nvG();
 
         if (CS.style === "labels") {

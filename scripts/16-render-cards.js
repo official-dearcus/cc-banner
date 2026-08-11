@@ -7,39 +7,52 @@
       /* 측정 전용 오프스크린 컨텍스트 */
       const _mc = document.createElement("canvas").getContext("2d");
 
-      /* 폭 안에서 줄바꿈 — 공백 우선, 한 단어가 폭을 넘으면 글자 단위로 강제 분할 */
+      /* 폭 안에서 줄바꿈 — 단어단위.
+         끊는 지점: 공백, 그리고 쉼표(, 、) 뒤.
+         → "화이트, 핑크, 딥그린" 처럼 공백이 있어도, "화이트,핑크,딥그린" 처럼
+           공백이 없어도 색 이름이 통째로 유지되고 쉼표 뒤에서 접힌다.
+         원문 글자는 그대로 보존한다(공백을 새로 넣거나 지우지 않음, 줄 끝 공백만 정리).
+         단어 하나가 열 폭보다 길고 끊을 지점이 전혀 없을 때만 글자 단위로 최후 분할. */
       function wrapText(ctx, text, maxW, tracking) {
         const t = String(text || "").trim();
         if (!t) return [];
-        const words = t.split(/\s+/),
-          lines = [];
-        let line = "";
         const w = (s) => trkWidth(ctx, s, tracking || 0);
-        for (const word of words) {
-          const test = line ? line + " " + word : word;
-          if (w(test) <= maxW) {
-            line = test;
-            continue;
-          }
-          if (line) {
-            lines.push(line);
-            line = "";
-          }
-          if (w(word) <= maxW) {
-            line = word;
-            continue;
-          }
-          // 단어 자체가 폭 초과 -> 글자 단위 분할
-          let cur = "";
-          for (const ch of word) {
-            if (w(cur + ch) > maxW && cur) {
-              lines.push(cur);
-              cur = ch;
-            } else cur += ch;
-          }
-          line = cur;
+        /* 토큰 = [글자들][쉼표들] 또는 공백덩어리. 공백은 앞 토큰에 붙여 보존. */
+        const tokens = t.match(/[^\s,、]+[,、]*|\s+/g) || [t];
+        const units = [];
+        for (const tk of tokens) {
+          if (/^\s+$/.test(tk)) {
+            if (units.length) units[units.length - 1] += tk;
+          } else units.push(tk);
         }
-        if (line) lines.push(line);
+        const lines = [];
+        let line = "";
+        const flush = () => {
+          const s = line.replace(/\s+$/, "");
+          if (s) lines.push(s);
+          line = "";
+        };
+        for (const u of units) {
+          if (line && w((line + u).replace(/\s+$/, "")) <= maxW) {
+            line += u;
+            continue;
+          }
+          if (line) flush();
+          if (w(u.replace(/\s+$/, "")) <= maxW) {
+            line = u;
+          } else {
+            // 끊을 지점이 없는 긴 단어 -> 글자 단위 최후 분할
+            let cur = "";
+            for (const ch of u) {
+              if (cur && w((cur + ch).replace(/\s+$/, "")) > maxW) {
+                lines.push(cur.replace(/\s+$/, ""));
+                cur = ch;
+              } else cur += ch;
+            }
+            line = cur;
+          }
+        }
+        flush();
         return lines;
       }
       /* 제품명 줄 계산.
