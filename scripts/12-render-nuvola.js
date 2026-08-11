@@ -160,8 +160,9 @@
                 saleInk: "#333333", normalInk: "#666666",
                 /* .fig: 카드 아래 1px #d0dfb1 (badgeBorder). 마지막 카드 뒤에는 없다 */
                 divKey: "badgeBorder", divW: 1, divFeedW: 1.33,
-                /* 02 는 이미지가 카드 네 변에 붙는다 → 높이 = 카드 높이 */
-                cardDX: 10, cardW: 720, imgDX: 0, imgDY: 0, imgH: 340, imgPadBot: 0, optDX: 356,
+                /* 02 는 이미지 아래 여백 20 — 컨테이너 패딩(20)과 같아서
+                   구분선이 이미지와 다음 이미지 사이 한가운데에 온다 */
+                cardDX: 10, cardW: 720, imgDX: 0, imgDY: 0, imgH: 340, imgPadBot: 20, optDX: 356,
                 textDY: 28, priceDY: 232,
                 /* .fig feed_02: 카드 920×460, img card+0,+0 426×440, 텍스트 card+464 456 */
                 fTextDY: 28, fPriceDY: 304, fImgDX: 0, fImgDY: 0,

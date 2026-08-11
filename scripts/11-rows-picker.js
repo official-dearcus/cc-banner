@@ -26,6 +26,45 @@
 
       let dragFrom = null;
       const BADGE_LABEL = { none: "", renewal: "리뉴얼", new: "NEW" };
+
+      /* ---------- 옵션 줄 직접 수정 (전 제품군 공통) ----------
+         평소에는 읽기 전용으로 보여주고, [옵션 수정] 을 누른 카드만
+         입력창으로 바뀐다. 편집 상태는 행 자체에 r._edit 로 들고 있어서
+         순서를 바꾸거나 다시 그려도 열려 있던 카드가 그대로 열려 있다.
+         값은 r.optionInfo 에 바로 들어가고 draw() 로 캔버스가 즉시 갱신된다. */
+      const COLOR_LAB_RE = /^(color|colour|컬러|색상)$/i;
+      /* 구형 unit 문자열(단일 값)로 들어온 행도 편집할 수 있게 배열로 맞춘다 */
+      function normAttrs(r) {
+        if (!Array.isArray(r.optionInfo)) {
+          r.optionInfo = r.unit ? [{ label: null, value: String(r.unit) }] : [];
+          delete r.unit;
+        }
+        return r.optionInfo;
+      }
+      function attrEditHTML(r, i) {
+        const list = normAttrs(r);
+        /* 컬러 줄은 아래 "컬러 선택"에서 고른 색으로 캔버스에 자동 표시된다.
+           여기서 고쳐도 안 보이므로 미리 알려준다 (09-hero-color cardAttrs) */
+        const autoColor =
+          (r.colorLine || "").trim() &&
+          list.some((a) => COLOR_LAB_RE.test((a.label || "").trim()));
+        const rows = list
+          .map(
+            (a, k) => `<div class="rorow">
+        <input class="rolab" data-ai="${i}" data-ak="${k}" data-af="label"
+               value="${esc(a.label ?? "")}" placeholder="라벨" />
+        <input class="roval" data-ai="${i}" data-ak="${k}" data-af="value"
+               value="${esc(a.value ?? "")}" placeholder="값 (쉼표로 구분)" />
+        <button class="mini rox" data-adel="${i}" data-ak="${k}" title="이 줄 삭제">×</button>
+      </div>`,
+          )
+          .join("");
+        return `<div class="roedit">
+      ${rows || `<div class="roempty">옵션 줄이 없습니다. 아래에서 추가하세요.</div>`}
+      <button class="mini roadd" data-aadd="${i}">+ 줄 추가</button>
+      ${autoColor ? `<div class="ronote">Color 줄은 아래 <b>컬러 선택</b>에서 고른 색으로 표시됩니다. 여기 값은 배너에 안 나옵니다.</div>` : ""}
+    </div>`;
+      }
       function renderRows() {
         const box = $("#rows");
         box.innerHTML = "";
@@ -48,7 +87,14 @@
         <img class="thumbprev" ${r.thumbSrc ? `src="${r.thumbSrc}"` : ""} />
         <div class="roinfo">
           <div class="roname">${esc(rowName(r))}</div>
-          ${attrs.length ? `<div class="roattr">${attrs.map((a) => (a.label ? `<b>${esc(a.label)}</b> ${esc(a.value)}` : esc(a.value))).join("<br/>")}</div>` : ""}
+          ${
+            r._edit
+              ? attrEditHTML(r, i)
+              : attrs.length
+                ? `<div class="roattr">${attrs.map((a) => (a.label ? `<b>${esc(a.label)}</b> ${esc(a.value)}` : esc(a.value))).join("<br/>")}</div>`
+                : `<div class="roattr roempty">옵션 줄 없음</div>`
+          }
+          <button class="mini roedit-btn${r._edit ? " on" : ""}" data-edit="${i}">${r._edit ? "수정 완료" : "옵션 수정"}</button>
           ${r.badge !== "none" ? `<span class="robadge">${BADGE_LABEL[r.badge]}</span>` : ""}
         </div>
       </div>
@@ -133,6 +179,43 @@
               renderRows();
               draw();
               status("시트 값으로 되돌렸습니다.");
+            }),
+        );
+        /* --- 옵션 수정 --- */
+        box.querySelectorAll("[data-edit]").forEach(
+          (b) =>
+            (b.onclick = () => {
+              const r = state.rows[+b.dataset.edit];
+              if (!r._edit) normAttrs(r);
+              r._edit = !r._edit;
+              renderRows();
+            }),
+        );
+        /* 입력 중에는 다시 그리지 않는다 — 커서가 튀기 때문에 캔버스만 갱신 */
+        box.querySelectorAll("input[data-af]").forEach((inp) => {
+          inp.oninput = () => {
+            const r = state.rows[+inp.dataset.ai];
+            const a = normAttrs(r)[+inp.dataset.ak];
+            if (!a) return;
+            const v = inp.value;
+            a[inp.dataset.af] = inp.dataset.af === "label" ? v.trim() || null : v;
+            draw();
+          };
+        });
+        box.querySelectorAll("[data-adel]").forEach(
+          (b) =>
+            (b.onclick = () => {
+              normAttrs(state.rows[+b.dataset.adel]).splice(+b.dataset.ak, 1);
+              renderRows();
+              draw();
+            }),
+        );
+        box.querySelectorAll("[data-aadd]").forEach(
+          (b) =>
+            (b.onclick = () => {
+              normAttrs(state.rows[+b.dataset.aadd]).push({ label: "", value: "" });
+              renderRows();
+              draw();
             }),
         );
         box
