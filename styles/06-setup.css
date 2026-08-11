@@ -183,6 +183,16 @@
   border-radius: 50%;
   border: 1px solid rgba(0, 0, 0, 0.08);
 }
+/* 맨 뒤 랜덤 버튼 — 색 칩이 아니라 동작 버튼이라 점선으로 구분한다 */
+.themepick button.rand {
+  border-style: dashed;
+  color: var(--ink-soft, #71717a);
+  padding-left: 20px;
+}
+.themepick button.rand:hover {
+  border-color: var(--accent, #18181b);
+  color: var(--accent, #18181b);
+}
 .themepick button.on {
   border-color: var(--accent, #18181b);
   box-shadow: inset 0 0 0 1px var(--accent, #18181b);
