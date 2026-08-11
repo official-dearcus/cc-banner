@@ -421,6 +421,7 @@ function prefetchGroup(key) {
   });
 }
 
+const RAND_T = "__rand"; // 실제 테마 키와 겹치지 않는 값
 function renderSetupThemes() {
   const el = $("#suThemes");
   if (!el) return;
@@ -433,11 +434,23 @@ function renderSetupThemes() {
       const lb = (pal[k] && pal[k].label) || k;
       return `<button class="${k === SETUP_THEME ? "on" : ""}" data-t="${k}"><span class="dot" style="background:${c}"></span>${lb}</button>`;
     })
-    .join("");
+    .join("")
+    /* 맨 뒤 "랜덤" — 고르는 순간 여섯 색 중 하나로 정해진다.
+       선택 상태로 남는 모드가 아니라 주사위다. 그래서 SESSION.theme 은
+       늘 실제 색 키라, 제품군 탭의 "테마 통일"·불일치 뱃지가 그대로 동작한다. */
+    + (keys.length > 1
+      ? `<button class="rand" data-t="${RAND_T}" title="여섯 색 중 하나를 무작위로 고릅니다">🎲 랜덤</button>`
+      : "");
   el.querySelectorAll("button").forEach(
     (b) =>
       (b.onclick = () => {
-        SETUP_THEME = b.dataset.t;
+        if (b.dataset.t === RAND_T) {
+          /* 지금 색은 후보에서 뺀다 — 다시 눌렀는데 그대로면 고장 난 줄 안다 */
+          const pool = keys.filter((k) => k !== SETUP_THEME);
+          SETUP_THEME = pool[Math.floor(Math.random() * pool.length)] || keys[0];
+        } else {
+          SETUP_THEME = b.dataset.t;
+        }
         renderSetupThemes();
       }),
   );
