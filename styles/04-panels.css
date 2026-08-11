@@ -184,6 +184,32 @@
         object-fit: contain;
         background: #f2f0f6;
       }
+      /* 테마 매핑 표시 — HeroMaster theme 열이 채워진 히어로에만 붙는다 */
+      .hero {
+        position: relative;
+      }
+      .herotag {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        border: 2px solid #fff;
+        box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
+      }
+      .herotag.bad {
+        width: auto;
+        height: auto;
+        border-radius: 5px;
+        background: #fdecea;
+        color: #c0392b;
+        border: none;
+        font-size: 9px;
+        font-style: normal;
+        font-weight: 700;
+        padding: 2px 5px;
+      }
       .hero img.bad {
         background: #fdecea;
       }
