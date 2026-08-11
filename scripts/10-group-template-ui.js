@@ -47,11 +47,18 @@
       }
       /* 처음 진입 시 히어로도 랜덤 (현재 템플릿의 히어로 중에서만, 수정 가능).
          async 로딩 중 템플릿이 바뀌면 적용하지 않아 01/02 히어로가 섞이지 않는다. */
+      /* 히어로 자동 선택.
+         HeroMaster 의 theme 열에 지금 테마가 적힌 행이 있으면 그걸 쓰고,
+         없을 때만 랜덤이다.
+         ⚠ 예전에는 제품군을 고를 때 무조건 랜덤이었다. 템플릿을 바꿀 때만
+           theme 매핑을 봤기 때문에, 제품군 선택 직후에는 테마와 다른 사진이 떴다. */
       async function applyRandomHero(gen) {
         const tplAtPick = state.tpl;
         const list = heroesForTpl();
         if (!list.length) return;
-        const h = list[Math.floor(Math.random() * list.length)];
+        const mapped =
+          typeof heroForTheme === "function" ? heroForTheme() : null;
+        const h = mapped || list[Math.floor(Math.random() * list.length)];
         if (!h || !h.url) return;
         try {
           const r = await loadImgSmart(h.url);

@@ -190,6 +190,17 @@
         // (HeroMaster 에 templateId 를 01 로만 채워둔 경우에도 02·03 에서 이미지가 뜬다)
         return hit.length ? hit : g.heroes;
       }
+      /* 이 히어로가 어느 테마에 묶여 있는지 썸네일 위에 표시한다.
+         HeroMaster 의 theme 열이 제대로 채워졌는지 화면에서 바로 확인할 수 있다.
+         (열이 비어 있으면 아무 것도 안 붙는다 = 수동 선택용) */
+      function heroThemeTag(h) {
+        const k = String(h.theme || "").trim().toLowerCase();
+        if (!k) return "";
+        const tbl = themesFor(state.tpl) || {};
+        const th = tbl[k];
+        if (!th) return `<i class="herotag bad" title="이 템플릿에 없는 테마 키">${esc(k)}?</i>`;
+        return `<i class="herotag" style="background:${th.accent}" title="${esc(th.label)} 테마 전용"></i>`;
+      }
       function renderHeroList() {
         const box = $("#heroList"),
           list = heroesForTpl();
@@ -204,6 +215,7 @@
               (h, i) => `
     <div class="hero ${state.heroUrl === h.url ? "on" : ""}" data-h="${i}" title="${esc(h.label || h.url)}">
       <img src="${esc(h.url)}" loading="lazy" onerror="this.classList.add('bad')"/>
+      ${heroThemeTag(h)}
       <span>${esc(h.label || "이미지 " + (i + 1))}</span>
     </div>`,
             )
