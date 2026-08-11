@@ -1,4 +1,14 @@
-cc-banner  build 2026-08-11-J
+cc-banner  build 2026-08-11-K
+api/sheet.js TABS 에 EventMaster · GiftMaster 추가 (버그 수정)
+  J 에서 프론트만 새 탭을 부르게 하고 서버 허용 목록을 안 고쳤다.
+  /api/sheet?tab=EventMaster → 400 → 프론트가 "탭이 없다" 로 판단.
+  시트를 아무리 채워도 안 왔다.
+
+설정 [5] 안내 문구를 원인별로 나눔 (22-setup-flow)
+  before  못 읽든 비었든 전부 "시트에 탭이 없습니다"
+  after   동기화 전 / 못 읽음 / 행 없음 을 구분하고 확인할 열 이름을 짚어준다
+
+이전:
 이벤트 배너 신설 (.fig event_comp01·02·03 실측 · 요청 2026-08-11)
   scripts/23-render-event.js 신설. 상세 마지막 섹션 + 인스타 피드 슬라이드.
   이벤트가 하나도 없으면 섹션 높이 0 — 기존 배너는 아무 것도 안 바뀐다.
@@ -35,18 +45,3 @@ cc-banner  build 2026-08-11-J
   행사 설정 [5] 이벤트 — [+ 이벤트 추가] 로 계속 늘린다 (22-setup-flow).
     한 줄 = 종류 · 인원 · 선물. 아래에 완성 문장을 바로 보여준다(조사 확인용).
     SESSION.events 에 저장 — 행사 단위라 제품군이 달라도 같이 나간다.
-
-이전:
-행사 세션에서 테마는 블루인데 히어로만 딴 색이던 문제 (요청 2026-08-11)
-  순서가 문제였다.
-    selectGroup  ① state.theme = pickInitialTheme(...)   ← 랜덤
-                 ② applyRandomHero() 가 ①의 테마로 히어로를 고름
-    gotoGroup    ③ state.theme = SESSION.theme           ← 테마만 덮음
-  ③ 이 히어로를 다시 안 골라서, 사진은 ①에서 뽑힌 색 그대로 남았다.
-  HeroMaster 의 theme 열을 옳게 채워도 이 경로에선 소용이 없었다.
-
-  selectGroup(key, preferTheme) — 행사 테마를 먼저 확정하고 히어로를 고른다.
-    gotoGroup 이 selectGroup(key, SESSION.theme || null) 로 넘긴다.
-    sessionTheme() — 인자 없이 불린 경로(좌측 제품군 버튼 등)도 세션이 진행
-    중이면 공통 테마를 쓴다. 세션 밖에서는 예전처럼 랜덤 그대로다.
-  공통 테마가 그 템플릿에 없으면 예전처럼 랜덤으로 떨어진다.
