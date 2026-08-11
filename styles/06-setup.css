@@ -199,6 +199,87 @@
   font-weight: 600;
 }
 
+/* ---- 이벤트 [5] ---- */
+.evpick {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.evrow {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) 108px minmax(0, 1.3fr) 36px;
+  gap: 8px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid var(--line, #e4e4e7);
+  border-radius: 12px;
+  background: #fff;
+}
+.evrow select,
+.evrow input {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 9px 10px;
+  font: inherit;
+  font-size: 14px;
+  border: 1px solid var(--line, #e4e4e7);
+  border-radius: 9px;
+  background: #fff;
+}
+.evnum {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.evnum span {
+  font-size: 13px;
+  color: var(--ink-soft, #71717a);
+}
+.evdel {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line, #e4e4e7);
+  border-radius: 9px;
+  background: #fff;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--ink-soft, #71717a);
+  cursor: pointer;
+}
+.evdel:hover {
+  border-color: #d94b4b;
+  color: #d94b4b;
+}
+/* 완성된 문장 미리보기 — 조사가 맞게 붙었는지 여기서 바로 보인다 */
+.evprev {
+  grid-column: 1 / -1;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-soft, #71717a);
+  padding-top: 2px;
+}
+.evadd {
+  width: 100%;
+  margin-top: 8px;
+  padding: 12px;
+  border: 1px dashed var(--line, #e4e4e7);
+  border-radius: 12px;
+  background: #fff;
+  font: inherit;
+  font-size: 14px;
+  color: var(--ink-soft, #71717a);
+  cursor: pointer;
+}
+.evadd:hover:not(:disabled) {
+  border-color: var(--accent, #18181b);
+  color: var(--accent, #18181b);
+}
+.evadd:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
 /* 하단 고정 바 */
 .setup-bar {
   position: fixed;
