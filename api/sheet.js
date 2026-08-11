@@ -16,7 +16,16 @@
 const crypto = require("crypto");
 
 /* 읽기 허용 탭. 여기 없는 이름은 거부한다(임의 탭 열람 방지). */
-const TABS = ["ProductMaster", "TemplateMaster", "HeroMaster", "ColorMaster"];
+const TABS = [
+  "ProductMaster",
+  "TemplateMaster",
+  "HeroMaster",
+  "ColorMaster",
+  /* 이벤트 배너 (2026-08-11). 여기 안 넣으면 프론트가 400 을 받고
+     "시트에 탭이 없습니다" 로 보인다 — 시트를 채워도 소용이 없다. */
+  "EventMaster",
+  "GiftMaster",
+];
 
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const SCOPE = "https://www.googleapis.com/auth/spreadsheets.readonly";
