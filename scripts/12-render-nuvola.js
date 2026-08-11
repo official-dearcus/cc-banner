@@ -299,7 +299,14 @@
          예전엔 무조건 K.H 를 더해서 빈 섹션이 통으로 붙었다.
          피드는 이미 hasColors() 로 걸렀는데 상세만 안 걸렀다. */
       function nvColorH() { return hasColors() ? nvColorMetrics().H : 0; }
-      function nvCanvasH() { return NV.MAIN_H + nvOptionH() + nvColorH(); }
+      /* 이벤트 배너는 상세의 마지막 섹션이다 (23-render-event).
+         이벤트가 하나도 없으면 0 — 예전 화면과 완전히 같다. */
+      function nvEventH() {
+        return typeof evSectionH === "function" ? evSectionH() : 0;
+      }
+      function nvCanvasH() {
+        return NV.MAIN_H + nvOptionH() + nvColorH() + nvEventH();
+      }
 
       /* ── section-main : 01 사진형 / 02 그라데이션형 / 03 그리드형 ── */
       const NVM = {
@@ -1448,6 +1455,9 @@
           plan.push({ t: "opt", rows: state.rows.slice(i, i + per) });
         if (state.sizeInfoOn && nvSizeInfoImg()) plan.push({ t: "size" });
         if (hasColors()) plan.push({ t: "color" });
+        /* 이벤트 배너는 맨 뒤 — 상세에서도 마지막 섹션이다 */
+        if (typeof evFeedGroups === "function" && typeof evOn === "function" && evOn())
+          for (const g of evFeedGroups()) plan.push({ t: "event", evs: g });
         return plan;
       }
       function nvFeedCount() { return nvFeedPlan().length; }
@@ -1458,6 +1468,7 @@
         if (!p) return;
         if (p.t === "hero") { nvfHero(ctx, W, H, th, true); return; }
         if (p.t === "color") { nvfColor(ctx, W, H, th); return; }
+        if (p.t === "event") { evFeedSlide(ctx, p.evs, th); return; }
         ctx.fillStyle = nvOptBg(th) || "#f0f3dd";
         ctx.fillRect(0, 0, W, H);
         const O = NVF.opt, S = NVF.size;
@@ -1521,4 +1532,6 @@
         const oy = NV.MAIN_H;
         nvOption(ctx, W, oy, th);
         if (hasColors()) nvColor(ctx, W, oy + nvOptionH(), th);
+        if (typeof evSection === "function")
+          evSection(ctx, W, oy + nvOptionH() + nvColorH(), th);
       }

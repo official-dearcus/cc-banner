@@ -181,6 +181,37 @@
             sortOrder: { type: "number", optional: true },
           },
         },
+        /* ── 이벤트 배너 (행사 단위 · 제품군과 무관) ──
+           EventMaster  이벤트 종류. 제목과 본문에서 표현이 다르다.
+             제목  "선착순 이벤트 (10명)"
+             본문  "구매 선착순 10명에게"
+             → titleLabel / bodyLabel 두 열로 나눈다. */
+        EventMaster: {
+          required: ["typeKey", "titleLabel"],
+          columns: {
+            typeKey: { type: "string" },
+            titleLabel: { type: "string" }, // 제목용 — "선착순 이벤트"
+            bodyLabel: { type: "string", optional: true }, // 본문용 — "구매 선착순" (비우면 titleLabel)
+            enabled: { type: "bool", optional: true, default: true },
+            sortOrder: { type: "number", optional: true },
+          },
+        },
+        /* GiftMaster  선물 목록.
+           particle 은 "을/를". 비우면 label 에서 자동 계산한다.
+           ⚠ 자동 계산은 끝의 괄호를 떼고 판단한다 —
+             "뮤직페어링 디퓨저(향 랜덤)" 는 디퓨저 기준이라 "를" 이다.
+             그래도 예외가 있으면 이 열에 직접 적으면 그 값이 이긴다. */
+        GiftMaster: {
+          required: ["giftKey", "label"],
+          columns: {
+            giftKey: { type: "string" },
+            label: { type: "string" },
+            particle: { type: "string", optional: true },
+            url: { type: "url", optional: true },
+            enabled: { type: "bool", optional: true, default: true },
+            sortOrder: { type: "number", optional: true },
+          },
+        },
       };
 
       /* ---- CSV 파서 (따옴표/줄바꿈/콤마 처리) ---- */

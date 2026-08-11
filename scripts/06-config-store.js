@@ -35,6 +35,9 @@
           TemplateMaster: "/api/sheet?tab=TemplateMaster",
           HeroMaster: "/api/sheet?tab=HeroMaster",
           ColorMaster: "/api/sheet?tab=ColorMaster",
+          /* 이벤트 배너 — 없으면 이벤트 섹션이 안 붙을 뿐, 나머지는 그대로 동작한다 */
+          EventMaster: "/api/sheet?tab=EventMaster",
+          GiftMaster: "/api/sheet?tab=GiftMaster",
         },
         proxy:
           "https://script.google.com/macros/s/AKfycbxKjJ78pLc7Pj1VYNPCGwJ0eRC_AsEAo6-aBNDpEgYGcCjGEa9wwTTeJtK8rRJwcVr8/exec",
@@ -52,6 +55,8 @@
         "urlT",
         "urlH",
         "urlC",
+        "urlE",
+        "urlG",
         "gasUrl",
         "proxyUrl",
       ];
@@ -126,6 +131,8 @@
               urlT: PRESET.csv.TemplateMaster,
               urlH: PRESET.csv.HeroMaster,
               urlC: PRESET.csv.ColorMaster,
+              urlE: PRESET.csv.EventMaster,
+              urlG: PRESET.csv.GiftMaster,
               proxyUrl: PRESET.proxy,
             };
             for (const [id, v] of Object.entries(fill)) {

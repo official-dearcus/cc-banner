@@ -214,7 +214,11 @@
           let pCsv,
             tCsv,
             hCsv = "",
-            cCsv = "";
+            cCsv = "",
+            eCsv = "",
+            gCsv = "";
+          /* 선택 탭은 없으면 조용히 넘어간다 — 이벤트 배너를 안 쓰는 시트도 그대로 동작 */
+          const tryCsv = async (fn) => { try { return await fn(); } catch (e) { return ""; } };
           if (src.mode === "csv" && src.csv === "manual") {
             const uP = $("#urlP").value.trim(),
               uT = $("#urlT").value.trim(),
@@ -241,6 +245,10 @@
                 cCsv = "";
               }
             }
+            const uE = ($("#urlE") && $("#urlE").value.trim()) || "";
+            const uG = ($("#urlG") && $("#urlG").value.trim()) || "";
+            if (uE) eCsv = await tryCsv(() => fetchCsv(uE));
+            if (uG) gCsv = await tryCsv(() => fetchCsv(uG));
           } else if (src.mode === "csv") {
             const inp = parseSheetInput($("#docId").value);
             if (!inp) throw mkErr("E101", "문서 ID 또는 게시 URL을 입력하세요");
@@ -248,6 +256,8 @@
             const nT = $("#tabT").value.trim() || "TemplateMaster";
             const nH = $("#tabH").value.trim() || "HeroMaster";
             const nC = $("#tabC").value.trim() || "ColorMaster";
+            const nE = "EventMaster";
+            const nG = "GiftMaster";
             if (inp.mode === "pub") {
               const tabs = await fetchPubTabs(inp.id);
               pCsv = await fetchPubTabCsv(inp.id, tabs, nP);
@@ -262,6 +272,8 @@
               } catch (e) {
                 cCsv = "";
               }
+              eCsv = await tryCsv(() => fetchPubTabCsv(inp.id, tabs, nE));
+              gCsv = await tryCsv(() => fetchPubTabCsv(inp.id, tabs, nG));
             } else {
               pCsv = await fetchCsv(sheetCsvUrl(inp.id, nP));
               tCsv = await fetchCsv(sheetCsvUrl(inp.id, nT));
@@ -275,6 +287,8 @@
               } catch (e) {
                 cCsv = "";
               }
+              eCsv = await tryCsv(() => fetchCsv(sheetCsvUrl(inp.id, nE)));
+              gCsv = await tryCsv(() => fetchCsv(sheetCsvUrl(inp.id, nG)));
             }
           } else {
             const u = $("#gasUrl").value.trim();
@@ -294,6 +308,10 @@
               hCsv = rowsToCsv(j.HeroMaster.header, j.HeroMaster.rows);
             if (j.ColorMaster && j.ColorMaster.header.length)
               cCsv = rowsToCsv(j.ColorMaster.header, j.ColorMaster.rows);
+            if (j.EventMaster && j.EventMaster.header.length)
+              eCsv = rowsToCsv(j.EventMaster.header, j.EventMaster.rows);
+            if (j.GiftMaster && j.GiftMaster.header.length)
+              gCsv = rowsToCsv(j.GiftMaster.header, j.GiftMaster.rows);
           }
           const P = parseSheet(pCsv, "ProductMaster");
           const T = parseSheet(tCsv, "TemplateMaster");
@@ -303,12 +321,21 @@
           const C = cCsv
             ? parseSheet(cCsv, "ColorMaster")
             : { rows: [], errors: [] };
+          /* 이벤트 마스터는 제품군과 무관한 전역 목록이라 buildGroups 를 안 탄다 */
+          const E = eCsv ? parseSheet(eCsv, "EventMaster") : { rows: [], errors: [] };
+          const GF = gCsv ? parseSheet(gCsv, "GiftMaster") : { rows: [], errors: [] };
+          const srt = (a, b) => (a.sortOrder || 0) - (b.sortOrder || 0) || a._row - b._row;
+          EVENT_TYPES = E.rows.filter((r) => r.enabled !== false).sort(srt);
+          GIFTS = GF.rows.filter((r) => r.enabled !== false).sort(srt);
+          if (typeof renderSetupEvents === "function") renderSetupEvents();
           const B = buildGroups(P.rows, T.rows, KNOWN_TPL, H.rows, C.rows);
           const errs = [
             ...P.errors,
             ...T.errors,
             ...H.errors,
             ...C.errors,
+            ...E.errors,
+            ...GF.errors,
             ...B.errors,
           ];
           if (!Object.keys(B.groups).length) {

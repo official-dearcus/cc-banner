@@ -16,6 +16,7 @@
 const SESSION = {
   groups: [], // 선택한 제품군 키 목록
   theme: "", // 공통 테마 (탭에서 개별 변경 가능)
+  events: [], // 이벤트 배너 — 행사 단위. 제품군과 무관하게 전부 같이 나간다
   sellerKo: "",
   sellerEn: "",
   d1: "",
@@ -423,6 +424,71 @@ function prefetchGroup(key) {
   });
 }
 
+/* ---------- 이벤트 (설정 [5]) ----------
+   옵션 카드처럼 계속 추가한다. 한 줄 = {typeKey, num, giftKey}.
+   종류·선물 목록은 시트(EventMaster / GiftMaster)에서 온다. */
+let SETUP_EVENTS = [];
+function renderSetupEvents() {
+  const box = $("#suEvents");
+  if (!box) return;
+  const types = typeof evTypes === "function" ? evTypes() : [];
+  const gifts = typeof evGifts === "function" ? evGifts() : [];
+  const hint = $("#suEvHint");
+  const add = $("#suEvAdd");
+  if (!types.length || !gifts.length) {
+    box.innerHTML = "";
+    if (add) add.disabled = true;
+    if (hint)
+      hint.innerHTML = !types.length && !gifts.length
+        ? `시트에 <b>EventMaster</b> · <b>GiftMaster</b> 탭이 없습니다. 이벤트 없이도 배너는 그대로 만들어집니다.`
+        : !types.length
+          ? `시트 <b>EventMaster</b> 탭에 이벤트 종류가 없습니다.`
+          : `시트 <b>GiftMaster</b> 탭에 선물이 없습니다.`;
+    return;
+  }
+  if (add) add.disabled = false;
+  if (hint)
+    hint.innerHTML = SETUP_EVENTS.length
+      ? `문장: <b>[종류][인원]명에게 [선물][을/를] 드립니다.</b> — 조사는 선물 이름에서 자동으로 고릅니다.`
+      : `이벤트를 넣지 않으면 이벤트 섹션이 아예 안 붙습니다.`;
+  const opt = (list, keyF, labF, cur) =>
+    list.map((x) => `<option value="${esc(keyF(x))}"${keyF(x) === cur ? " selected" : ""}>${esc(labF(x))}</option>`).join("");
+  box.innerHTML = SETUP_EVENTS.map((e, i) => {
+    const g = gifts.find((x) => x.giftKey === e.giftKey);
+    const t = types.find((x) => x.typeKey === e.typeKey);
+    const par = typeof evGiftParticle === "function" ? evGiftParticle(g) : "를";
+    const line = t && g
+      ? `${t.bodyLabel || t.titleLabel}${e.num}명에게 ${g.label}${par} 드립니다.`
+      : "";
+    return `<div class="evrow" data-i="${i}">
+      <select class="evtype" data-i="${i}">${opt(types, (x) => x.typeKey, (x) => x.titleLabel, e.typeKey)}</select>
+      <div class="evnum"><input type="number" min="1" max="9999" data-i="${i}" value="${e.num}" /><span>명</span></div>
+      <select class="evgift" data-i="${i}">${opt(gifts, (x) => x.giftKey, (x) => x.label, e.giftKey)}</select>
+      <button class="evdel" data-i="${i}" title="삭제">×</button>
+      <div class="evprev">${esc(line)}</div>
+    </div>`;
+  }).join("");
+  box.querySelectorAll(".evtype").forEach((s) => (s.onchange = () => {
+    SETUP_EVENTS[+s.dataset.i].typeKey = s.value; renderSetupEvents(); }));
+  box.querySelectorAll(".evgift").forEach((s) => (s.onchange = () => {
+    SETUP_EVENTS[+s.dataset.i].giftKey = s.value; renderSetupEvents(); }));
+  box.querySelectorAll(".evnum input").forEach((inp) => (inp.onchange = () => {
+    const n = Math.max(1, parseInt(inp.value, 10) || 1);
+    SETUP_EVENTS[+inp.dataset.i].num = n; renderSetupEvents(); }));
+  box.querySelectorAll(".evdel").forEach((b) => (b.onclick = () => {
+    SETUP_EVENTS.splice(+b.dataset.i, 1); renderSetupEvents(); }));
+}
+function setupEventAdd() {
+  const types = typeof evTypes === "function" ? evTypes() : [];
+  const gifts = typeof evGifts === "function" ? evGifts() : [];
+  if (!types.length || !gifts.length) return;
+  /* 아직 안 쓴 종류를 먼저 권한다 — 같은 종류를 두 번 넣는 일이 드물어서 */
+  const used = SETUP_EVENTS.map((e) => e.typeKey);
+  const t = types.find((x) => !used.includes(x.typeKey)) || types[0];
+  SETUP_EVENTS.push({ typeKey: t.typeKey, num: 10, giftKey: gifts[0].giftKey });
+  renderSetupEvents();
+}
+
 const RAND_T = "__rand"; // 실제 테마 키와 겹치지 않는 값
 function renderSetupThemes() {
   const el = $("#suThemes");
@@ -501,9 +567,11 @@ function openSetup(reset) {
     reset ? "" : SESSION.d1 || state.d1 || "",
     reset ? "" : SESSION.d2 || state.d2 || "",
   );
+  SETUP_EVENTS = reset ? [] : (SESSION.events || []).map((e) => ({ ...e }));
   renderSellerList();
   renderSetupGroups();
   renderSetupThemes();
+  renderSetupEvents();
   updateSetupBar();
   $("#setup").hidden = false;
 }
@@ -512,6 +580,7 @@ function startSession() {
   const keep = SESSION.slots;
   SESSION.groups = SETUP_PICK.slice();
   SESSION.theme = SETUP_THEME;
+  SESSION.events = SETUP_EVENTS.map((e) => ({ ...e }));
   SESSION.sellerKo = $("#suSellerKo").value.trim();
   SESSION.sellerEn = $("#suSellerEn").value.trim();
   SESSION.d1 = $("#suD1").value;
@@ -552,6 +621,7 @@ function saveSession() {
       JSON.stringify({
         groups: SESSION.groups,
         theme: SESSION.theme,
+        events: SESSION.events,
         sellerKo: SESSION.sellerKo,
         sellerEn: SESSION.sellerEn,
         d1: SESSION.d1,
@@ -620,6 +690,8 @@ selectGroup = function (key) {
     };
   const go = $("#suGo");
   if (go) go.onclick = startSession;
+  const evAdd = $("#suEvAdd");
+  if (evAdd) evAdd.onclick = setupEventAdd;
 
   /* 좌측 패널의 셀러 입력을 직접 고치면 세션 값도 따라간다 */
   const sel = $("#seller");
@@ -633,6 +705,7 @@ selectGroup = function (key) {
   const _initGroups = initGroups;
   initGroups = function () {
     const r = _initGroups.apply(this, arguments);
+    if (typeof renderSetupEvents === "function") renderSetupEvents();
     if (!$("#setup").hidden) {
       renderSetupGroups();
       renderSetupThemes();
@@ -647,6 +720,7 @@ selectGroup = function (key) {
     SESSION.sellerKo = last.sellerKo || "";
     SESSION.sellerEn = last.sellerEn || "";
     SESSION.theme = last.theme || "";
+    SESSION.events = Array.isArray(last.events) ? last.events : [];
     SESSION.d1 = last.d1 || "";
     SESSION.d2 = last.d2 || "";
     SESSION.groups = (last.groups || []).slice();
