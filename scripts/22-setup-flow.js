@@ -438,12 +438,17 @@ function renderSetupEvents() {
   if (!types.length || !gifts.length) {
     box.innerHTML = "";
     if (add) add.disabled = true;
+    /* 아직 시트를 한 번도 안 불렀으면 "없다" 고 단정하지 않는다.
+       예전에는 못 읽은 경우까지 "탭이 없습니다" 로 보여서 원인을 못 찾았다. */
+    const synced = typeof src !== "undefined" && src && src.syncedAt;
     if (hint)
-      hint.innerHTML = !types.length && !gifts.length
-        ? `시트에 <b>EventMaster</b> · <b>GiftMaster</b> 탭이 없습니다. 이벤트 없이도 배너는 그대로 만들어집니다.`
-        : !types.length
-          ? `시트 <b>EventMaster</b> 탭에 이벤트 종류가 없습니다.`
-          : `시트 <b>GiftMaster</b> 탭에 선물이 없습니다.`;
+      hint.innerHTML = !synced
+        ? `시트를 아직 안 불러왔습니다. 좌측 <b>데이터 소스</b>에서 동기화하면 이벤트 목록이 채워집니다.`
+        : !types.length && !gifts.length
+          ? `시트에서 <b>EventMaster</b> · <b>GiftMaster</b> 를 못 읽었습니다. 탭 이름과 열 이름(<b>typeKey/titleLabel</b>, <b>giftKey/label</b>)을 확인하세요. 이벤트 없이도 배너는 그대로 만들어집니다.`
+          : !types.length
+            ? `<b>EventMaster</b> 탭에 쓸 수 있는 행이 없습니다. <b>typeKey</b> · <b>titleLabel</b> 열과 <b>enabled=TRUE</b> 를 확인하세요.`
+            : `<b>GiftMaster</b> 탭에 쓸 수 있는 행이 없습니다. <b>giftKey</b> · <b>label</b> 열과 <b>enabled=TRUE</b> 를 확인하세요.`;
     return;
   }
   if (add) add.disabled = false;
