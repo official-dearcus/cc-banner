@@ -145,7 +145,8 @@
                 /* .fig 2026-08: value_list 22px · fr 1.2:4 (라벨56 값186) · 카드 hug */
                 vlLabelW: 56, vlValW: 186, cardGap: 24, cardPadBot: 30, fTxtW: 324,
                 /* 01 은 카드에 선이 없다 (.fig) */
-                cardDX: 0, cardW: 740, imgDX: 10, imgDY: 10, imgH: 340, optDX: 366,
+                /* 이미지 상/좌/하 여백 10 고정 → 높이는 카드에서 계산한다 (imgH 는 .fig 참고값) */
+                cardDX: 0, cardW: 740, imgDX: 10, imgDY: 10, imgH: 340, imgPadBot: 10, optDX: 366,
                 textDY: 29, priceDY: 249,
                 /* .fig feed(01): 카드 960×468, img card+10,+10 416×448, 텍스트 card+474 */
                 fTextDY: 46, fPriceDY: 316, fImgDX: 10, fImgDY: 10,
@@ -159,7 +160,8 @@
                 saleInk: "#333333", normalInk: "#666666",
                 /* .fig: 카드 아래 1px #d0dfb1 (badgeBorder). 마지막 카드 뒤에는 없다 */
                 divKey: "badgeBorder", divW: 1, divFeedW: 1.33,
-                cardDX: 10, cardW: 720, imgDX: 0, imgDY: 0, imgH: 340, optDX: 356,
+                /* 02 는 이미지가 카드 네 변에 붙는다 → 높이 = 카드 높이 */
+                cardDX: 10, cardW: 720, imgDX: 0, imgDY: 0, imgH: 340, imgPadBot: 0, optDX: 356,
                 textDY: 28, priceDY: 232,
                 /* .fig feed_02: 카드 920×460, img card+0,+0 426×440, 텍스트 card+464 456 */
                 fTextDY: 28, fPriceDY: 304, fImgDX: 0, fImgDY: 0,
@@ -185,7 +187,8 @@
                 /* .fig: 할인율 배지는 OPTION 배지와 같은 t03Badge 색이다 (accent 아님) */
                 imgRight: true, discBgKey: "t03Badge", discInk: "#ffffff",
                 saleInk: "t03Ink", normalInk: "#999999",
-                cardDX: 10, cardW: 720, imgDX: 380, imgDY: 20, imgH: 320, optDX: 20,
+                /* 03 은 이미지 위/아래 여백 20 고정 */
+                cardDX: 10, cardW: 720, imgDX: 380, imgDY: 20, imgH: 320, imgPadBot: 20, optDX: 20,
                 textDY: 0, priceDY: 260,
                 /* .fig feed_02(03): 카드 920×460, 텍스트 card+20 437, img card+491,+26 409×409 */
                 fTextDY: 0, fPriceDY: 334, fImgDX: 491, fImgDY: 26, fOptDX: 20,
@@ -209,7 +212,9 @@
         "01": { bodyX: 60, bodyW: 740, listTop: 204, pad: 0, gap: 20,
                 listBg: null, order: ["cards", "notice", "size"],
                 sizeH: 552, noticeFull: false, noticeH: 80 },
-        "02": { bodyX: 50, bodyW: 760, listTop: 180, pad: 20, gap: 20,
+        /* 02 만 카드묶음 → 안내문구 사이가 40 (.fig / 요청 2026-08-11).
+           카드끼리는 그대로 20 이다 */
+        "02": { bodyX: 50, bodyW: 760, listTop: 180, pad: 20, gap: 20, gapAfterCards: 40,
                 listBg: "#ffffff", order: ["cards", "notice", "size"],
                 sizeH: 538, noticeFull: false, noticeH: 80 },
         "03": { bodyX: 50, bodyW: 760, listTop: 180, pad: 20, gap: 20,
@@ -217,6 +222,14 @@
                 sizeH: 538, noticeFull: true, noticeH: 100 },
       };
       function nvList() { return NV_LIST[state.tpl] || NV_LIST["02"]; }
+      /* i 번째 항목 뒤의 간격. 카드묶음이 끝나는 자리만 gapAfterCards 를 쓴다.
+         nvListH(높이 합산)와 그리기 루프가 반드시 같은 값을 써야 어긋나지 않는다. */
+      function nvGapAfter(items, i, L) {
+        const a = items[i], b = items[i + 1];
+        if (!b) return 0;
+        if (a.kind === "card" && b.kind !== "card") return L.gapAfterCards ?? L.gap;
+        return L.gap;
+      }
 
       /* 리스트 안쪽 항목들의 높이 목록 (패딩 제외) */
       function nvListItems() {
@@ -233,7 +246,8 @@
       function nvListH() {
         const L = nvList(), it = nvListItems();
         if (!it.length) return 0;
-        const inner = it.reduce((a, b) => a + b.h, 0) + (it.length - 1) * L.gap;
+        let inner = it.reduce((a, b) => a + b.h, 0);
+        for (let i = 0; i < it.length - 1; i++) inner += nvGapAfter(it, i, L);
         return inner + L.pad * 2;
       }
       function nvOnDark(which) {
@@ -533,7 +547,16 @@
         const cardH =
           (CS0.textDY ?? 0) + nameWrapH + (CS0.cardGap ?? O.optGap) +
           CS0.priceH + (CS0.cardPadBot ?? 0);
-        return { lns, rowHs, attrs, rowH, lineH, txtOptH, boxTopH, nameWrapH, badgeOn, cardH };
+        /* 이미지 높이도 여기서 정한다. 카드가 가변인데 이미지만 고정(340/320)이라
+           옵션 줄이 늘면 카드 아래에 이미지가 못 따라와 빈 칸이 생기고,
+           02 는 카드 아래 구분선이 이미지와 어긋났다.
+             01  위10 / 아래10 고정   → cardH - 20
+             02  네 변에 붙음         → cardH
+             03  위20 / 아래20 고정   → cardH - 40
+           박스가 바뀌면 drawThumbCover 가 cover 를 다시 계산하므로 잘림도 따라 맞는다. */
+        const imgDY = CS0.imgDY ?? O.imgY;
+        const imgH = Math.max(40, cardH - imgDY - (CS0.imgPadBot ?? 0));
+        return { lns, rowHs, attrs, rowH, lineH, txtOptH, boxTopH, nameWrapH, badgeOn, cardH, imgH };
       }
 
       /* ── 옵션 카드 (내용에 맞춰 높이 가변) ── */
@@ -550,7 +573,7 @@
         ctx.fillStyle = "#f8f8f8";
         const imgLeft = cx0 + (CS0.imgDX ?? O.imgX);
         const imgTop = top + (CS0.imgDY ?? O.imgY);
-        const imgH0 = CS0.imgH || O.imgH;
+        const imgH0 = m.imgH; // 카드 높이에서 계산 (고정 CS0.imgH 는 .fig 참고값)
         ctx.fillRect(imgLeft, imgTop, O.imgW, imgH0);
         if (r.thumb)
           drawThumbCover(ctx, r.thumb, imgLeft, imgTop, O.imgW, imgH0);
@@ -763,7 +786,7 @@
               cover(ctx, it.img, itemX, y, itemW, it.h),
             );
           }
-          y += it.h + L.gap;
+          y += it.h + nvGapAfter(items, i, L);
         }
       }
 
