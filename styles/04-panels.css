@@ -315,6 +315,72 @@
         color: var(--ink);
         font-weight: 600;
       }
+      /* ---- 옵션 줄 직접 수정 ---- */
+      .roedit-btn {
+        margin-top: 6px;
+        padding: 4px 9px;
+        font-size: 10.5px;
+        line-height: 1.4;
+      }
+      .roedit-btn.on {
+        border-style: solid;
+        border-color: var(--accent);
+        background: var(--accent-weak);
+        color: var(--accent);
+        font-weight: 600;
+      }
+      .roedit {
+        margin-top: 6px;
+        padding: 7px;
+        border: 1px solid var(--accent-weak);
+        border-radius: 8px;
+        background: #fff;
+      }
+      .rorow {
+        display: flex;
+        gap: 5px;
+        align-items: center;
+        margin-bottom: 5px;
+      }
+      .rorow input {
+        margin: 0;
+        padding: 5px 7px;
+        font-size: 11px;
+        border-radius: 7px;
+        min-width: 0;
+      }
+      .rorow .rolab {
+        flex: 0 0 62px;
+        width: 62px;
+      }
+      .rorow .roval {
+        flex: 1;
+      }
+      .rorow .rox {
+        flex: 0 0 auto;
+        padding: 4px 7px;
+        line-height: 1;
+      }
+      .roadd {
+        width: 100%;
+        padding: 5px;
+        font-size: 11px;
+      }
+      .roempty {
+        font-size: 10.5px;
+        color: var(--ink-soft);
+        opacity: 0.75;
+        margin-bottom: 5px;
+      }
+      .ronote {
+        margin-top: 6px;
+        font-size: 10px;
+        line-height: 1.5;
+        color: var(--ink-soft);
+      }
+      .ronote b {
+        color: var(--accent);
+      }
       .robadge {
         display: inline-block;
         margin-top: 5px;
