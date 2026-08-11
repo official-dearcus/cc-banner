@@ -39,8 +39,27 @@
         return g.templates[Math.floor(Math.random() * g.templates.length)];
       }
       /* 처음 진입 시 컬러도 랜덤 (템플릿 허용 컬러 중, 수정 가능) */
+      /* 행사 세션이 진행 중이면 공통 테마가 랜덤보다 우선한다.
+         ⚠ 예전 순서가 이랬다:
+              selectGroup  ① 테마를 랜덤으로 잡고
+                           ② 그 테마에 맞는 히어로를 고름
+              gotoGroup    ③ 테마만 SESSION.theme 로 덮어씀
+            ③ 이 히어로를 다시 안 골라서, 테마는 블루인데 사진은 ①의 색이었다.
+            여기서 처음부터 공통 테마를 잡으면 ② 가 옳은 색으로 고른다. */
+      function sessionTheme(key, tpl) {
+        try {
+          if (typeof SESSION === "undefined" || !SESSION || !SESSION.started)
+            return null;
+          const k = SESSION.theme;
+          return k && themesForKey(key, tpl)[k] ? k : null;
+        } catch (e) {
+          return null;
+        }
+      }
       function pickInitialTheme(key, tpl) {
         if (!tpl) return null;
+        const fixed = sessionTheme(key, tpl);
+        if (fixed) return fixed;
         const keys = Object.keys(themesForKey(key, tpl));
         if (!keys.length) return null;
         return keys[Math.floor(Math.random() * keys.length)];
@@ -75,13 +94,20 @@
         }
       }
       let SEL_GEN = 0; // 제품군 선택 세대 — 비동기 로딩 경합 방지
-      function selectGroup(key) {
+      /* preferTheme — 행사 설정에서 정한 공통 테마.
+         ⚠ 이 인자가 없으면 아래 applyRandomHero() 가 "랜덤으로 뽑힌 임시 테마"로
+           히어로를 고른다. 호출부(gotoGroup)는 selectGroup 이 끝난 뒤에야
+           state.theme 을 행사 테마로 덮었기 때문에, 색은 블루인데 히어로만
+           초록인 상태가 나왔다. 테마를 먼저 확정하고 히어로를 고른다. */
+      function selectGroup(key, preferTheme) {
         const gen = ++SEL_GEN;
         state.group = key;
         const g = G()[key];
         // 하위 선택 초기화 (§2.1.1)
         state.tpl = pickInitialTpl(g); // 처음엔 랜덤 (수정 가능)
         state.theme = pickInitialTheme(key, state.tpl); // 컬러도 랜덤 (수정 가능)
+        if (preferTheme && themesForKey(key, state.tpl)[preferTheme])
+          state.theme = preferTheme;
         clearHero();
         // 셀러명·공구기간은 운영자 입력값(가변값)이므로 제품군을 바꿔도 유지한다.
         Object.assign(state, {

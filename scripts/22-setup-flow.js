@@ -145,7 +145,9 @@ function gotoGroup(key) {
     slotApply(prev);
     refreshPanels();
   } else {
-    selectGroup(key); // 최초 진입 — 기존 초기화 경로를 그대로 탄다
+    /* 행사 테마를 먼저 넘긴다 — selectGroup 안에서 히어로를 고르기 때문에,
+       나중에 덮으면 히어로가 엉뚱한 테마 기준으로 정해진다 */
+    selectGroup(key, SESSION.theme || null);
     if (SESSION.theme && themesFor(state.tpl)[SESSION.theme])
       state.theme = SESSION.theme;
     syncSellerField();
