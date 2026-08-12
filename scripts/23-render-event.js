@@ -74,6 +74,7 @@
         card: {
           txtW: 424,
           imgD: 240,
+          /* 패딩은 템플릿마다 네 변이 다르다 → EV_TPL 로 옮겼다 */
           nameSize: 40, nameH: 32, nameGap: 8,
           bodySize: 32, lineH: 32, rowGap: 16,
           txtGap: 24, // 제목 ↔ 본문
@@ -83,50 +84,64 @@
         },
       };
       /* 템플릿별 껍데기. 색은 테마 키로 받는다 (.fig green 실측값과 1:1) */
+      /* 템플릿별 껍데기 (.fig 2026-08-12 실측).
+         padT/padB/padL/padR 은 흰 카드 안쪽 여백이다. 네 변이 서로 다르다. */
       const EV_TPL = {
-        /* .fig event_comp01 860×1255 · 배경 #b9ca7d(colorBg) */
+        /* event_comp01  860×1245 · 배경 colorBg */
         "01": { bgKey: "colorBg", bodyX: 60, bodyW: 740, headGap: 60,
-                sub: "pill", subH: 63, subGap: 16,
+                sub: "pill", subH: 53, subGap: 16,
+                sellerSize: 32, sellerFont: "'Playfair Display'",
+                xSize: 40, logoW: 116, logoH: 19, subItemGap: 16,
                 title: "GIFT EVENT", titleSize: 80, titleLH: 56,
                 titleFont: "Pretendard", titleWeight: 600, titleInk: "#ffffff",
                 listBgKey: null, listPad: 0,
-                cardX: 0, cardW: 740, cardPad: 20, imgRight: true, gap: 20 },
-        /* .fig event_comp02 860×1148 · 배경 #f0f3dd(colorBgLight) */
+                cardX: 0, cardW: 740, gap: 20,
+                padT: 20, padB: 20, padL: 40, padR: 24, imgRight: true },
+        /* event_comp02  860×1148 · 배경 colorBgLight · 흰 리스트 + 1px 구분선 */
         "02": { bgKey: "colorBgLight", bodyX: 50, bodyW: 760, headGap: 56,
-                sub: "text", subFont: "'High Summit'", subSize: 48, subLH: 40,
-                subInkKey: "colorBg", subGap: 16,
+                sub: "pair", subH: 40, subGap: 16,
+                sellerSize: 36, sellerFont: "'High Summit'",
+                tailSize: 36, tailFont: "'High Summit'",
+                subTail: "& Dear.cus", subItemGap: 16, subInkKey: "colorBg",
                 title: "OPEN EVENT", titleSize: 56, titleLH: 56,
                 titleFont: "GmarketSans, Pretendard", titleWeight: 700,
                 titleInkKey: "accent",
                 listBg: "#ffffff", listPad: 0,
-                cardX: 36, cardW: 688, cardPad: 0, imgRight: false, gap: 20,
-                /* .fig: 카드 사이 1px #b9ca7d. 카드 끝에서 20 아래, 다음 카드까지 또 20 */
+                cardX: 36, cardW: 688, gap: 20,
+                padT: 0, padB: 0, padL: 0, padR: 0, imgRight: false, imgGap: 24,
                 divKey: "colorBg", divW: 1, divGap: 20 },
-        /* .fig event_comp03 860×1245 · 배경 #65812d(accent) */
+        /* event_comp03  860×1245 · 배경 accent · colorBgLight 띠 */
         "03": { bgKey: "accent", bodyX: 50, bodyW: 760, headGap: 56,
-                sub: "afacad", subH: 53, subSize: 44, subTail: "& Dear.cus",
-                subTailSize: 40, subTailGap: 16, subGap: 20,
+                sub: "pair", subH: 53, subGap: 20,
+                sellerSize: 44, sellerFont: "'Afacad Flux', Pretendard",
+                tailSize: 40, tailFont: "'Afacad Flux', Pretendard",
+                subTail: "& Dear.cus", subItemGap: 16, subInk: "#ffffff",
                 title: "OPEN EVENT", titleSize: 92, titleLH: 72,
                 titleFont: "'Afacad Flux', Pretendard", titleWeight: 600,
                 titleInk: "#ffffff",
                 listBgKey: "colorBgLight", listPad: 22,
-                cardX: 22, cardW: 716, cardPad: 10, imgRight: true, gap: 20 },
+                cardX: 22, cardW: 716, gap: 20,
+                padT: 10, padB: 10, padL: 20, padR: 20, imgRight: true },
       };
       function evCfg() { return EV_TPL[state.tpl] || EV_TPL["01"]; }
-      /* 테마 색 꺼내기.
-         ⚠ 구형(뱀부) 테마에는 colorBg / colorBgLight 키가 없다
-           (accent · circleBg · badgeBorder · sectionBg 네 개뿐).
-         이벤트 배너는 두 패밀리 모두에 붙으므로 대체 키를 둔다.
-           colorBg      → badgeBorder   (연한 테마색 띠)
-           colorBgLight → sectionBg     (뱀부 green 은 #f0f3dd 로 값까지 같다) */
-      const EV_FALLBACK = {
-        colorBg: ["colorBg", "badgeBorder", "accent"],
-        colorBgLight: ["colorBgLight", "sectionBg", "colorBg"],
-        accent: ["accent"],
-      };
+      /* 이벤트 배너의 색.
+         ⚠ event_comp 는 패밀리가 없는 단일 디자인이다. 그런데 구형(뱀부) 테마엔
+           colorBg / colorBgLight 키가 아예 없어서(accent·circleBg·badgeBorder·
+           sectionBg 넷뿐) 대체 키로 때웠더니, 뱀부 01 에서 위 섹션(sectionBg)과
+           톤이 비슷해져 두 섹션이 한 덩어리로 보였다.
+         → 테마 "키"만 받아 누볼라 팔레트에서 색을 꺼낸다. 어느 제품군이든
+           .fig 와 같은 색이 나오고, 위 섹션과 확실히 갈린다.
+             01 colorBg      중간톤   (blue #7d9eca)
+             02 colorBgLight 연한톤   (blue #eaf3f6)
+             03 accent       진한톤   (blue #2d6181) */
+      function evPalette(th) {
+        const tbl = typeof THEMES_NUVOLA !== "undefined" ? THEMES_NUVOLA : null;
+        const k = state.theme;
+        return (tbl && (tbl[k] || tbl.green)) || th || {};
+      }
       function evColor(th, key, dflt) {
-        for (const k of EV_FALLBACK[key] || [key]) if (th && th[k]) return th[k];
-        return dflt || "#ffffff";
+        const p = evPalette(th);
+        return p[key] || (th && th[key]) || dflt || "#ffffff";
       }
 
       /* ── 문장 조립 ──
@@ -190,14 +205,13 @@
           ? lines.length * C.lineH + (lines.length - 1) * C.rowGap
           : 0;
         const txtH = C.txtPadTop + C.nameH + C.txtGap + bodyH + C.txtPadBot;
-        const cardH = Math.max(C.imgD, txtH) + S.cardPad * 2;
+        const cardH = Math.max(C.imgD, txtH) + (S.padT ?? 0) + (S.padB ?? 0);
         return { tk, lines, bodyH, txtH, cardH };
       }
       /* 헤더(셀러줄 + 제목) 높이 */
       function evHeadH() {
         const S = evCfg();
-        const subH = S.sub === "text" ? S.subLH : S.subH;
-        return subH + S.subGap + S.titleLH;
+        return S.subH + S.subGap + S.titleLH;
       }
       function evListH(ctx) {
         const S = evCfg(), evs = evList();
@@ -231,9 +245,10 @@
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(x, top, cw, ch);
         /* 이미지와 글은 카드 안에서 각자 세로 가운데 (.fig) */
-        const imgX = S.imgRight ? x + cw - S.cardPad - C.imgD : x + S.cardPad;
+        const imgX = S.imgRight ? x + cw - S.padR - C.imgD : x + S.padL;
         const imgY = top + (ch - C.imgD) / 2;
-        ctx.fillStyle = "#f2f2f2";
+        /* 이미지 자리는 흰색 — 카드와 같은 색이라 안 불러와도 안 튄다 (요청 2026-08-12) */
+        ctx.fillStyle = "#ffffff";
         ctx.fillRect(imgX, imgY, C.imgD, C.imgD);
         const g = evGift(ev.giftKey);
         const im = g && evGiftImg(g.url);
@@ -241,8 +256,8 @@
           cover(ctx, im, imgX, imgY, C.imgD, C.imgD));
 
         const tx = S.imgRight
-          ? x + S.cardPad + (S.cardW === 740 ? 26 : 20)
-          : x + S.cardPad + C.imgD + 24;
+          ? x + S.padL
+          : x + S.padL + C.imgD + (S.imgGap || 24);
         let ty = top + (ch - m.txtH) / 2 + C.txtPadTop;
         ctx.textAlign = "left";
         ctx.textBaseline = "middle";
@@ -264,54 +279,57 @@
           });
         });
       }
-      function evDrawHead(ctx, W, y, th, S) {
-        const cx = W / 2;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
+      /* 셀러 줄 — 배율 k 를 받아 상세(1)와 피드(확대)가 같은 코드를 쓴다.
+         .fig 2026-08-12
+           01  [Playfair 32 셀러] 16 [Playfair 40 ×] 16 [로고 116×19]   흰색
+           02  [High Summit 36 셀러] 16 [High Summit 36 & Dear.cus]     colorBg
+           03  [Afacad 44 셀러] 16 [Afacad 40 & Dear.cus]               흰색 */
+      function evDrawSub(ctx, W, y, th, S, k) {
+        const R = (v) => Math.round(v * k);
+        const cx = W / 2, scy = y + R(S.subH) / 2;
         const seller = state.seller || "Seller_name";
+        const gap = R(S.subItemGap);
+        ctx.textBaseline = "middle";
+        ctx.textAlign = "left";
         if (S.sub === "pill") {
-          /* 01 — [셀러] × [로고], 흰 글자 (.fig 상세 히어로와 같은 줄) */
           ctx.fillStyle = "#ffffff";
-          ctx.font = `400 44px 'High Summit'`;
+          ctx.font = `400 ${R(S.sellerSize)}px ${S.sellerFont}`;
           const sw = ctx.measureText(seller).width;
-          ctx.font = `400 40px 'Playfair Display'`;
+          ctx.font = `400 ${R(S.xSize)}px ${S.sellerFont}`;
           const xw = ctx.measureText("×").width;
-          const total = sw + 16 + xw + 16 + 116;
-          let sx = cx - total / 2;
-          const scy = y + S.subH / 2;
-          ctx.textAlign = "left";
-          ctx.font = `400 44px 'High Summit'`;
-          ctx.fillText(seller, sx, scy); sx += sw + 16;
-          ctx.font = `400 40px 'Playfair Display'`;
-          ctx.fillText("×", sx, scy); sx += xw + 16;
-          if (typeof drawLogo === "function") drawLogo(ctx, sx, scy, 116, 19);
-          ctx.textAlign = "center";
-        } else if (S.sub === "text") {
-          ctx.fillStyle = evColor(th, S.subInkKey, th.accent);
-          ctx.font = `400 ${S.subSize}px ${S.subFont}`;
-          ctx.fillText(seller, cx, y + S.subLH / 2);
+          let sx = cx - (sw + gap + xw + gap + R(S.logoW)) / 2;
+          ctx.font = `400 ${R(S.sellerSize)}px ${S.sellerFont}`;
+          ctx.fillText(seller, sx, scy); sx += sw + gap;
+          ctx.font = `400 ${R(S.xSize)}px ${S.sellerFont}`;
+          ctx.fillText("×", sx, scy); sx += xw + gap;
+          if (typeof drawLogo === "function")
+            drawLogo(ctx, sx, scy, R(S.logoW), R(S.logoH));
         } else {
-          /* 03 — "Seller_name & Dear.cus" 한 줄, 전부 Afacad Flux 흰 글자 */
-          ctx.fillStyle = "#ffffff";
-          ctx.font = `400 ${S.subSize}px 'Afacad Flux', Pretendard`;
+          /* pair — [셀러] gap [& Dear.cus] */
+          ctx.fillStyle = S.subInk || evColor(th, S.subInkKey, "#ffffff");
+          ctx.font = `400 ${R(S.sellerSize)}px ${S.sellerFont}`;
           const sw = trkWidth(ctx, seller, -2);
-          ctx.font = `400 ${S.subTailSize}px 'Afacad Flux', Pretendard`;
+          ctx.font = `400 ${R(S.tailSize)}px ${S.tailFont}`;
           const tw = trkWidth(ctx, S.subTail, -2);
-          let sx = cx - (sw + S.subTailGap + tw) / 2;
-          const scy = y + S.subH / 2;
-          ctx.font = `400 ${S.subSize}px 'Afacad Flux', Pretendard`;
-          trk(ctx, seller, sx, scy, -2, "left"); sx += sw + S.subTailGap;
-          ctx.font = `400 ${S.subTailSize}px 'Afacad Flux', Pretendard`;
+          let sx = cx - (sw + gap + tw) / 2;
+          ctx.font = `400 ${R(S.sellerSize)}px ${S.sellerFont}`;
+          trk(ctx, seller, sx, scy, -2, "left"); sx += sw + gap;
+          ctx.font = `400 ${R(S.tailSize)}px ${S.tailFont}`;
           trk(ctx, S.subTail, sx, scy, -2, "left");
         }
-        /* 제목 */
-        const subH = S.sub === "text" ? S.subLH : S.subH;
         ctx.textAlign = "center";
-        ctx.fillStyle = S.titleInk || evColor(th, S.titleInkKey, th.accent);
-        ctx.font = `${S.titleWeight} ${S.titleSize}px ${S.titleFont}`;
-        const title = evTitle();
-        trk(ctx, title, cx, y + subH + S.subGap + S.titleLH / 2, -2, "center");
+      }
+      function evDrawTitle(ctx, W, y, th, S, k) {
+        const R = (v) => Math.round(v * k);
+        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillStyle = S.titleInk || evColor(th, S.titleInkKey, "#ffffff");
+        ctx.font = `${S.titleWeight} ${R(S.titleSize)}px ${S.titleFont}`;
+        trk(ctx, evTitle(), W / 2, y + R(S.titleLH) / 2, -2, "center");
         ctx.textBaseline = "alphabetic";
+      }
+      function evDrawHead(ctx, W, y, th, S) {
+        evDrawSub(ctx, W, y, th, S, 1);
+        evDrawTitle(ctx, W, y + S.subH + S.subGap, th, S, 1);
       }
       /* 섹션 제목: 시트(TemplateMaster eventTitle) → 템플릿 기본값 */
       function evTitle() {
@@ -411,59 +429,18 @@
         });
       }
       function evfHead(ctx, W, y, th, S, k) {
-        const cx = W / 2;
-        const R = (v) => Math.round(v * k);
-        ctx.textAlign = "center"; ctx.textBaseline = "middle";
-        const seller = state.seller || "Seller_name";
-        const subH = S.sub === "text" ? R(S.subLH) : R(S.subH);
-        if (S.sub === "pill") {
-          ctx.fillStyle = "#ffffff";
-          ctx.font = `400 ${R(44)}px 'High Summit'`;
-          const sw = ctx.measureText(seller).width;
-          ctx.font = `400 ${R(40)}px 'Playfair Display'`;
-          const xw = ctx.measureText("×").width;
-          const total = sw + R(16) + xw + R(16) + R(116);
-          let sx = cx - total / 2;
-          const scy = y + subH / 2;
-          ctx.textAlign = "left";
-          ctx.font = `400 ${R(44)}px 'High Summit'`;
-          ctx.fillText(seller, sx, scy); sx += sw + R(16);
-          ctx.font = `400 ${R(40)}px 'Playfair Display'`;
-          ctx.fillText("×", sx, scy); sx += xw + R(16);
-          if (typeof drawLogo === "function") drawLogo(ctx, sx, scy, R(116), R(19));
-          ctx.textAlign = "center";
-        } else if (S.sub === "text") {
-          ctx.fillStyle = evColor(th, S.subInkKey, th.accent);
-          ctx.font = `400 ${R(S.subSize)}px ${S.subFont}`;
-          ctx.fillText(seller, cx, y + subH / 2);
-        } else {
-          ctx.fillStyle = "#ffffff";
-          ctx.font = `400 ${R(S.subSize)}px 'Afacad Flux', Pretendard`;
-          const sw = trkWidth(ctx, seller, -2);
-          ctx.font = `400 ${R(S.subTailSize)}px 'Afacad Flux', Pretendard`;
-          const tw = trkWidth(ctx, S.subTail, -2);
-          let sx = cx - (sw + R(S.subTailGap) + tw) / 2;
-          const scy = y + subH / 2;
-          ctx.font = `400 ${R(S.subSize)}px 'Afacad Flux', Pretendard`;
-          trk(ctx, seller, sx, scy, -2, "left"); sx += sw + R(S.subTailGap);
-          ctx.font = `400 ${R(S.subTailSize)}px 'Afacad Flux', Pretendard`;
-          trk(ctx, S.subTail, sx, scy, -2, "left");
-        }
-        ctx.textAlign = "center";
-        ctx.fillStyle = S.titleInk || evColor(th, S.titleInkKey, th.accent);
-        ctx.font = `${S.titleWeight} ${R(S.titleSize)}px ${S.titleFont}`;
-        trk(ctx, evTitle(), cx, y + subH + R(S.subGap) + R(S.titleLH) / 2, -2, "center");
-        ctx.textBaseline = "alphabetic";
+        evDrawSub(ctx, W, y, th, S, k);
+        evDrawTitle(ctx, W, y + Math.round(S.subH * k) + Math.round(S.subGap * k), th, S, k);
       }
       function evfDrawCard(ctx, ev, x, top, th, S, m, k) {
         const C = EV.card;
         const R = (v) => Math.round(v * k);
-        const cw = R(S.cardW), ch = m.cardH, imgD = R(C.imgD), pad = R(S.cardPad);
+        const cw = R(S.cardW), ch = m.cardH, imgD = R(C.imgD);
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(x, top, cw, ch);
-        const imgX = S.imgRight ? x + cw - pad - imgD : x + pad;
+        const imgX = S.imgRight ? x + cw - R(S.padR) - imgD : x + R(S.padL);
         const imgY = top + (ch - imgD) / 2;
-        ctx.fillStyle = "#f2f2f2";
+        ctx.fillStyle = "#ffffff";
         ctx.fillRect(imgX, imgY, imgD, imgD);
         const g = evGift(ev.giftKey);
         const im = g && evGiftImg(g.url);
@@ -471,8 +448,8 @@
           cover(ctx, im, imgX, imgY, imgD, imgD));
 
         const tx = S.imgRight
-          ? x + pad + R(S.cardW === 740 ? 26 : 20)
-          : x + pad + imgD + R(24);
+          ? x + R(S.padL)
+          : x + R(S.padL) + imgD + R(S.imgGap || 24);
         let ty = top + (ch - m.txtH) / 2 + R(C.txtPadTop);
         const nameH = R(C.nameH), lineH = R(C.lineH), rowGap = R(C.rowGap);
         ctx.textAlign = "left"; ctx.textBaseline = "middle";
