@@ -296,7 +296,10 @@
         ctx.textBaseline = "middle";
         ctx.textAlign = "left";
         if (S.sub === "pill") {
-          ctx.fillStyle = "#ffffff";
+          /* 셀러 줄도 제목과 같은 색 (요청 2026-08-12).
+             로고는 흰색 PNG 라 drawLogo 에 ink 를 넘겨 물들인다. */
+          const ink = S.subInk || evColor(th, S.subInkKey || S.titleInkKey, "#ffffff");
+          ctx.fillStyle = ink;
           ctx.font = `400 ${R(S.sellerSize)}px ${S.sellerFont}`;
           const sw = ctx.measureText(seller).width;
           ctx.font = `400 ${R(S.xSize)}px ${S.sellerFont}`;
@@ -307,7 +310,7 @@
           ctx.font = `400 ${R(S.xSize)}px ${S.sellerFont}`;
           ctx.fillText("×", sx, scy); sx += xw + gap;
           if (typeof drawLogo === "function")
-            drawLogo(ctx, sx, scy, R(S.logoW), R(S.logoH));
+            drawLogo(ctx, sx, scy, R(S.logoW), R(S.logoH), ink);
         } else {
           /* pair — [셀러] gap [& Dear.cus] */
           ctx.fillStyle = S.subInk || evColor(th, S.subInkKey, "#ffffff");

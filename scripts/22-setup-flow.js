@@ -428,13 +428,25 @@ function prefetchGroup(key) {
    옵션 카드처럼 계속 추가한다. 한 줄 = {typeKey, num, giftKey}.
    종류·선물 목록은 시트(EventMaster / GiftMaster)에서 온다. */
 let SETUP_EVENTS = [];
-function renderSetupEvents() {
-  const box = $("#suEvents");
+/* 설정 화면과 좌측 패널이 같은 편집기를 쓴다.
+   설정   SETUP_EVENTS  (아직 세션 시작 전이라 임시 배열)
+   패널   SESSION.events (이미 시작한 행사 — 고치면 배너가 바로 갱신된다) */
+function evEditTarget(where) {
+  return where === "panel" ? SESSION.events || (SESSION.events = []) : SETUP_EVENTS;
+}
+function renderPanelEvents() { renderEventEditor("panel"); }
+function renderSetupEvents() { renderEventEditor("setup"); }
+function renderEventEditor(where) {
+  const P = where === "panel";
+  const box = $(P ? "#pnEvents" : "#suEvents");
   if (!box) return;
+  const LIST = evEditTarget(where);
   const types = typeof evTypes === "function" ? evTypes() : [];
   const gifts = typeof evGifts === "function" ? evGifts() : [];
-  const hint = $("#suEvHint");
-  const add = $("#suEvAdd");
+  const hint = $(P ? "#pnEvHint" : "#suEvHint");
+  const add = $(P ? "#pnEvAdd" : "#suEvAdd");
+  const cnt = $("#evCount");
+  if (cnt) cnt.textContent = (SESSION.events || []).length ? `${(SESSION.events || []).length}개` : "";
   if (!types.length || !gifts.length) {
     box.innerHTML = "";
     if (add) add.disabled = true;
@@ -458,7 +470,7 @@ function renderSetupEvents() {
       : `이벤트를 넣지 않으면 이벤트 섹션이 아예 안 붙습니다.`;
   const opt = (list, keyF, labF, cur) =>
     list.map((x) => `<option value="${esc(keyF(x))}"${keyF(x) === cur ? " selected" : ""}>${esc(labF(x))}</option>`).join("");
-  box.innerHTML = SETUP_EVENTS.map((e, i) => {
+  box.innerHTML = LIST.map((e, i) => {
     const g = gifts.find((x) => x.giftKey === e.giftKey);
     const t = types.find((x) => x.typeKey === e.typeKey);
     const par = typeof evGiftParticle === "function" ? evGiftParticle(g) : "를";
@@ -473,26 +485,30 @@ function renderSetupEvents() {
       <div class="evprev">${esc(line)}</div>
     </div>`;
   }).join("");
+  /* 패널에서 고치면 배너를 바로 다시 그린다 */
+  const after = () => { renderEventEditor(where); if (P && typeof draw === "function") draw(); };
   box.querySelectorAll(".evtype").forEach((s) => (s.onchange = () => {
-    SETUP_EVENTS[+s.dataset.i].typeKey = s.value; renderSetupEvents(); }));
+    LIST[+s.dataset.i].typeKey = s.value; after(); }));
   box.querySelectorAll(".evgift").forEach((s) => (s.onchange = () => {
-    SETUP_EVENTS[+s.dataset.i].giftKey = s.value; renderSetupEvents(); }));
+    LIST[+s.dataset.i].giftKey = s.value; after(); }));
   box.querySelectorAll(".evnum input").forEach((inp) => (inp.onchange = () => {
-    const n = Math.max(1, parseInt(inp.value, 10) || 1);
-    SETUP_EVENTS[+inp.dataset.i].num = n; renderSetupEvents(); }));
+    LIST[+inp.dataset.i].num = Math.max(1, parseInt(inp.value, 10) || 1); after(); }));
   box.querySelectorAll(".evdel").forEach((b) => (b.onclick = () => {
-    SETUP_EVENTS.splice(+b.dataset.i, 1); renderSetupEvents(); }));
+    LIST.splice(+b.dataset.i, 1); after(); }));
 }
-function setupEventAdd() {
+function eventAdd(where) {
   const types = typeof evTypes === "function" ? evTypes() : [];
   const gifts = typeof evGifts === "function" ? evGifts() : [];
   if (!types.length || !gifts.length) return;
+  const LIST = evEditTarget(where);
   /* 아직 안 쓴 종류를 먼저 권한다 — 같은 종류를 두 번 넣는 일이 드물어서 */
-  const used = SETUP_EVENTS.map((e) => e.typeKey);
+  const used = LIST.map((e) => e.typeKey);
   const t = types.find((x) => !used.includes(x.typeKey)) || types[0];
-  SETUP_EVENTS.push({ typeKey: t.typeKey, num: 10, giftKey: gifts[0].giftKey });
-  renderSetupEvents();
+  LIST.push({ typeKey: t.typeKey, num: 10, giftKey: gifts[0].giftKey });
+  renderEventEditor(where);
+  if (where === "panel" && typeof draw === "function") draw();
 }
+function setupEventAdd() { eventAdd("setup"); }
 
 const RAND_T = "__rand"; // 실제 테마 키와 겹치지 않는 값
 function renderSetupThemes() {
@@ -586,6 +602,7 @@ function startSession() {
   SESSION.groups = SETUP_PICK.slice();
   SESSION.theme = SETUP_THEME;
   SESSION.events = SETUP_EVENTS.map((e) => ({ ...e }));
+  if (typeof renderPanelEvents === "function") renderPanelEvents();
   SESSION.sellerKo = $("#suSellerKo").value.trim();
   SESSION.sellerEn = $("#suSellerEn").value.trim();
   SESSION.d1 = $("#suD1").value;
@@ -697,6 +714,8 @@ selectGroup = function (key) {
   if (go) go.onclick = startSession;
   const evAdd = $("#suEvAdd");
   if (evAdd) evAdd.onclick = setupEventAdd;
+  const pnAdd = $("#pnEvAdd");
+  if (pnAdd) pnAdd.onclick = () => eventAdd("panel");
 
   /* 좌측 패널의 셀러 입력을 직접 고치면 세션 값도 따라간다 */
   const sel = $("#seller");
@@ -711,6 +730,7 @@ selectGroup = function (key) {
   initGroups = function () {
     const r = _initGroups.apply(this, arguments);
     if (typeof renderSetupEvents === "function") renderSetupEvents();
+    if (typeof renderPanelEvents === "function") renderPanelEvents();
     if (!$("#setup").hidden) {
       renderSetupGroups();
       renderSetupThemes();
