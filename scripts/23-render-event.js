@@ -92,8 +92,12 @@
                 sub: "pill", subH: 53, subGap: 16,
                 sellerSize: 32, sellerFont: "'Playfair Display'",
                 xSize: 40, logoW: 116, logoH: 19, subItemGap: 16,
+                /* 제목 색은 바로 위 컬러 섹션과 같은 키를 쓴다 (요청 2026-08-12).
+                   한 키가 두 섹션을 정하므로 테마를 바꿔도 위아래가 안 어긋난다.
+                   green 은 이 요청에 맞춰 t01ColorInk 를 흰색으로 바꿨다. */
                 title: "GIFT EVENT", titleSize: 80, titleLH: 56,
-                titleFont: "Pretendard", titleWeight: 600, titleInk: "#ffffff",
+                titleFont: "Pretendard", titleWeight: 600,
+                titleInkKey: "t01ColorInk",
                 listBgKey: null, listPad: 0,
                 cardX: 0, cardW: 740, gap: 20,
                 padT: 20, padB: 20, padL: 40, padR: 24, imgRight: true },
