@@ -473,14 +473,14 @@ function renderEventEditor(where) {
   box.innerHTML = LIST.map((e, i) => {
     const g = gifts.find((x) => x.giftKey === e.giftKey);
     const t = types.find((x) => x.typeKey === e.typeKey);
-    const par = typeof evGiftParticle === "function" ? evGiftParticle(g) : "를";
-    const line = t && g
-      ? `${t.bodyLabel || t.titleLabel}${e.num}명에게 ${g.label}${par} 드립니다.`
-      : "";
+    /* 완성 문장은 렌더러와 같은 함수로 만든다 — 미리보기와 배너가 안 갈린다 */
+    const line = t && g && typeof evSentence === "function" ? evSentence(e) : "";
     return `<div class="evrow" data-i="${i}">
+      <span class="evdrag" title="끌어서 순서 변경">⠿</span>
       <select class="evtype" data-i="${i}">${opt(types, (x) => x.typeKey, (x) => x.titleLabel, e.typeKey)}</select>
-      <div class="evnum"><input type="number" min="1" max="9999" data-i="${i}" value="${e.num}" /><span>명</span></div>
+      <div class="evnum"><input type="number" min="1" max="9999" data-f="num" data-i="${i}" value="${e.num}" /><span>명</span></div>
       <select class="evgift" data-i="${i}">${opt(gifts, (x) => x.giftKey, (x) => x.label, e.giftKey)}</select>
+      <div class="evnum evqty"><input type="number" min="1" max="20" data-f="qty" data-i="${i}" value="${e.qty || 1}" /><span>개</span></div>
       <button class="evdel" data-i="${i}" title="삭제">×</button>
       <div class="evprev">${esc(line)}</div>
     </div>`;
@@ -492,9 +492,52 @@ function renderEventEditor(where) {
   box.querySelectorAll(".evgift").forEach((s) => (s.onchange = () => {
     LIST[+s.dataset.i].giftKey = s.value; after(); }));
   box.querySelectorAll(".evnum input").forEach((inp) => (inp.onchange = () => {
-    LIST[+inp.dataset.i].num = Math.max(1, parseInt(inp.value, 10) || 1); after(); }));
+    const f = inp.dataset.f === "qty" ? "qty" : "num";
+    const cap = f === "qty" ? 20 : 9999;
+    LIST[+inp.dataset.i][f] = Math.min(cap, Math.max(1, parseInt(inp.value, 10) || 1));
+    after(); }));
   box.querySelectorAll(".evdel").forEach((b) => (b.onclick = () => {
     LIST.splice(+b.dataset.i, 1); after(); }));
+
+  /* --- 드래그 정렬 (가격 카드와 같은 방식) --- */
+  let from = null;
+  box.querySelectorAll(".evrow").forEach((el) => {
+    const h = el.querySelector(".evdrag");
+    if (h) h.onmousedown = () => { el.draggable = true; };
+    el.ondragstart = (e) => {
+      from = +el.dataset.i;
+      el.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", String(from));
+    };
+    el.ondragend = () => {
+      el.draggable = false; from = null;
+      box.querySelectorAll(".evrow").forEach((x) =>
+        x.classList.remove("dragging", "over-t", "over-b"));
+    };
+    el.ondragover = (e) => {
+      if (from === null) return;
+      e.preventDefault();
+      const r = el.getBoundingClientRect();
+      const aft = e.clientY - r.top > r.height / 2;
+      el.classList.toggle("over-b", aft);
+      el.classList.toggle("over-t", !aft);
+    };
+    el.ondragleave = () => el.classList.remove("over-t", "over-b");
+    el.ondrop = (e) => {
+      e.preventDefault();
+      if (from === null) return;
+      const r = el.getBoundingClientRect();
+      const aft = e.clientY - r.top > r.height / 2;
+      let to = +el.dataset.i + (aft ? 1 : 0);
+      const item = LIST[from];
+      LIST.splice(from, 1);
+      if (from < to) to--;
+      LIST.splice(to, 0, item);
+      from = null;
+      after();
+    };
+  });
 }
 function eventAdd(where) {
   const types = typeof evTypes === "function" ? evTypes() : [];
@@ -504,7 +547,7 @@ function eventAdd(where) {
   /* 아직 안 쓴 종류를 먼저 권한다 — 같은 종류를 두 번 넣는 일이 드물어서 */
   const used = LIST.map((e) => e.typeKey);
   const t = types.find((x) => !used.includes(x.typeKey)) || types[0];
-  LIST.push({ typeKey: t.typeKey, num: 10, giftKey: gifts[0].giftKey });
+  LIST.push({ typeKey: t.typeKey, num: 10, giftKey: gifts[0].giftKey, qty: 1 });
   renderEventEditor(where);
   if (where === "panel" && typeof draw === "function") draw();
 }

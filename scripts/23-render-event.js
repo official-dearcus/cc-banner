@@ -151,20 +151,46 @@
       /* ── 문장 조립 ──
          토큰 하나 = 한 낱말. glue 는 앞 낱말과의 간격(px).
          br=false 인 토큰(조사)은 앞 낱말과 절대 안 떨어진다. */
+      /* 선물 표기 — 수량이 2 이상이면 "수세미 2개".
+         조사는 이 문자열 기준이라 자동으로 맞는다 ("2개" → 받침 없음 → 를). */
+      function evGiftText(ev) {
+        const g = evGift(ev.giftKey);
+        const label = (g && g.label) || "";
+        const q = Math.max(1, parseInt(ev.qty, 10) || 1);
+        return q > 1 ? `${label} ${q}개` : label;
+      }
+      /* 완성 문장 — 패널 미리보기와 배너가 같은 결과를 쓴다 */
+      function evSentence(ev) {
+        const t = evType(ev.typeKey);
+        if (!t) return "";
+        const body = t.bodyLabel || t.titleLabel;
+        const gift = evGiftText(ev);
+        const par = evPartOf(ev);
+        return `${body} ${ev.num}명에게 ${gift}${par} 드립니다.`;
+      }
+      /* 조사. 수량이 붙으면 "…2개" 기준으로 다시 고른다.
+         GiftMaster.particle 은 수량이 없을 때만 존중한다 —
+         "수세미를"로 적어둔 값이 "수세미 2개를"에서도 맞는다는 보장이 없다. */
+      function evPartOf(ev) {
+        const g = evGift(ev.giftKey);
+        const q = Math.max(1, parseInt(ev.qty, 10) || 1);
+        return q > 1 ? evParticle(evGiftText(ev)) : evGiftParticle(g);
+      }
       function evTokens(ev) {
         const t = evType(ev.typeKey);
-        const g = evGift(ev.giftKey);
         const body = (t && (t.bodyLabel || t.titleLabel)) || "";
         const num = String(ev.num ?? "");
-        const gift = (g && g.label) || "";
-        const par = evGiftParticle(g);
+        const gift = evGiftText(ev);
+        const par = evPartOf(ev);
         const sp = -1; // 공백 폭은 그릴 때 실제로 잰다
         const words = (s, w) =>
           String(s).split(/\s+/).filter(Boolean).map((x, i) => ({
             t: x, w, glue: i === 0 ? 0 : sp, br: i > 0,
           }));
-        /* 1줄 — "구매 선착순10명에게" (.fig 는 낱말 사이에 공백이 없다) */
-        const p1 = words(`${body}${num}명에게`, 400);
+        /* 1줄 — "구매 선착순 10명에게"
+           ⚠ .fig 은 "구매 선착순"·"10"·"명에게" 를 간격 0 으로 붙여 놨지만
+             (144 → 144 → 177) 붙여 읽히므로 요청(2026-08-12)대로 띄운다. */
+        const p1 = words(`${body} ${num}명에게`, 400);
         /* 2줄 — "[선물][을] 드립니다." */
         const p2 = words(gift, 600);
         if (p2.length) p2[p2.length - 1] = { ...p2[p2.length - 1] };
@@ -233,6 +259,33 @@
       }
 
       /* ── 그리기 ── */
+      /* 선물 이미지를 수량만큼 그린다.
+         ⚠ .fig 에는 1개짜리 240×240 만 있다. 여러 개 배치는 디자인 근거가 없어
+           카드 높이를 절대 안 건드리는 선에서 정했다:
+             같은 칸 안에서 겹쳐 부채꼴로 편다(카드 넘기듯).
+             s   = D / (1 + (n-1)*STEP)   각 장의 크기
+             각 장을 STEP*s 씩 오른쪽·아래로 밀고, 뒤엣것부터 그린다.
+           5장까지만 그린다(그 이상은 겹쳐도 안 보인다).
+           배치가 마음에 안 들면 EV_MULTI 두 값만 고치면 된다. */
+      const EV_MULTI = { step: 0.26, max: 5 };
+      function evDrawGift(ctx, ev, x, y, D) {
+        const g = evGift(ev.giftKey);
+        const im = g && evGiftImg(g.url);
+        const n = Math.min(EV_MULTI.max, Math.max(1, parseInt(ev.qty, 10) || 1));
+        if (n <= 1) {
+          if (im) clipRect(ctx, x, y, D, D, () => cover(ctx, im, x, y, D, D));
+          return;
+        }
+        const st = EV_MULTI.step;
+        const s = D / (1 + (n - 1) * st);
+        const off = st * s;
+        /* 뒤에서 앞으로 — 마지막 장이 맨 위에 온다 */
+        for (let i = n - 1; i >= 0; i--) {
+          const dx = x + off * i;
+          const dy = y + off * i;
+          if (im) clipRect(ctx, dx, dy, s, s, () => cover(ctx, im, dx, dy, s, s));
+        }
+      }
       function evGiftImg(url) {
         if (!url) return null;
         if (GIFT_IMG[url] !== undefined) return GIFT_IMG[url];
@@ -254,10 +307,7 @@
         /* 이미지 자리는 흰색 — 카드와 같은 색이라 안 불러와도 안 튄다 (요청 2026-08-12) */
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(imgX, imgY, C.imgD, C.imgD);
-        const g = evGift(ev.giftKey);
-        const im = g && evGiftImg(g.url);
-        if (im) clipRect(ctx, imgX, imgY, C.imgD, C.imgD, () =>
-          cover(ctx, im, imgX, imgY, C.imgD, C.imgD));
+        evDrawGift(ctx, ev, imgX, imgY, C.imgD);
 
         const tx = S.imgRight
           ? x + S.padL
@@ -449,10 +499,7 @@
         const imgY = top + (ch - imgD) / 2;
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(imgX, imgY, imgD, imgD);
-        const g = evGift(ev.giftKey);
-        const im = g && evGiftImg(g.url);
-        if (im) clipRect(ctx, imgX, imgY, imgD, imgD, () =>
-          cover(ctx, im, imgX, imgY, imgD, imgD));
+        evDrawGift(ctx, ev, imgX, imgY, imgD);
 
         const tx = S.imgRight
           ? x + R(S.padL)
