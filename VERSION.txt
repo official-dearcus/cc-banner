@@ -1,46 +1,19 @@
-cc-banner  build 2026-08-12-A
-이벤트 배너 — .fig 2026-08-12 반영 + 색 재지정 (요청 2026-08-12)
-
-1) 색: 패밀리 무관하게 누볼라 팔레트에서 꺼낸다 (evPalette)
-   ⚠ event_comp 는 패밀리가 없는 단일 디자인인데, 구형(뱀부) 테마엔
-     colorBg / colorBgLight 키가 없어 badgeBorder 로 때웠다. 그 색이 위
-     섹션(sectionBg)과 톤이 비슷해 두 섹션이 한 덩어리로 이어져 보였다.
-   → 테마 "키"만 받아 THEMES_NUVOLA 에서 색을 꺼낸다.
-     blue 기준  01 colorBg #7d9eca · 02 colorBgLight #eaf3f6 · 03 accent #2d6181
-     위 섹션 #eaf3f6 와 확실히 갈린다. 6색 전부 값이 있다.
-
-2) 제품 이미지 자리 #f2f2f2 → #ffffff (상세·피드 둘 다)
-   카드와 같은 색이라 이미지를 아직 못 불러와도 안 튄다.
-
-3) event_comp01 카드 안쪽 패딩 (.fig 2026-08-12)
-   before  네 변 20 균일 + 글 x 를 26/20 으로 하드코딩
-   after   padT/padB/padL/padR 를 템플릿마다 따로
-     01  20/24/20/40   글 x+40 · 이미지 x+476
-     02  0/0/0/0       이미지 x+0 · 글 x+264 (imgGap 24)
-     03  10/20/10/20   글 x+20 · 이미지 x+456
-   섹션 높이 01 1255 → 1245 (txt-wrap 135 → 125)
-
-4) txt-sub 폰트 (.fig 2026-08-12)
-   01  High Summit 44 → Playfair Display 32 · × 40 · 로고 116×19   subH 63→53
-   02  High Summit 48 한 줄 → High Summit 36 [셀러] 16 [& Dear.cus]  subH 40
-       색은 colorBg (green #b9ca7d)
-   03  변동 없음 (Afacad 44 + 40, subH 53)
-   evDrawSub/evDrawTitle 로 합쳐 상세와 피드가 같은 코드를 쓴다 (배율 k만 다름).
-
-   .fig 대조: 섹션 1245 / 1148 / 1245 · 카드 280·320·280 / 240·280·240 / 260·300·260
+cc-banner  build 2026-08-12-C
+그린 t01ColorInk #ffffff → #445523 (요청 2026-08-12)
+  B 에서 흰색으로 갔다가 짙은 톤으로 되돌렸다.
+  이벤트 01 제목이 같은 키를 쓰므로 GIFT EVENT 도 함께 #445523 이 된다.
+    그린 #445523 · 블루 #ffffff · 핑크 #7c6055
+    옐로우 #b08a1e · 오렌지 #ffffff · 민트 #ffffff
+  t01ColorInk 는 컬러 섹션의 눈썹문구·제목·키즈/성인 줄·칩 이름을 전부 정한다.
 
 이전:
-이벤트 배너가 뱀부 01·02 에서 안 보이던 문제
-  J 에서 nvDetail(신형 렌더러)에만 붙였다. 뱀부 01·02 는 구형 경로라
-  canvasH / drawDetailTo / feedCount / drawFeedSlide 어디서도 안 불렸다.
-    13-render-core  canvasH 에 evSectionH() 합산 · drawDetailTo 끝에 evSection
-                    legacyBodyH() 신설 — 옵션 목록이 끝나는 y
-    15-render-thumb-feed  feedCount 에 evFeedN() · drawFeedSlide 에 이벤트면
-      이벤트면은 옵션면 뒤 (상세에서도 마지막 섹션이라 순서를 맞춘다)
-
-  ⚠ 구형 테마에는 colorBg / colorBgLight 키가 아예 없다
-    (accent · circleBg · badgeBorder · sectionBg 넷뿐).
-    evColor() 신설 — 대체 키를 순서대로 찾는다.
-      colorBg      → badgeBorder → accent
-      colorBgLight → sectionBg   → colorBg
-    뱀부 green 기준 #c3d2a5 / #b9ca7d 가 잡힌다.
+템플릿 01 — 컬러 안내 제목과 GIFT EVENT 제목 색 통일 (요청 2026-08-12)
+  이벤트 01 제목이 #ffffff 하드코딩이라 컬러 섹션(t01ColorInk)과 따로 놀았다.
+    23-render-event  titleInk "#ffffff" → titleInkKey "t01ColorInk"
+    04-template-meta green t01ColorInk #65812d → #ffffff
+  한 키가 두 섹션을 정하므로 테마를 바꿔도 위아래가 안 어긋난다.
+    그린 #ffffff · 블루 #ffffff · 핑크 #7c6055
+    옐로우 #b08a1e · 오렌지 #ffffff · 민트 #ffffff
+  ⚠ t01ColorInk 는 컬러 섹션의 제목·키즈/성인·칩 이름을 전부 정한다.
+    그린은 이 글자들도 같이 흰색이 된다(블루·오렌지·민트가 원래 그랬다).
+  02(accent) · 03(흰색)은 각자 다른 키라 안 딸려갔다.
