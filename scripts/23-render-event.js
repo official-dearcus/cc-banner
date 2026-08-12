@@ -260,32 +260,29 @@
 
       /* ── 그리기 ── */
       /* 선물 이미지를 수량만큼 그린다.
-         ⚠ .fig 에는 1개짜리 240×240 만 있다. 여러 개 배치는 디자인 근거가 없어
-           카드 높이를 절대 안 건드리는 선에서 정했다:
-             같은 칸 안에서 겹쳐 부채꼴로 편다(카드 넘기듯).
-             s   = D / (1 + (n-1)*STEP)   각 장의 크기
-             각 장을 STEP*s 씩 오른쪽·아래로 밀고, 뒤엣것부터 그린다.
-           5장까지만 그린다(그 이상은 겹쳐도 안 보인다).
-           배치가 마음에 안 들면 EV_MULTI 두 값만 고치면 된다. */
-      const EV_MULTI = { step: 0.26, max: 5 };
-      function evDrawGift(ctx, ev, x, y, D) {
-        const g = evGift(ev.giftKey);
-        const im = g && evGiftImg(g.url);
-        const n = Math.min(EV_MULTI.max, Math.max(1, parseInt(ev.qty, 10) || 1));
-        if (n <= 1) {
-          if (im) clipRect(ctx, x, y, D, D, () => cover(ctx, im, x, y, D, D));
-          return;
-        }
-        const st = EV_MULTI.step;
-        const s = D / (1 + (n - 1) * st);
-        const off = st * s;
-        /* 뒤에서 앞으로 — 마지막 장이 맨 위에 온다 */
-        for (let i = n - 1; i >= 0; i--) {
-          const dx = x + off * i;
-          const dy = y + off * i;
-          if (im) clipRect(ctx, dx, dy, s, s, () => cover(ctx, im, dx, dy, s, s));
-        }
+         ⚠ .fig 에는 1개짜리 240×240 만 있다. 여러 장 배치는 디자인 근거가 없어
+           2026-08-12 레퍼런스(사용자 조정본)에서 역산했다.
+             step  0.42  가로 간격 / 각 장 크기      (3장 → 각 130 · 간격 55)
+             slope 0.45  세로 낙차 / 가로 간격       45° 가 아니라 완만하게
+             오른쪽 아래로 갈수록 앞 — 마지막 장이 맨 위에 온다
+           가로가 항상 240 을 꽉 채우고(그래서 s 를 가로 기준으로 잡는다),
+           세로는 그보다 낮으므로 칸 안에서 가운데로 맞춘다.
+           카드 높이는 어떤 수량에서도 안 변한다.
+           배치를 바꾸려면 EV_MULTI 세 값만 고치면 된다. */
+      const EV_MULTI = { step: 0.42, slope: 0.45, max: 5 };
+      function evGiftLayout(qty, D) {
+        const n = Math.min(EV_MULTI.max, Math.max(1, parseInt(qty, 10) || 1));
+        if (n <= 1) return [{ x: 0, y: 0, s: D }];
+        const s = D / (1 + (n - 1) * EV_MULTI.step);
+        const dx = EV_MULTI.step * s;
+        const dy = dx * EV_MULTI.slope;
+        const top = (D - (s + dy * (n - 1))) / 2; // 세로 가운데
+        const out = [];
+        for (let i = 0; i < n; i++)
+          out.push({ x: dx * i, y: top + dy * i, s });
+        return out;
       }
+      /* 선물 이미지 캐시. 처음 부를 때 로딩을 걸고, 오면 draw() 로 다시 그린다. */
       function evGiftImg(url) {
         if (!url) return null;
         if (GIFT_IMG[url] !== undefined) return GIFT_IMG[url];
@@ -295,6 +292,16 @@
             .then((r) => { GIFT_IMG[url] = r.img; draw(); })
             .catch(() => {});
         return null;
+      }
+      function evDrawGift(ctx, ev, x, y, D) {
+        const g = evGift(ev.giftKey);
+        const im = g && evGiftImg(g.url);
+        if (!im) return;
+        /* 앞에서 뒤로 그린다 → 배열 마지막(오른쪽 아래)이 맨 위 */
+        for (const p of evGiftLayout(ev.qty, D)) {
+          const dx = x + p.x, dy = y + p.y, s = p.s;
+          clipRect(ctx, dx, dy, s, s, () => cover(ctx, im, dx, dy, s, s));
+        }
       }
       function evDrawCard(ctx, ev, x, top, th, S, m) {
         const C = EV.card;
