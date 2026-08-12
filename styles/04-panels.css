@@ -349,13 +349,20 @@
       }
       #pnEvents .evrow {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) 76px 30px;
+        grid-template-columns: 14px minmax(0, 1fr) 72px 28px;
         gap: 6px;
         align-items: center;
         padding: 8px;
         border: 1px solid var(--line);
         border-radius: 10px;
         background: #fff;
+      }
+      /* 선물 select 는 한 줄, 수량은 그 아래 오른쪽 */
+      #pnEvents .evrow .evgift {
+        grid-column: 1 / 3;
+      }
+      #pnEvents .evrow .evqty {
+        grid-column: 3 / 5;
       }
       #pnEvents .evrow select,
       #pnEvents .evrow input {
@@ -368,10 +375,6 @@
         border: 1px solid var(--line);
         border-radius: 7px;
         background: #fff;
-      }
-      /* 선물은 폭이 좁아 한 줄을 통째로 쓴다 */
-      #pnEvents .evrow .evgift {
-        grid-column: 1 / -1;
       }
       #pnEvents .evnum {
         display: flex;
@@ -396,6 +399,27 @@
       #pnEvents .evdel:hover {
         border-color: #d94b4b;
         color: #d94b4b;
+      }
+      /* 드래그 손잡이 — 가격 카드 ⠿ 와 같은 방식 */
+      .evdrag {
+        cursor: grab;
+        color: var(--ink-soft);
+        font-size: 13px;
+        line-height: 1;
+        user-select: none;
+        text-align: center;
+      }
+      .evdrag:active {
+        cursor: grabbing;
+      }
+      .evrow.dragging {
+        opacity: 0.45;
+      }
+      .evrow.over-t {
+        box-shadow: inset 0 2px 0 var(--accent);
+      }
+      .evrow.over-b {
+        box-shadow: inset 0 -2px 0 var(--accent);
       }
       #pnEvents .evprev {
         grid-column: 1 / -1;
