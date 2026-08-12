@@ -975,9 +975,10 @@
         /* 02 썸네일만 히어로를 줄여 왼쪽에 붙인다 (요청 2026-08-12).
            1080 을 꽉 채우면 정사각형으로 잘리면서 제품이 확대돼 보였다.
              heroW   그릴 가로 폭. 비율을 지켜 세로도 같이 줄어든다.
+             heroHA  남는 가로를 어디에 둘지 — "right" 면 오른쪽에 붙는다
              heroVA  남는 세로를 어디에 둘지 — "bottom" 이면 제품이 아래에 붙는다
            t02(피드)에는 안 넣었으므로 피드는 예전 그대로 꽉 찬다. */
-        th02: { heroW: 880, heroVA: "bottom",
+        th02: { heroW: 880, heroHA: "right", heroVA: "bottom",
                 titleX: 59, titleY: 87, titleW: 900, blockGap: 48,
                 pillH: 60, pillPadL: 24, pillGap: 20, sellerSize: 32, xSize: 44,
                 logoW: 136, logoH: 23,
@@ -1123,13 +1124,15 @@
             clipRect(ctx, 0, 0, W, H, () => cover(ctx, state.hero, 0, 0, W, H));
           } else {
             /* 폭을 heroW 로 맞추고 비율대로 줄인다(잘라내지 않는다).
-               가로는 왼쪽에 붙이고, 남는 세로는 heroVA 로 정한다. */
+               남는 가로는 heroHA, 남는 세로는 heroVA 로 정한다. */
             const r = (state.hero.width || 1) / (state.hero.height || 1);
             const dw = hw, dh = hw / r;
+            const dx =
+              C.heroHA === "left" ? 0 : C.heroHA === "center" ? (W - dw) / 2 : W - dw;
             const dy =
               C.heroVA === "top" ? 0 : C.heroVA === "center" ? (H - dh) / 2 : H - dh;
             clipRect(ctx, 0, 0, W, H, () =>
-              ctx.drawImage(state.hero, 0, dy, dw, dh));
+              ctx.drawImage(state.hero, dx, dy, dw, dh));
           }
         }
         let y = C.titleY;
