@@ -1,4 +1,35 @@
-cc-banner  build 2026-08-11-L
+cc-banner  build 2026-08-12-A
+이벤트 배너 — .fig 2026-08-12 반영 + 색 재지정 (요청 2026-08-12)
+
+1) 색: 패밀리 무관하게 누볼라 팔레트에서 꺼낸다 (evPalette)
+   ⚠ event_comp 는 패밀리가 없는 단일 디자인인데, 구형(뱀부) 테마엔
+     colorBg / colorBgLight 키가 없어 badgeBorder 로 때웠다. 그 색이 위
+     섹션(sectionBg)과 톤이 비슷해 두 섹션이 한 덩어리로 이어져 보였다.
+   → 테마 "키"만 받아 THEMES_NUVOLA 에서 색을 꺼낸다.
+     blue 기준  01 colorBg #7d9eca · 02 colorBgLight #eaf3f6 · 03 accent #2d6181
+     위 섹션 #eaf3f6 와 확실히 갈린다. 6색 전부 값이 있다.
+
+2) 제품 이미지 자리 #f2f2f2 → #ffffff (상세·피드 둘 다)
+   카드와 같은 색이라 이미지를 아직 못 불러와도 안 튄다.
+
+3) event_comp01 카드 안쪽 패딩 (.fig 2026-08-12)
+   before  네 변 20 균일 + 글 x 를 26/20 으로 하드코딩
+   after   padT/padB/padL/padR 를 템플릿마다 따로
+     01  20/24/20/40   글 x+40 · 이미지 x+476
+     02  0/0/0/0       이미지 x+0 · 글 x+264 (imgGap 24)
+     03  10/20/10/20   글 x+20 · 이미지 x+456
+   섹션 높이 01 1255 → 1245 (txt-wrap 135 → 125)
+
+4) txt-sub 폰트 (.fig 2026-08-12)
+   01  High Summit 44 → Playfair Display 32 · × 40 · 로고 116×19   subH 63→53
+   02  High Summit 48 한 줄 → High Summit 36 [셀러] 16 [& Dear.cus]  subH 40
+       색은 colorBg (green #b9ca7d)
+   03  변동 없음 (Afacad 44 + 40, subH 53)
+   evDrawSub/evDrawTitle 로 합쳐 상세와 피드가 같은 코드를 쓴다 (배율 k만 다름).
+
+   .fig 대조: 섹션 1245 / 1148 / 1245 · 카드 280·320·280 / 240·280·240 / 260·300·260
+
+이전:
 이벤트 배너가 뱀부 01·02 에서 안 보이던 문제
   J 에서 nvDetail(신형 렌더러)에만 붙였다. 뱀부 01·02 는 구형 경로라
   canvasH / drawDetailTo / feedCount / drawFeedSlide 어디서도 안 불렸다.
@@ -13,13 +44,3 @@ cc-banner  build 2026-08-11-L
       colorBg      → badgeBorder → accent
       colorBgLight → sectionBg   → colorBg
     뱀부 green 기준 #c3d2a5 / #b9ca7d 가 잡힌다.
-
-이전:
-api/sheet.js TABS 에 EventMaster · GiftMaster 추가 (버그 수정)
-  J 에서 프론트만 새 탭을 부르게 하고 서버 허용 목록을 안 고쳤다.
-  /api/sheet?tab=EventMaster → 400 → 프론트가 "탭이 없다" 로 판단.
-  시트를 아무리 채워도 안 왔다.
-
-설정 [5] 안내 문구를 원인별로 나눔 (22-setup-flow)
-  before  못 읽든 비었든 전부 "시트에 탭이 없습니다"
-  after   동기화 전 / 못 읽음 / 행 없음 을 구분하고 확인할 열 이름을 짚어준다
