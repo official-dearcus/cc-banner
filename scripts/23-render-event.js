@@ -113,6 +113,21 @@
                 cardX: 22, cardW: 716, cardPad: 10, imgRight: true, gap: 20 },
       };
       function evCfg() { return EV_TPL[state.tpl] || EV_TPL["01"]; }
+      /* 테마 색 꺼내기.
+         ⚠ 구형(뱀부) 테마에는 colorBg / colorBgLight 키가 없다
+           (accent · circleBg · badgeBorder · sectionBg 네 개뿐).
+         이벤트 배너는 두 패밀리 모두에 붙으므로 대체 키를 둔다.
+           colorBg      → badgeBorder   (연한 테마색 띠)
+           colorBgLight → sectionBg     (뱀부 green 은 #f0f3dd 로 값까지 같다) */
+      const EV_FALLBACK = {
+        colorBg: ["colorBg", "badgeBorder", "accent"],
+        colorBgLight: ["colorBgLight", "sectionBg", "colorBg"],
+        accent: ["accent"],
+      };
+      function evColor(th, key, dflt) {
+        for (const k of EV_FALLBACK[key] || [key]) if (th && th[k]) return th[k];
+        return dflt || "#ffffff";
+      }
 
       /* ── 문장 조립 ──
          토큰 하나 = 한 낱말. glue 는 앞 낱말과의 간격(px).
@@ -272,7 +287,7 @@
           if (typeof drawLogo === "function") drawLogo(ctx, sx, scy, 116, 19);
           ctx.textAlign = "center";
         } else if (S.sub === "text") {
-          ctx.fillStyle = th[S.subInkKey] || th.accent;
+          ctx.fillStyle = evColor(th, S.subInkKey, th.accent);
           ctx.font = `400 ${S.subSize}px ${S.subFont}`;
           ctx.fillText(seller, cx, y + S.subLH / 2);
         } else {
@@ -292,7 +307,7 @@
         /* 제목 */
         const subH = S.sub === "text" ? S.subLH : S.subH;
         ctx.textAlign = "center";
-        ctx.fillStyle = S.titleInk || th[S.titleInkKey] || th.accent;
+        ctx.fillStyle = S.titleInk || evColor(th, S.titleInkKey, th.accent);
         ctx.font = `${S.titleWeight} ${S.titleSize}px ${S.titleFont}`;
         const title = evTitle();
         trk(ctx, title, cx, y + subH + S.subGap + S.titleLH / 2, -2, "center");
@@ -309,14 +324,14 @@
         if (!evOn()) return;
         const S = evCfg();
         const H = evSectionH();
-        ctx.fillStyle = th[S.bgKey] || "#ffffff";
+        ctx.fillStyle = evColor(th, S.bgKey);
         ctx.fillRect(0, oy, W, H);
         evDrawHead(ctx, W, oy + EV.padTop, th, S);
         let y = oy + EV.padTop + evHeadH() + S.headGap;
         const listH = evListH(ctx);
         const listX = S.bodyX;
         if (S.listBg || S.listBgKey) {
-          ctx.fillStyle = S.listBg || th[S.listBgKey];
+          ctx.fillStyle = S.listBg || evColor(th, S.listBgKey);
           ctx.fillRect(listX, y, S.bodyW, listH);
         }
         let cy = y + S.listPad;
@@ -327,7 +342,7 @@
           cy += m.cardH;
           if (i < evs.length - 1) {
             if (S.divKey) {
-              ctx.fillStyle = th[S.divKey] || "#ddd";
+              ctx.fillStyle = evColor(th, S.divKey, "#ddd");
               ctx.fillRect(listX + S.cardX, cy + S.divGap, S.cardW, S.divW);
               cy += S.divGap * 2;
             } else cy += S.gap;
@@ -361,7 +376,7 @@
       function evFeedSlide(ctx, evs, th) {
         const S = evCfg(), C = EV.card, k = evfK();
         const W = EVF.W, H = EVF.H;
-        ctx.fillStyle = th[S.bgKey] || "#ffffff";
+        ctx.fillStyle = evColor(th, S.bgKey);
         ctx.fillRect(0, 0, W, H);
 
         const ms = evs.map((e) => evfCard(ctx, e, k));
@@ -378,7 +393,7 @@
         evfHead(ctx, W, top, th, S, k);
         const listY = top + headH + headGap;
         if (S.listBg || S.listBgKey) {
-          ctx.fillStyle = S.listBg || th[S.listBgKey];
+          ctx.fillStyle = S.listBg || evColor(th, S.listBgKey);
           ctx.fillRect(EVF.bodyX, listY, EVF.bodyW, listH);
         }
         let cy = listY + listPadK;
@@ -387,7 +402,7 @@
           cy += m.cardH;
           if (i < ms.length - 1) {
             if (S.divKey) {
-              ctx.fillStyle = th[S.divKey] || "#ddd";
+              ctx.fillStyle = evColor(th, S.divKey, "#ddd");
               ctx.fillRect(EVF.bodyX + Math.round(S.cardX * k), cy + gapK / 2,
                 Math.round(S.cardW * k), Math.max(1, Math.round(S.divW * k)));
             }
@@ -418,7 +433,7 @@
           if (typeof drawLogo === "function") drawLogo(ctx, sx, scy, R(116), R(19));
           ctx.textAlign = "center";
         } else if (S.sub === "text") {
-          ctx.fillStyle = th[S.subInkKey] || th.accent;
+          ctx.fillStyle = evColor(th, S.subInkKey, th.accent);
           ctx.font = `400 ${R(S.subSize)}px ${S.subFont}`;
           ctx.fillText(seller, cx, y + subH / 2);
         } else {
@@ -435,7 +450,7 @@
           trk(ctx, S.subTail, sx, scy, -2, "left");
         }
         ctx.textAlign = "center";
-        ctx.fillStyle = S.titleInk || th[S.titleInkKey] || th.accent;
+        ctx.fillStyle = S.titleInk || evColor(th, S.titleInkKey, th.accent);
         ctx.font = `${S.titleWeight} ${R(S.titleSize)}px ${S.titleFont}`;
         trk(ctx, evTitle(), cx, y + subH + R(S.subGap) + R(S.titleLH) / 2, -2, "center");
         ctx.textBaseline = "alphabetic";

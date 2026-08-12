@@ -168,8 +168,12 @@
       }
       function feedCount() {
         if (nvIsOn()) return nvFeedCount();
-        return 1 + feedSlides().length;
-      } // 히어로 1 + 옵션면 N
+        /* 히어로 1 + 옵션면 N + 이벤트면 M (이벤트가 없으면 0) */
+        return 1 + feedSlides().length + evFeedN();
+      }
+      function evFeedN() {
+        return typeof evFeedCount === "function" ? evFeedCount() : 0;
+      }
 
       /* ---- 피드 옵션 카드 960×468 : 이미지 왼쪽 / 정보 오른쪽 ---- */
       function feedCard(ctx, r, x, top, th, CW) {
@@ -585,6 +589,12 @@
           return;
         }
         const slides = feedSlides();
+        /* 이벤트면은 옵션면 뒤에 붙는다 (상세에서도 마지막 섹션) */
+        const evStart = 1 + slides.length;
+        if (idx >= evStart && evFeedN()) {
+          evFeedSlide(ctx, evFeedGroups()[idx - evStart], th);
+          return;
+        }
         const cards = slides[idx - 1] || [];
         const isLastOdd = idx - 1 === slides.length - 1 && cards.length === 1;
 

@@ -9,7 +9,18 @@
           O.list.y +
           O.list.pad * 2 +
           cardTops().total +
-          60
+          60 +
+          /* 이벤트 배너는 패밀리와 무관하게 상세 마지막 섹션이다.
+             ⚠ 예전엔 nvDetail 에만 붙여서 뱀부 01·02 에서는 안 보였다. */
+          (typeof evSectionH === "function" ? evSectionH() : 0)
+        );
+      }
+      /* 구형 상세에서 이벤트 섹션이 시작하는 y (옵션 카드 목록 끝) */
+      function legacyBodyH() {
+        const O = OPT[state.tpl] || OPT["01"];
+        return (
+          SHARED.HERO_H + O.body.y + O.list.y + O.list.pad * 2 +
+          cardTops().total + 60
         );
       }
 
@@ -101,6 +112,7 @@
             ? card01(ctx, r, cardX, top, th)
             : card02(ctx, r, cardX, top, th);
         });
+        if (typeof evSection === "function") evSection(ctx, W, legacyBodyH(), th);
       }
 
       /* ---- 멀티 포맷 미리보기 ---- */
