@@ -68,6 +68,7 @@
     <script defer src="scripts/21-bindings-boot.js"></script>
     <script defer src="scripts/22-setup-flow.js"></script>
     <script defer src="scripts/23-render-event.js"></script>
+    <script defer src="scripts/24-panel-collapse.js"></script>
   </head>
   <body>
     <!-- ============================================================
@@ -346,7 +347,10 @@
           </div>
         </div>
 
-        <div class="secdiv"><span>디자인 템플릿</span></div>
+        <div class="secdiv">
+          <span>디자인 템플릿</span>
+          <button class="clpall" id="clpAll" type="button">전부 접기</button>
+        </div>
 
         <div class="block">
           <label class="h"><span class="num">8</span> 템플릿</label>
@@ -359,9 +363,19 @@
           <div class="swatches" id="themeSw"></div>
         </div>
 
+        <div class="block" id="evBlock">
+          <label class="h"
+            ><span class="num">10</span> 이벤트
+            <span id="evCount" class="cnt"></span
+          ></label>
+          <div class="evpick" id="pnEvents"></div>
+          <button class="evadd" id="pnEvAdd">+ 이벤트 추가</button>
+          <div class="hint" id="pnEvHint"></div>
+        </div>
+
         <div class="block">
           <label class="h"
-            ><span class="num">10</span>
+            ><span class="num">11</span>
             <span id="imgLabel">히어로 이미지</span></label
           >
           <div id="heroList"></div>
