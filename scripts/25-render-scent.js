@@ -133,8 +133,8 @@
           poly: { x: 796, y: 608, w: 10, h: 296 },
           code: { x: 822, y: 849, h: 37, size: 28, rot: 90 },
           stamp: { x: 673.86, y: 927.48, w: 122.43, h: 85.52 },
-          foot: { x: 39, y: 920, h: 74, size: 28, ls: -2, lines: 2 },
-          tag: { x: 431, y: 958, h: 32, size: 24, ls: -2 },
+          foot: { x: 39, y: 920, h: 74, size: 28, lsPct: -2, lines: 2 },
+          tag: { x: 431, y: 958, h: 32, size: 24, lsPct: -2 },
         },
         feed: {
           W: 1080, H: 1350,
@@ -148,8 +148,8 @@
           poly: { x: 1012, y: 766, w: 16, h: 370 },
           code: { x: 1047, y: 1069, h: 43, size: 32, rot: 90 },
           stamp: { x: 839.95, y: 1151.03, w: 157.52, h: 113.97 },
-          foot: { x: 49, y: 1157, h: 86, size: 32, ls: -2, lines: 2 },
-          tag: { x: 535, y: 1200, h: 43, size: 32, ls: -2 },
+          foot: { x: 49, y: 1157, h: 86, size: 32, lsPct: -2, lines: 2 },
+          tag: { x: 535, y: 1200, h: 43, size: 32, lsPct: -2 },
         },
       };
       const SCENT_FONT = "'Playfair Display'";
@@ -199,7 +199,12 @@
         ctx.font = `400 ${t.size}px ${SCENT_FONT}`;
         ctx.textAlign = "left";
         ctx.textBaseline = "middle";
-        const ls = t.ls || 0;
+        /* ⚠ .fig 의 letterSpacing 은 PERCENT 다 (units:"PERCENT").
+           -2 를 픽셀로 쓰면 글자가 크게 좁아진다 — 상세 태그가 64px 좁아져
+           도장과의 간격이 벌어졌다(2026-08-13 신고).
+           px = 글자크기 × 퍼센트/100   → 24px 에서 -0.48, 32px 에서 -0.64
+           검산: 자연폭 330.4 × 32/24 = 440.5 = 피드 실측과 일치. */
+        const ls = t.lsPct != null ? (t.size * t.lsPct) / 100 : t.ls || 0;
         if (t.rot === 90) {
           /* 시계방향 90°: 로컬(0,0) → 전역(x,y), 로컬 +x 가 아래로 간다.
              글자를 로컬 (0, h/2) 에 놓으면 32px 띠의 한가운데에 온다. */
@@ -230,13 +235,18 @@
         const dx = C.deco.x, dy = oy + C.deco.y;
         ["brand", "sub", "left", "right", "code", "foot", "tag"].forEach((k) =>
           scentText(ctx, C, k, K.ink, dx, dy));
-        /* 삼각형 — .fig REGULAR_POLYGON, 꼭짓점이 위 */
+        /* 삼각형 — .fig REGULAR_POLYGON. 꼭짓점이 아래다.
+           ⚠ 위로 그렸더니 아래쪽이 두꺼워져 "00A" 글자와 겹쳤다(2026-08-13 신고).
+             .fig 은 삼각형(y 608~904)과 00A(y 849~901)가 세로로 겹치는데,
+             꼭짓점이 아래라 그 구간에서 폭이 1.9px→0.1px 로 실오라기가 된다.
+             꼭짓점이 위면 같은 구간이 8.1~9.9px 라 글자를 덮는다.
+           상세·피드 둘 다 같은 계산이다. */
         const p = C.poly;
         ctx.fillStyle = K.ink;
         ctx.beginPath();
-        ctx.moveTo(dx + p.x + p.w / 2, dy + p.y);
-        ctx.lineTo(dx + p.x + p.w, dy + p.y + p.h);
-        ctx.lineTo(dx + p.x, dy + p.y + p.h);
+        ctx.moveTo(dx + p.x + p.w / 2, dy + p.y + p.h); // 꼭짓점 (아래)
+        ctx.lineTo(dx + p.x + p.w, dy + p.y);
+        ctx.lineTo(dx + p.x, dy + p.y);
         ctx.closePath();
         ctx.fill();
         /* 도장 (Dear.customer 곡선 글씨 포함) */
