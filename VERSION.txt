@@ -1,4 +1,12 @@
-cc-banner  build 2026-08-13-C
+cc-banner  build 2026-08-13-D
+ProductMaster 의 scentUrl 이 화면까지 안 오던 버그
+  07-sheet-sync 는 제품군 객체를 필드별로 손수 옮긴다. 거기에 scentUrl 을
+  빠뜨려서, TemplateMaster 에 넣으면 되는데 ProductMaster 에 넣으면 안 떴다.
+    scentByTpl (TemplateMaster) 은 넘겼는데 g.scentUrl (ProductMaster) 을 누락.
+  sizeInfoUrl 바로 아래에 scentUrl 추가.
+  회귀 테스트 3건 추가 — 제품군 값만 / 템플릿 값 우선 / 값 없는 템플릿은 제품군 값.
+
+이전:
 향 섹션 상세 치수 개정 (.fig 2026-08-13 05:51)
   상세만 바뀌었다. 피드(1080×1350)는 값이 하나도 안 바뀌었다.
     섹션 높이 1298 → 1076
@@ -17,20 +25,3 @@ cc-banner  build 2026-08-13-C
     후  740:787 = 0.940  = 피드 940:1000
     → 940:1000 비율 한 장이면 상세·피드 둘 다 안 잘린다 (검증: 잘림 0px)
       권장 원본 1880×2000 (2x)
-
-이전:
-향 섹션에 Dear.customer 도장 추가 (2026-08-13 제공 SVG)
-  .fig 은 벡터 조각 102개 + 곡선 글씨(TEXT_PATH)라 코드로 못 만든다 → SVG 로 받았다.
-  곡선 글씨까지 SVG 안에 들어 있어 캔버스로는 아무 글자도 안 그린다.
-  assets/dearcus-stamp.svg (124×90, 단색 #b3c7da)
-
-  SVG 장식 에셋을 공용 로직으로 묶었다 (scentAsset)
-    무늬·도장 둘 다 단색이라 fill 만 통째로 갈아끼워 data URL → Image.
-    파일은 한 번만 읽고 색마다 한 번만 그림을 만들어 캐시한다.
-    ⚠ 무늬는 파일 viewBox(1080×1326)가 도형 범위와 달라 그대로 쓰면 어긋난다
-      → 패스 bbox(-39.5 -1.5 1157 2221)로 덮어쓴다. 도장은 파일 viewBox 그대로.
-
-  도장 배치 (.fig)
-    상세 123.88×89.56 @662.17,1057.26 (deco 기준) → 화면 682,1148
-    피드 157.52×113.97 @839.95,1151.03          → 화면 860,1215
-  도장 색  blue #b3c7da · green #b9ca7d (.fig 실측) · 나머지는 colorBg 파생
