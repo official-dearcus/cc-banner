@@ -103,6 +103,7 @@
             // ── 누볼라 계열 전용(선택) ──
             noticeText: { type: "string", group: true, optional: true }, // 옵션 하단 안내 문구
             sizeInfoUrl: { type: "url", group: true, optional: true }, // 사이즈 안내 이미지
+            scentUrl: { type: "url", group: true, optional: true }, // 향 섹션 사진 (25-render-scent)
             colorTitle: { type: "string", group: true, optional: true }, // 컬러 섹션 제목(그룹 공통 폴백) — 템플릿별은 TemplateMaster 사용
             sortOrder: { type: "number", optional: true },
             // 제품명 = 텍스트 노드 1개. 피그마에서 폭 안에서 자동 줄바꿈됨.
@@ -140,6 +141,7 @@
             gridUrls: { type: "list", optional: true }, // 03 상단 이미지 4컷 (쉼표 구분)
             noticeText: { type: "string", optional: true }, // 옵션 하단 안내 문구
             sizeInfoUrl: { type: "url", optional: true }, // 사이즈 안내 이미지
+            scentUrl: { type: "url", optional: true }, // 향 섹션 사진 (템플릿별)
             optionTitle: { type: "string", optional: true }, // 옵션 섹션 제목 (템플릿마다 다름)
             colorTitle: { type: "string", optional: true }, // 컬러 섹션 제목 (템플릿마다 다름)
             previewUrl: { type: "url", optional: true },
@@ -421,6 +423,7 @@
               saleLabel: "",
               noticeText: "",
               sizeInfoUrl: "",
+              scentUrl: "",
               colorTitle: "",
               templates: [],
               rows: [],
@@ -438,6 +441,7 @@
             "saleLabel",
             "noticeText",
             "sizeInfoUrl",
+            "scentUrl",
             "colorTitle",
           ]) {
             const t = f === "groupLabel" ? "label" : f;

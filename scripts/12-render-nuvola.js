@@ -304,8 +304,12 @@
       function nvEventH() {
         return typeof evSectionH === "function" ? evSectionH() : 0;
       }
+      /* 향 섹션 — 옵션 바로 아래 (25-render-scent). 시트에 scentUrl 이 없으면 0 */
+      function nvScentH() {
+        return typeof scentH === "function" ? scentH() : 0;
+      }
       function nvCanvasH() {
-        return NV.MAIN_H + nvOptionH() + nvColorH() + nvEventH();
+        return NV.MAIN_H + nvOptionH() + nvScentH() + nvColorH() + nvEventH();
       }
 
       /* ── section-main : 01 사진형 / 02 그라데이션형 / 03 그리드형 ── */
@@ -1476,6 +1480,9 @@
         const per = 2;
         for (let i = 0; i < state.rows.length; i += per)
           plan.push({ t: "opt", rows: state.rows.slice(i, i + per) });
+        /* 향 섹션은 옵션 다음 장 (상세에서도 옵션 바로 아래) */
+        if (typeof scentFeedCount === "function" && scentFeedCount())
+          plan.push({ t: "scent" });
         if (state.sizeInfoOn && nvSizeInfoImg()) plan.push({ t: "size" });
         if (hasColors()) plan.push({ t: "color" });
         /* 이벤트 배너는 맨 뒤 — 상세에서도 마지막 섹션이다 */
@@ -1492,6 +1499,7 @@
         if (p.t === "hero") { nvfHero(ctx, W, H, th, true); return; }
         if (p.t === "color") { nvfColor(ctx, W, H, th); return; }
         if (p.t === "event") { evFeedSlide(ctx, p.evs, th); return; }
+        if (p.t === "scent") { scentFeedSlide(ctx, th); return; }
         ctx.fillStyle = nvOptBg(th) || "#f0f3dd";
         ctx.fillRect(0, 0, W, H);
         const O = NVF.opt, S = NVF.size;
@@ -1554,7 +1562,10 @@
         nvMain(ctx, W, th);
         const oy = NV.MAIN_H;
         nvOption(ctx, W, oy, th);
-        if (hasColors()) nvColor(ctx, W, oy + nvOptionH(), th);
+        const sy = oy + nvOptionH();
+        if (typeof scentSection === "function") scentSection(ctx, W, sy, th);
+        const cy = sy + nvScentH();
+        if (hasColors()) nvColor(ctx, W, cy, th);
         if (typeof evSection === "function")
-          evSection(ctx, W, oy + nvOptionH() + nvColorH(), th);
+          evSection(ctx, W, cy + nvColorH(), th);
       }

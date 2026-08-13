@@ -53,6 +53,7 @@
             sizeInfoByTpl: Object.fromEntries(
               tpls.map((t) => [t.key, t.sizeInfoUrl]),
             ),
+            scentByTpl: Object.fromEntries(tpls.map((t) => [t.key, t.scentUrl])),
             optionTitleByTpl: Object.fromEntries(
               tpls.map((t) => [t.key, t.optionTitle]),
             ),
