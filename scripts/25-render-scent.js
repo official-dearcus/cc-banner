@@ -235,18 +235,22 @@
         const dx = C.deco.x, dy = oy + C.deco.y;
         ["brand", "sub", "left", "right", "code", "foot", "tag"].forEach((k) =>
           scentText(ctx, C, k, K.ink, dx, dy));
-        /* 삼각형 — .fig REGULAR_POLYGON. 꼭짓점이 아래다.
-           ⚠ 위로 그렸더니 아래쪽이 두꺼워져 "00A" 글자와 겹쳤다(2026-08-13 신고).
-             .fig 은 삼각형(y 608~904)과 00A(y 849~901)가 세로로 겹치는데,
-             꼭짓점이 아래라 그 구간에서 폭이 1.9px→0.1px 로 실오라기가 된다.
-             꼭짓점이 위면 같은 구간이 8.1~9.9px 라 글자를 덮는다.
-           상세·피드 둘 다 같은 계산이다. */
+        /* 삼각형 — .fig REGULAR_POLYGON (count 3).
+           ⚠ 상자를 꽉 채우는 삼각형이 아니다. 피그마 정다각형은 상자에 내접하는
+             "타원 위"에 꼭짓점을 찍는다 → 밑변이 바닥이 아니라 높이의 75% 지점.
+             패스 블롭 실측: 상자 10×296 인데 (5,0)→(9.33,222)→(0.67,222).
+             상자 전체로 그렸더니 밑변이 904 까지 내려가 00A(849~) 를 덮었다.
+             제대로 그리면 830 에서 끝나 글자와 안 만난다.
+           꼭짓점은 위가 맞다(-90°). 각도 -90 / 30 / 150 에 찍는다. */
         const p = C.poly;
         ctx.fillStyle = K.ink;
         ctx.beginPath();
-        ctx.moveTo(dx + p.x + p.w / 2, dy + p.y + p.h); // 꼭짓점 (아래)
-        ctx.lineTo(dx + p.x + p.w, dy + p.y);
-        ctx.lineTo(dx + p.x, dy + p.y);
+        [-90, 30, 150].forEach((deg, i) => {
+          const r = (deg * Math.PI) / 180;
+          const px = dx + p.x + p.w / 2 + (p.w / 2) * Math.cos(r);
+          const py = dy + p.y + p.h / 2 + (p.h / 2) * Math.sin(r);
+          i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+        });
         ctx.closePath();
         ctx.fill();
         /* 도장 (Dear.customer 곡선 글씨 포함) */
