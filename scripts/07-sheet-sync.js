@@ -70,6 +70,7 @@
             /* ⚠ 여기 빠뜨리면 ProductMaster 에 scentUrl 을 적어도 화면까지 안 온다.
                scentByTpl(TemplateMaster)만 넘기고 제품군 단위 값을 빠뜨렸었다. */
             scentUrl: g.scentUrl || "",
+            colorRatio: g.colorRatio || 0,
             colorTitle: g.colorTitle || "",
             series: g.seriesTitle,
             seller: "",

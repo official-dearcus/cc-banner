@@ -104,6 +104,10 @@
             noticeText: { type: "string", group: true, optional: true }, // 옵션 하단 안내 문구
             sizeInfoUrl: { type: "url", group: true, optional: true }, // 사이즈 안내 이미지
             scentUrl: { type: "url", group: true, optional: true }, // 향 섹션 사진 (25-render-scent)
+            /* 컬러 칩 이미지 비율(가로/세로). 비우면 기본 240/440 (세로로 긴 욕실화).
+               처마처럼 가로로 긴 제품은 1.5~2 를 넣는다. 한 줄에 들어가는 칸 수가
+               자동으로 줄고, 넘치면 다음 줄로 접힌다. */
+            colorRatio: { type: "number", group: true, optional: true },
             colorTitle: { type: "string", group: true, optional: true }, // 컬러 섹션 제목(그룹 공통 폴백) — 템플릿별은 TemplateMaster 사용
             sortOrder: { type: "number", optional: true },
             // 제품명 = 텍스트 노드 1개. 피그마에서 폭 안에서 자동 줄바꿈됨.
@@ -161,6 +165,9 @@
             groupKey: { type: "string" },
             line: { type: "string", optional: true },
             lineLabel: { type: "string", optional: true },
+            /* 칩 비율(가로/세로). ProductMaster 에 넣어도 되고 여기 넣어도 된다.
+               여기 넣을 땐 그 제품군의 아무 행에나 한 번만 적으면 된다. */
+            colorRatio: { type: "number", optional: true },
             colorKey: { type: "string" },
             label: { type: "string" },
             url: { type: "url" },
@@ -424,6 +431,7 @@
               noticeText: "",
               sizeInfoUrl: "",
               scentUrl: "",
+              colorRatio: 0,
               colorTitle: "",
               templates: [],
               rows: [],
@@ -442,6 +450,7 @@
             "noticeText",
             "sizeInfoUrl",
             "scentUrl",
+            "colorRatio",
             "colorTitle",
           ]) {
             const t = f === "groupLabel" ? "label" : f;
@@ -505,6 +514,9 @@
             line: String(c.line || "").trim(),
             lineLabel: String(c.lineLabel || "").trim(),
           });
+          /* 제품군 단위 값 — 먼저 적힌 값을 쓴다.
+             ProductMaster 에 이미 있으면 그쪽이 이긴다(위에서 먼저 채워진다). */
+          if (!g.colorRatio && c.colorRatio) g.colorRatio = c.colorRatio;
         }
         for (const g of Object.values(groups)) {
           g.colors.sort(

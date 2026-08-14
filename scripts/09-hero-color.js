@@ -4,7 +4,13 @@
       /* ───────── 색상 선택 ─────────
          line 은 시트 자유값. 같은 값끼리 한 줄로 묶이고, 등장 순서대로 표시된다.
          line 을 비워두면 전부 한 줄로 나온다. */
-      const LINE_LABEL_DEFAULT = { kids: "키즈", adult: "성인" };
+      /* 컬러 줄 이름. ColorMaster.lineLabel 이 있으면 그게 이기고, 없으면 여기서 찾는다.
+         여기에도 없으면 라벨 없이 색 이름만 나온다(2026-08-14 처마 신고 원인).
+         새 제품군을 넣을 때 시트에 lineLabel 을 채우면 코드를 안 고쳐도 된다. */
+      const LINE_LABEL_DEFAULT = {
+        kids: "키즈", adult: "성인",
+        grande: "그란데", standard: "스탠다드",
+      };
       function allColors() {
         const g = G()[state.group];
         return (g && g.colors) || [];
