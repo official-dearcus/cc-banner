@@ -837,29 +837,17 @@
         const r = g && Number(g.colorRatio);
         return r > 0 ? r : COLOR_RATIO;
       }
-      /* 한 줄(line)의 칩을 몇 칸씩 끊을지.
-         칩이 너무 좁아지지 않게 최소 폭을 두고, 넘치면 다음 줄로 접는다.
-         ⚠ 예전에는 한 줄의 칩을 무조건 한 행에 몰아넣어서, 가로로 긴 이미지를
-           쓰면 칸이 잘게 쪼개졌다(2026-08-14 처마 요청). */
-      function nvChipRows(list, perRow) {
-        const out = [];
-        for (let i = 0; i < list.length; i += perRow) out.push(list.slice(i, i + perRow));
-        return out;
-      }
-      /* 칩 폭·칸수 계산. 세로형(기본 비율)은 예전 계산을 그대로 쓴다.
-         가로형은 이미지 높이를 CHIP_WIDE_H 로 고정하고 폭을 비율에서 뽑는다 —
-         그래야 가로로 길어져도 칩이 화면을 다 먹지 않고 칸수가 자연스럽게 준다.
-         ⚠ 처음엔 최소폭에 chipMaxW(120) 상한을 걸어서 비율이 무시됐다. */
+      /* 칩 폭 계산. 한 줄(line)당 한 행이다 — 시트에 적힌 목록 그대로 간다.
+         ⚠ 가로형에서 칸이 좁아 보인다고 줄을 접어봤는데, 시트의 컬러 목록을
+           임의로 나누는 셈이라 되돌렸다(2026-08-14). 줄 구성은 시트가 정한다.
+         가로형은 이미지 높이를 CHIP_WIDE_H 로 잡아 폭을 비율에서 뽑되,
+         가장 색이 많은 줄이 가로에 들어가도록 필요한 만큼 줄인다. */
       const CHIP_WIDE_H = 176;
       function nvChipFit(K, ratio, most, availW) {
         const wide = ratio > COLOR_RATIO;
-        const target = wide
-          ? Math.min(availW, ratio * CHIP_WIDE_H)
-          : K.chipMaxW;
-        const fit = Math.max(1, Math.floor((availW + K.chipGap) / (target + K.chipGap)));
-        const perRow = Math.min(most, fit);
-        const chipW = Math.min(target, (availW - K.chipGap * (perRow - 1)) / perRow);
-        return { perRow, chipW, imgH: chipW / ratio };
+        const target = wide ? Math.min(availW, ratio * CHIP_WIDE_H) : K.chipMaxW;
+        const chipW = Math.min(target, (availW - K.chipGap * (most - 1)) / most);
+        return { chipW, imgH: chipW / ratio };
       }
       function nvColorMetrics() {
         const K = NV.color;
@@ -870,11 +858,10 @@
           .filter((r) => r.list.length);
         const most = Math.max(1, ...src.map((r) => r.list.length));
         const F = nvChipFit(K, ratio, most, K.optW);
-        const perRow = F.perRow, chipW = F.chipW, imgH = F.imgH;
+        const chipW = F.chipW, imgH = F.imgH;
         const chipH = imgH + K.chipLabelGap + K.chipLabelH;
-        /* 그리기용 행 목록 — 한 line 이 여러 행으로 접힐 수 있다 */
-        const grid = [];
-        src.forEach((r) => nvChipRows(r.list, perRow).forEach((g) => grid.push(g)));
+        /* 그리기용 행 목록 — 시트의 줄 하나가 행 하나 */
+        const grid = src.map((r) => r.list);
         const rows = src;
         const L = Math.max(1, src.length);
         const R = Math.max(1, grid.length);
@@ -885,7 +872,7 @@
         const optY = txtEnd + 60; // .fig: txt-wrap 끝 → color_option 간격 60
         const optH = R * chipH + (R - 1) * K.rowGap;
         const H = Math.max(K.H, optY + optH + 98); // .fig 하단 여백 98
-        return { rows, grid, L, R, perRow, ratio, chipW, imgH, chipH,
+        return { rows, grid, L, R, ratio, chipW, imgH, chipH,
                  headH, nameH, txtEnd, optY, optH, H };
       }
 
@@ -948,7 +935,11 @@
           const rowW = r.length * M.chipW + (r.length - 1) * K.chipGap;
           let rx = cx - rowW / 2;
           for (const c of r) {
-            if (c.img) drawRatioFit(ctx, c.img, rx, ry, M.chipW, M.imgH, M.ratio);
+            /* ⚠ 상자 비율로 그리면 원본과 다를 때 늘어난다. 원본 비율로 넣는다
+               (2026-08-14 "비율은 절대 깨지면 안 됨"). */
+            if (c.img)
+              drawRatioFit(ctx, c.img, rx, ry, M.chipW, M.imgH,
+                (c.img.width || 1) / (c.img.height || 1));
             ctx.fillStyle = nvChipLabel(th);
             ctx.textAlign = "center"; ctx.textBaseline = "middle";
             ctx.font = `400 ${K.chipLabelSize}px Pretendard`;
@@ -1486,16 +1477,17 @@
         const ratio = nvColorRatio();
         const most = Math.max(1, ...rows.map((r) => r.list.length));
         const F = nvChipFit(K, ratio, most, K.rowW);
-        const perRow = F.perRow, chipW = F.chipW, imgH = F.imgH;
+        const chipW = F.chipW, imgH = F.imgH;
         const chipH = imgH + K.chipLabelH;
-        const grid = [];
-        rows.forEach((r) => nvChipRows(r.list, perRow).forEach((g) => grid.push(g)));
+        const grid = rows.map((r) => r.list);
         let ry = K.optY + K.optPadTop;
         for (const r of grid) {
           const rw = r.length * chipW + (r.length - 1) * K.chipGap;
           let rx = W / 2 - rw / 2;
           for (const c of r) {
-            if (c.img) drawRatioFit(ctx, c.img, rx, ry, chipW, imgH, ratio);
+            if (c.img)
+              drawRatioFit(ctx, c.img, rx, ry, chipW, imgH,
+                (c.img.width || 1) / (c.img.height || 1));
             ctx.fillStyle = nvChipLabel(th);
             ctx.textAlign = "center"; ctx.textBaseline = "middle";
             ctx.font = `400 ${K.chipLabelSize}px Pretendard`;

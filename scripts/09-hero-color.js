@@ -15,27 +15,33 @@
         const g = G()[state.group];
         return (g && g.colors) || [];
       }
+      /* 컬러 줄 키를 맞추는 기준.
+         ⚠ ProductMaster.colorLine 과 ColorMaster.line 을 글자 그대로 비교해서,
+           "Grande" vs "grande" 처럼 대소문자만 달라도 옵션 카드의 Color 줄이
+           통째로 사라졌다(2026-08-14 처마 신고). 앞뒤 공백·대소문자를 무시한다. */
+      function lineKey(s) { return String(s || "").trim().toLowerCase(); }
       /* 시트 등장 순서대로 고유 줄 목록 */
       function colorLines() {
         const out = [];
         for (const c of allColors()) {
-          const k = c.line || "";
+          const k = lineKey(c.line);
           if (out.some((l) => l.key === k)) continue;
           out.push({
             key: k,
-            label: c.lineLabel || LINE_LABEL_DEFAULT[k.toLowerCase()] || "",
+            label: c.lineLabel || LINE_LABEL_DEFAULT[k] || "",
           });
         }
         return out;
       }
       function colorsOf(line) {
-        return allColors().filter((c) => (c.line || "") === line);
+        const k = lineKey(line);
+        return allColors().filter((c) => lineKey(c.line) === k);
       }
       function hasColors() {
         return allColors().length > 0;
       }
       function pickedColors(line) {
-        const sel = state.colorPick[line] || [];
+        const sel = state.colorPick[lineKey(line)] || [];
         return colorsOf(line).filter((c) => sel.includes(c.colorKey));
       }
       /* 제품군 전환 시 기본 선택.
@@ -53,7 +59,7 @@
           const on = all.filter((c) =>
             COLOR_DEFAULT_ON.includes(String(c.label || "").trim()),
           );
-          state.colorPick[l.key] = (on.length ? on : all).map((c) => c.colorKey);
+          state.colorPick[lineKey(l.key)] = (on.length ? on : all).map((c) => c.colorKey);
         });
       }
       /* 옵션 카드에 표시할 속성 목록.
@@ -118,7 +124,7 @@
         if (hasColors()) {
           for (const l of colorLines()) {
             const list = colorsOf(l.key);
-            const sel = state.colorPick[l.key] || [];
+            const sel = state.colorPick[lineKey(l.key)] || [];
             const title = l.label ? `${l.label} 컬러` : "컬러 선택";
             html +=
               `<div class="block"><label class="h"><span class="num"></span> ${title} ` +
@@ -168,7 +174,8 @@
         });
       }
       function toggleColor(line, key) {
-        const sel = state.colorPick[line] || (state.colorPick[line] = []);
+        const k = lineKey(line);
+        const sel = state.colorPick[k] || (state.colorPick[k] = []);
         const i = sel.indexOf(key);
         if (i >= 0) {
           if (sel.length <= 1) {
