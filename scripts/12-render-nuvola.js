@@ -867,6 +867,14 @@
         cols: 2, chipW: 349, chipGap: 12, rowGap: 20,
         labelSize: 28, labelH: 40, labelGap: 0,
       };
+      /* 피드(1080)용 — .fig 에 처마 피드가 없어 상세 값을 캔버스 폭 비율로 키웠다.
+         1080/860 = 1.2558. 두 산출물의 비례가 같아진다.
+         2열 438×2 + 15 = 891 로 본문 폭(938) 안에 들어간다. */
+      const NVF_COLOR_SHARED = {
+        boxX: 63, boxW: 954, boxPad: 65, boxFill: "#ffffff",
+        cols: 2, chipW: 438, chipGap: 15, rowGap: 25,
+        labelSize: 35, labelH: 50, labelGap: 0,
+      };
       /* 칩 폭 계산. 한 줄(line)당 한 행이다 — 시트에 적힌 목록 그대로 간다.
          ⚠ 가로형에서 칸이 좁아 보인다고 줄을 접어봤는데, 시트의 컬러 목록을
            임의로 나누는 셈이라 되돌렸다(2026-08-14). 줄 구성은 시트가 정한다.
@@ -1573,21 +1581,44 @@
           ctx.fillText(names, lx + lw + gap, ly + K.listLineH / 2);
           ly += K.listLineH + K.listGap;
         }
-        // 칩 — 상세와 같은 규칙 (제품군 비율 + 넘치면 줄바꿈)
+        // 칩 — 상세와 같은 규칙
         const ratio = nvColorRatio();
         const mode = nvColorGridMode(rows);
-        const most = mode === "shared"
-          ? 2
-          : Math.max(1, ...rows.map((r) => r.list.length));
-        const F = nvChipFit(K, ratio, most, K.rowW);
-        const chipW = F.chipW, imgH = F.imgH;
-        const chipH = imgH + K.chipLabelH;
-        const grid = mode === "shared"
-          ? nvTwoCol(nvChipUnion(rows))
-          : rows.map((r) => r.list);
+        const shared = mode === "shared";
+        const S = NVF_COLOR_SHARED;
+        const labelH = shared ? S.labelH : K.chipLabelH;
+        const labelGap = shared ? S.labelGap : 0;
+        const labelSize = shared ? S.labelSize : K.chipLabelSize;
+        const chipGap = shared ? S.chipGap : K.chipGap;
+        const rowGap = nvColorRowGap(shared ? S.rowGap : K.rowGap);
+        const grid = shared ? nvTwoCol(nvChipUnion(rows)) : rows.map((r) => r.list);
+        const R = Math.max(1, grid.length);
+        let chipW = shared
+          ? S.chipW
+          : nvChipFit(K, ratio, Math.max(1, ...rows.map((r) => r.list.length)), K.rowW).chipW;
+        let imgH = chipW / ratio;
+        /* ⚠ 피드는 1350 고정이라 상세 값을 그대로 키우면 넘친다
+             (5색 3행 → 박스 끝 y 1491, 141px 초과 · 2026-08-18).
+           남는 세로에 맞춰 사진 높이를 줄인다. 이름칸·행간격은 그대로 둔다. */
+        const NVF_BOTTOM = 40;
+        const availH =
+          H - K.optY - NVF_BOTTOM - (shared ? S.boxPad * 2 : K.optPadTop);
+        const maxImgH = (availH - (R - 1) * rowGap - R * labelH) / R;
+        if (maxImgH > 20 && imgH > maxImgH) {
+          imgH = maxImgH;
+          chipW = imgH * ratio;
+        }
+        const chipH = imgH + labelGap + labelH;
+        const optH = R * chipH + (R - 1) * rowGap;
+        /* 흰 컨테이너 — 상세와 같이 제품 사진이 배경에 묻히지 않게 (2026-08-18) */
         let ry = K.optY + K.optPadTop;
+        if (shared) {
+          ctx.fillStyle = S.boxFill;
+          ctx.fillRect(S.boxX, K.optY, S.boxW, optH + S.boxPad * 2);
+          ry = K.optY + S.boxPad;
+        }
         for (const r of grid) {
-          const rw = r.length * chipW + (r.length - 1) * K.chipGap;
+          const rw = r.length * chipW + (r.length - 1) * chipGap;
           let rx = W / 2 - rw / 2;
           for (const c of r) {
             if (c.img)
@@ -1595,11 +1626,11 @@
                 (c.img.width || 1) / (c.img.height || 1));
             ctx.fillStyle = nvChipLabel(th);
             ctx.textAlign = "center"; ctx.textBaseline = "middle";
-            ctx.font = `400 ${K.chipLabelSize}px Pretendard`;
-            trk(ctx, c.label, rx + chipW / 2, ry + imgH + K.chipLabelH / 2, -0.6, "center");
-            rx += chipW + K.chipGap;
+            ctx.font = `400 ${labelSize}px Pretendard`;
+            trk(ctx, c.label, rx + chipW / 2, ry + imgH + labelGap + labelH / 2, -0.6, "center");
+            rx += chipW + chipGap;
           }
-          ry += chipH + nvColorRowGap(K.rowGap);
+          ry += chipH + rowGap;
         }
         ctx.textBaseline = "alphabetic";
       }
