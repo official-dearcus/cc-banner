@@ -171,6 +171,9 @@
             /* 처음 켜둘 색. 한 줄에서 하나라도 TRUE 면 그 줄은 TRUE 인 색만 켜진다.
                비우면 제품군 기본값(09-hero-color)을 따른다. */
             defaultOn: { type: "bool", optional: true },
+            /* 칩 배치 — shared(한 벌 2열) | lines(줄마다 한 행).
+               비우면 사진 주소가 겹치는지 보고 자동으로 정한다. */
+            colorGrid: { type: "string", optional: true },
             colorKey: { type: "string" },
             label: { type: "string" },
             url: { type: "url" },
@@ -435,6 +438,7 @@
               sizeInfoUrl: "",
               scentUrl: "",
               colorRatio: 0,
+              colorGrid: "",
               colorTitle: "",
               templates: [],
               rows: [],
@@ -520,6 +524,7 @@
           /* 제품군 단위 값 — 먼저 적힌 값을 쓴다.
              ProductMaster 에 이미 있으면 그쪽이 이긴다(위에서 먼저 채워진다). */
           if (!g.colorRatio && c.colorRatio) g.colorRatio = c.colorRatio;
+          if (!g.colorGrid && c.colorGrid) g.colorGrid = c.colorGrid;
         }
         for (const g of Object.values(groups)) {
           g.colors.sort(

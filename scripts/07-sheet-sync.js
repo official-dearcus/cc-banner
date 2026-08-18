@@ -71,6 +71,7 @@
                scentByTpl(TemplateMaster)만 넘기고 제품군 단위 값을 빠뜨렸었다. */
             scentUrl: g.scentUrl || "",
             colorRatio: g.colorRatio || 0,
+            colorGrid: g.colorGrid || "",
             colorTitle: g.colorTitle || "",
             series: g.seriesTitle,
             seller: "",

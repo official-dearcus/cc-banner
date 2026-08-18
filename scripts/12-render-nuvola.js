@@ -849,6 +849,53 @@
         const chipW = Math.min(target, (availW - K.chipGap * (most - 1)) / most);
         return { chipW, imgH: chipW / ratio };
       }
+      /* 칩 배치.
+         제품군에 따라 두 가지다.
+           줄별(기본)  누볼라처럼 키즈·성인이 서로 다른 사진을 쓰는 경우.
+                       시트의 줄 하나 = 행 하나. 예전 그대로.
+           공통(2열)   처마처럼 그란데·스탠다드가 같은 사진을 쓰는 경우.
+                       같은 사진이 줄마다 반복되면 안 되므로 한 벌로 합치고
+                       2열로 깐다. 홀수면 첫 줄에 1개(1-2-2), 짝수면 2-2-2.
+         판별은 사진 주소로 한다 — 줄이 달라도 url 이 겹치면 "공통"이다.
+         시트 ColorMaster.colorGrid 에 shared|lines 를 적으면 그 값이 이긴다. */
+      function nvColorGridMode(src) {
+        const g = nvG();
+        const forced = String((g && g.colorGrid) || "").trim().toLowerCase();
+        if (forced === "shared" || forced === "lines") return forced;
+        const seen = new Set();
+        let dup = 0, total = 0;
+        for (const r of src)
+          for (const c of r.list) {
+            total++;
+            const k = c.url || c.colorKey;
+            if (seen.has(k)) dup++;
+            else seen.add(k);
+          }
+        return dup > 0 && total > 0 ? "shared" : "lines";
+      }
+      /* 공통 모드의 칩 한 벌 — 사진 주소로 중복 제거.
+         순서는 시트 행 순서(allColors)를 따른다. 줄 순서로 이으면
+         스탠다드가 먼저 적혔다는 이유로 그레이가 맨 앞에 오는 식이 된다. */
+      function nvChipUnion(src) {
+        const on = new Set();
+        for (const r of src) for (const c of r.list) on.add(c.url || c.colorKey);
+        const seen = new Set(), out = [];
+        for (const c of allColors()) {
+          const k = c.url || c.colorKey;
+          if (!on.has(k) || seen.has(k)) continue;
+          seen.add(k);
+          out.push(c);
+        }
+        return out;
+      }
+      /* 2열 배치 — 홀수면 첫 행에 1개 (1-2-2), 짝수면 2-2-2 */
+      function nvTwoCol(list) {
+        const out = [];
+        let i = 0;
+        if (list.length % 2 === 1) out.push([list[i++]]);
+        for (; i < list.length; i += 2) out.push(list.slice(i, i + 2));
+        return out;
+      }
       function nvColorMetrics() {
         const K = NV.color;
         const ratio = nvColorRatio();
@@ -856,12 +903,17 @@
         const src = lines
           .map((l) => ({ label: l.label, list: pickedColors(l.key) }))
           .filter((r) => r.list.length);
-        const most = Math.max(1, ...src.map((r) => r.list.length));
+        const mode = nvColorGridMode(src);
+        const most = mode === "shared"
+          ? 2 // 2열 고정
+          : Math.max(1, ...src.map((r) => r.list.length));
         const F = nvChipFit(K, ratio, most, K.optW);
         const chipW = F.chipW, imgH = F.imgH;
         const chipH = imgH + K.chipLabelGap + K.chipLabelH;
-        /* 그리기용 행 목록 — 시트의 줄 하나가 행 하나 */
-        const grid = src.map((r) => r.list);
+        /* 그리기용 행 목록 */
+        const grid = mode === "shared"
+          ? nvTwoCol(nvChipUnion(src))
+          : src.map((r) => r.list);
         const rows = src;
         const L = Math.max(1, src.length);
         const R = Math.max(1, grid.length);
@@ -872,7 +924,7 @@
         const optY = txtEnd + 60; // .fig: txt-wrap 끝 → color_option 간격 60
         const optH = R * chipH + (R - 1) * K.rowGap;
         const H = Math.max(K.H, optY + optH + 98); // .fig 하단 여백 98
-        return { rows, grid, L, R, ratio, chipW, imgH, chipH,
+        return { rows, grid, L, R, mode, ratio, chipW, imgH, chipH,
                  headH, nameH, txtEnd, optY, optH, H };
       }
 
@@ -1475,11 +1527,16 @@
         }
         // 칩 — 상세와 같은 규칙 (제품군 비율 + 넘치면 줄바꿈)
         const ratio = nvColorRatio();
-        const most = Math.max(1, ...rows.map((r) => r.list.length));
+        const mode = nvColorGridMode(rows);
+        const most = mode === "shared"
+          ? 2
+          : Math.max(1, ...rows.map((r) => r.list.length));
         const F = nvChipFit(K, ratio, most, K.rowW);
         const chipW = F.chipW, imgH = F.imgH;
         const chipH = imgH + K.chipLabelH;
-        const grid = rows.map((r) => r.list);
+        const grid = mode === "shared"
+          ? nvTwoCol(nvChipUnion(rows))
+          : rows.map((r) => r.list);
         let ry = K.optY + K.optPadTop;
         for (const r of grid) {
           const rw = r.length * chipW + (r.length - 1) * K.chipGap;
