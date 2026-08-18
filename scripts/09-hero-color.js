@@ -51,14 +51,27 @@
          버터 · 아이스그레이 · 메론그린 은 꺼진 채로 시작하고 필요할 때 켠다.
          라벨 완전일치로 비교한다("아이스그레이"가 "그레이"에 걸리지 않도록).
          이 목록에 걸리는 색이 하나도 없으면(다른 제품군) 예전처럼 전체 선택. */
-      const COLOR_DEFAULT_ON = ["블랙", "딥그린", "핑크", "화이트", "그레이"];
+      /* ⚠ 이 목록은 누볼라 전용이었는데 전 제품군에 적용돼 있었다.
+           처마는 베이지·딥그레이가 목록에 없어서 기본 선택에서 빠졌다
+           (2026-08-14 신고). 제품군별로 나눈다 — 여기 없는 제품군은 전체 선택. */
+      const COLOR_DEFAULT_BY_GROUP = {
+        nuvolafamily: ["블랙", "딥그린", "핑크", "화이트", "그레이"],
+      };
       function resetColorPick() {
         state.colorPick = {};
+        const preset = COLOR_DEFAULT_BY_GROUP[state.group];
         colorLines().forEach((l) => {
           const all = colorsOf(l.key);
-          const on = all.filter((c) =>
-            COLOR_DEFAULT_ON.includes(String(c.label || "").trim()),
-          );
+          /* ① 시트 ColorMaster.defaultOn 이 있으면 그게 최우선 */
+          const marked = all.filter((c) => c.defaultOn === true);
+          if (marked.length) {
+            state.colorPick[lineKey(l.key)] = marked.map((c) => c.colorKey);
+            return;
+          }
+          /* ② 제품군 기본 목록 (없으면 전체) */
+          const on = preset
+            ? all.filter((c) => preset.includes(String(c.label || "").trim()))
+            : [];
           state.colorPick[lineKey(l.key)] = (on.length ? on : all).map((c) => c.colorKey);
         });
       }

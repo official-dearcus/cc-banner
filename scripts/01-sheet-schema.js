@@ -168,6 +168,9 @@
             /* 칩 비율(가로/세로). ProductMaster 에 넣어도 되고 여기 넣어도 된다.
                여기 넣을 땐 그 제품군의 아무 행에나 한 번만 적으면 된다. */
             colorRatio: { type: "number", optional: true },
+            /* 처음 켜둘 색. 한 줄에서 하나라도 TRUE 면 그 줄은 TRUE 인 색만 켜진다.
+               비우면 제품군 기본값(09-hero-color)을 따른다. */
+            defaultOn: { type: "bool", optional: true },
             colorKey: { type: "string" },
             label: { type: "string" },
             url: { type: "url" },
