@@ -832,10 +832,22 @@
       /* ── section-color 치수 계산 (줄 수·색 개수에 따라 가변) ── */
       /* 제품군별 칩 비율 (가로/세로). 시트 colorRatio 가 있으면 그걸 쓴다.
          처마처럼 가로로 긴 제품은 1.5~2 → 칸이 커지고 한 줄에 덜 들어간다. */
+      /* 칩 칸의 가로/세로 비율.
+         ① 시트 colorRatio 가 있으면 그 값
+         ② 없으면 실제 불러온 색상 사진에서 뽑는다
+         ③ 사진이 아직 없으면 기본 240/440
+         ⚠ ②가 없을 땐 가로로 긴 사진이 세로 칸(120×220)에 들어가면서
+           위아래로 77px 씩 빈칸이 생겼다. rowGap 을 20 으로 줄여도
+           사진 사이가 217px 로 벌어져 보인 원인이다(2026-08-15 신고). */
       function nvColorRatio() {
         const g = nvG();
         const r = g && Number(g.colorRatio);
-        return r > 0 ? r : COLOR_RATIO;
+        if (r > 0) return r;
+        for (const c of allColors()) {
+          const im = c.img;
+          if (im && im.width && im.height) return im.width / im.height;
+        }
+        return COLOR_RATIO;
       }
       /* 칩 행 사이 간격. 기본은 .fig 누볼라 실측(상세 38 · 피드 48).
          가로형은 이미지가 낮고 넓어 38 이 떠 보인다 →
@@ -845,6 +857,16 @@
         const v = g && Number(g.colorRowGap);
         return v > 0 ? v : dflt;
       }
+      /* 공통(shared) 모드 치수 — cheoma_color.fig 실측 (2026-08-18).
+           흰 박스   x50 w760 · 위아래 여백 52 · #ffffff
+           칩       349 폭 · 좌우 12 · 행 20
+           이름     28px lh40 · 사진 바로 아래(간격 0) · accent 색
+         누볼라(lines 모드)는 예전 값 그대로다. */
+      const NV_COLOR_SHARED = {
+        boxX: 50, boxW: 760, boxPad: 52, boxFill: "#ffffff",
+        cols: 2, chipW: 349, chipGap: 12, rowGap: 20,
+        labelSize: 28, labelH: 40, labelGap: 0,
+      };
       /* 칩 폭 계산. 한 줄(line)당 한 행이다 — 시트에 적힌 목록 그대로 간다.
          ⚠ 가로형에서 칸이 좁아 보인다고 줄을 접어봤는데, 시트의 컬러 목록을
            임의로 나누는 셈이라 되돌렸다(2026-08-14). 줄 구성은 시트가 정한다.
@@ -912,12 +934,17 @@
           .map((l) => ({ label: l.label, list: pickedColors(l.key) }))
           .filter((r) => r.list.length);
         const mode = nvColorGridMode(src);
-        const most = mode === "shared"
-          ? 2 // 2열 고정
-          : Math.max(1, ...src.map((r) => r.list.length));
-        const F = nvChipFit(K, ratio, most, K.optW);
+        const S = NV_COLOR_SHARED;
+        const shared = mode === "shared";
+        const F = shared
+          ? { chipW: S.chipW, imgH: S.chipW / ratio }
+          : nvChipFit(K, ratio, Math.max(1, ...src.map((r) => r.list.length)), K.optW);
         const chipW = F.chipW, imgH = F.imgH;
-        const chipH = imgH + K.chipLabelGap + K.chipLabelH;
+        const labelGap = shared ? S.labelGap : K.chipLabelGap;
+        const labelH = shared ? S.labelH : K.chipLabelH;
+        const labelSize = shared ? S.labelSize : K.chipLabelSize;
+        const chipGap = shared ? S.chipGap : K.chipGap;
+        const chipH = imgH + labelGap + labelH;
         /* 그리기용 행 목록 */
         const grid = mode === "shared"
           ? nvTwoCol(nvChipUnion(src))
@@ -930,10 +957,14 @@
         const nameH = L * K.listLineH + (L - 1) * K.listGap;
         const txtEnd = K.txtY + headH + K.txtGap + nameH;
         const optY = txtEnd + 60; // .fig: txt-wrap 끝 → color_option 간격 60
-        const rowGap = nvColorRowGap(K.rowGap);
+        const rowGap = nvColorRowGap(shared ? S.rowGap : K.rowGap);
         const optH = R * chipH + (R - 1) * rowGap;
-        const H = Math.max(K.H, optY + optH + 98); // .fig 하단 여백 98
-        return { rows, grid, L, R, mode, ratio, chipW, imgH, chipH, rowGap,
+        /* 공통 모드는 칩 묶음을 흰 박스가 감싼다 (.fig color_option) */
+        const boxPad = shared ? S.boxPad : 0;
+        const boxH = shared ? optH + boxPad * 2 : 0;
+        const H = Math.max(K.H, optY + (shared ? boxH : optH) + 98);
+        return { rows, grid, L, R, mode, shared, ratio, chipW, imgH, chipH, rowGap,
+                 labelGap, labelH, labelSize, chipGap, boxPad, boxH,
                  headH, nameH, txtEnd, optY, optH, H };
       }
 
@@ -946,8 +977,16 @@
           (onDark ? "#ffffff" : th.accent);
         ctx.fillStyle = nvColorBg(th) || "#ddd";
         ctx.fillRect(0, top, W, M.H);
-        // 03: 칩을 흰 컨테이너로 감싼다 (.fig color_option #ffffff)
-        if (nvCfg().colorBox) {
+        /* 흰 컨테이너 (.fig color_option #ffffff)
+             공통 모드  cheoma_color.fig 실측 — x50 w760 · 위아래 여백 52.
+                        제품 사진이 배경에 묻히지 않게 템플릿 3개 모두 깐다
+                        (2026-08-18 요청).
+             03        예전 값 유지 (누볼라 03 전용). */
+        if (M.shared) {
+          const S = NV_COLOR_SHARED;
+          ctx.fillStyle = S.boxFill;
+          ctx.fillRect(S.boxX, top + M.optY, S.boxW, M.boxH);
+        } else if (nvCfg().colorBox) {
           const bw = 800, bx = (W - bw) / 2;
           const bh = M.optH + 100;
           ctx.fillStyle = "#ffffff";
@@ -991,9 +1030,9 @@
           ly += K.listLineH + K.listGap;
         }
         // 칩 그리드 — 모든 줄의 칩 폭을 같이 맞춘다 (한 줄이 여러 행으로 접힐 수 있다)
-        let ry = top + M.optY;
+        let ry = top + M.optY + M.boxPad;
         for (const r of M.grid) {
-          const rowW = r.length * M.chipW + (r.length - 1) * K.chipGap;
+          const rowW = r.length * M.chipW + (r.length - 1) * M.chipGap;
           let rx = cx - rowW / 2;
           for (const c of r) {
             /* ⚠ 상자 비율로 그리면 원본과 다를 때 늘어난다. 원본 비율로 넣는다
@@ -1003,10 +1042,10 @@
                 (c.img.width || 1) / (c.img.height || 1));
             ctx.fillStyle = nvChipLabel(th);
             ctx.textAlign = "center"; ctx.textBaseline = "middle";
-            ctx.font = `400 ${K.chipLabelSize}px Pretendard`;
+            ctx.font = `400 ${M.labelSize}px Pretendard`;
             trk(ctx, c.label, rx + M.chipW / 2,
-                ry + M.imgH + K.chipLabelGap + K.chipLabelH / 2, -0.48, "center");
-            rx += M.chipW + K.chipGap;
+                ry + M.imgH + M.labelGap + M.labelH / 2, -0.48, "center");
+            rx += M.chipW + M.chipGap;
           }
           ry += M.chipH + M.rowGap;
         }
