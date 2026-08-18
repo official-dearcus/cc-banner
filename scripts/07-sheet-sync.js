@@ -72,6 +72,7 @@
             scentUrl: g.scentUrl || "",
             colorRatio: g.colorRatio || 0,
             colorGrid: g.colorGrid || "",
+            colorRowGap: g.colorRowGap || 0,
             colorTitle: g.colorTitle || "",
             series: g.seriesTitle,
             seller: "",

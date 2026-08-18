@@ -108,6 +108,7 @@
                처마처럼 가로로 긴 제품은 1.5~2 를 넣는다. 한 줄에 들어가는 칸 수가
                자동으로 줄고, 넘치면 다음 줄로 접힌다. */
             colorRatio: { type: "number", group: true, optional: true },
+            colorRowGap: { type: "number", group: true, optional: true },
             colorTitle: { type: "string", group: true, optional: true }, // 컬러 섹션 제목(그룹 공통 폴백) — 템플릿별은 TemplateMaster 사용
             sortOrder: { type: "number", optional: true },
             // 제품명 = 텍스트 노드 1개. 피그마에서 폭 안에서 자동 줄바꿈됨.
@@ -174,6 +175,8 @@
             /* 칩 배치 — shared(한 벌 2열) | lines(줄마다 한 행).
                비우면 사진 주소가 겹치는지 보고 자동으로 정한다. */
             colorGrid: { type: "string", optional: true },
+            /* 칩 행 사이 간격(px). 비우면 기본값 (상세 38 · 피드 48). */
+            colorRowGap: { type: "number", optional: true },
             colorKey: { type: "string" },
             label: { type: "string" },
             url: { type: "url" },
@@ -439,6 +442,7 @@
               scentUrl: "",
               colorRatio: 0,
               colorGrid: "",
+              colorRowGap: 0,
               colorTitle: "",
               templates: [],
               rows: [],
@@ -458,6 +462,7 @@
             "sizeInfoUrl",
             "scentUrl",
             "colorRatio",
+            "colorRowGap",
             "colorTitle",
           ]) {
             const t = f === "groupLabel" ? "label" : f;
@@ -525,6 +530,7 @@
              ProductMaster 에 이미 있으면 그쪽이 이긴다(위에서 먼저 채워진다). */
           if (!g.colorRatio && c.colorRatio) g.colorRatio = c.colorRatio;
           if (!g.colorGrid && c.colorGrid) g.colorGrid = c.colorGrid;
+          if (!g.colorRowGap && c.colorRowGap) g.colorRowGap = c.colorRowGap;
         }
         for (const g of Object.values(groups)) {
           g.colors.sort(

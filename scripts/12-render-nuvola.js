@@ -837,6 +837,14 @@
         const r = g && Number(g.colorRatio);
         return r > 0 ? r : COLOR_RATIO;
       }
+      /* 칩 행 사이 간격. 기본은 .fig 누볼라 실측(상세 38 · 피드 48).
+         가로형은 이미지가 낮고 넓어 38 이 떠 보인다 →
+         시트 colorRowGap 으로 제품군마다 줄일 수 있다 (처마 20, 2026-08-15). */
+      function nvColorRowGap(dflt) {
+        const g = nvG();
+        const v = g && Number(g.colorRowGap);
+        return v > 0 ? v : dflt;
+      }
       /* 칩 폭 계산. 한 줄(line)당 한 행이다 — 시트에 적힌 목록 그대로 간다.
          ⚠ 가로형에서 칸이 좁아 보인다고 줄을 접어봤는데, 시트의 컬러 목록을
            임의로 나누는 셈이라 되돌렸다(2026-08-14). 줄 구성은 시트가 정한다.
@@ -922,9 +930,10 @@
         const nameH = L * K.listLineH + (L - 1) * K.listGap;
         const txtEnd = K.txtY + headH + K.txtGap + nameH;
         const optY = txtEnd + 60; // .fig: txt-wrap 끝 → color_option 간격 60
-        const optH = R * chipH + (R - 1) * K.rowGap;
+        const rowGap = nvColorRowGap(K.rowGap);
+        const optH = R * chipH + (R - 1) * rowGap;
         const H = Math.max(K.H, optY + optH + 98); // .fig 하단 여백 98
-        return { rows, grid, L, R, mode, ratio, chipW, imgH, chipH,
+        return { rows, grid, L, R, mode, ratio, chipW, imgH, chipH, rowGap,
                  headH, nameH, txtEnd, optY, optH, H };
       }
 
@@ -999,7 +1008,7 @@
                 ry + M.imgH + K.chipLabelGap + K.chipLabelH / 2, -0.48, "center");
             rx += M.chipW + K.chipGap;
           }
-          ry += M.chipH + K.rowGap;
+          ry += M.chipH + M.rowGap;
         }
         ctx.textBaseline = "alphabetic";
       }
@@ -1551,7 +1560,7 @@
             trk(ctx, c.label, rx + chipW / 2, ry + imgH + K.chipLabelH / 2, -0.6, "center");
             rx += chipW + K.chipGap;
           }
-          ry += chipH + K.rowGap;
+          ry += chipH + nvColorRowGap(K.rowGap);
         }
         ctx.textBaseline = "alphabetic";
       }
