@@ -448,6 +448,80 @@
         cursor: default;
       }
 
+      /* ---- 상세 섹션 순서 (26-section-order) ---- */
+      #secOrder {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .secrow {
+        display: grid;
+        grid-template-columns: 14px 18px 1fr auto;
+        gap: 8px;
+        align-items: center;
+        padding: 9px 10px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: #fff;
+        font-size: 12.5px;
+      }
+      .secrow.off {
+        opacity: 0.5;
+      }
+      .secno {
+        font-size: 10.5px;
+        font-weight: 700;
+        color: var(--ink-soft);
+        text-align: center;
+      }
+      .secname {
+        font-weight: 600;
+      }
+      .secoff {
+        font-size: 10px;
+        color: var(--ink-soft);
+      }
+      .secdrag {
+        cursor: grab;
+        color: var(--ink-soft);
+        font-size: 13px;
+        line-height: 1;
+        user-select: none;
+        text-align: center;
+      }
+      .secdrag:active {
+        cursor: grabbing;
+      }
+      .secrow.dragging {
+        opacity: 0.45;
+      }
+      .secrow.over-t {
+        box-shadow: inset 0 2px 0 var(--accent);
+      }
+      .secrow.over-b {
+        box-shadow: inset 0 -2px 0 var(--accent);
+      }
+      .secreset {
+        width: 100%;
+        margin-top: 7px;
+        padding: 8px;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        background: #fff;
+        font: inherit;
+        font-size: 11.5px;
+        color: var(--ink-soft);
+        cursor: pointer;
+      }
+      .secreset:hover:not(:disabled) {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      .secreset:disabled {
+        opacity: 0.4;
+        cursor: default;
+      }
+
       /* ---- 섹션 접기 (24-panel-collapse) ---- */
       .block > label.h {
         cursor: pointer;
