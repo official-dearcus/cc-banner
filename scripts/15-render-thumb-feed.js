@@ -615,9 +615,12 @@
             drawLogo(ctx, W / 2 - 100, 1300, 200, 32);
           } else {
             // 02: 진한 배경 + 흰 컨테이너 카드 1장 + 하단 로고
-            const listX = 60,
-              listY = 312,
-              listW = 940;
+            /* ⚠ x 를 60 으로 박아 놨는데 폭이 940 이라 오른쪽 여백이 80 이 됐다
+                 (좌 60 / 우 80 → 10px 왼쪽으로 치우침, 2026-08-28 신고).
+               폭에서 가운데를 계산한다. 01 은 x60 w960 이라 원래 가운데였다. */
+            const listW = 940,
+              listX = (W - listW) / 2,
+              listY = 312;
             ctx.fillStyle = "#ffffff";
             roundRect(ctx, listX, listY, listW, 468 + 40, 0);
             ctx.fill();
@@ -631,9 +634,9 @@
         if (state.tpl === "02") {
           // .fig: option-list 컨테이너 940×988 @(60,312), pad20 gap12
           //       카드 940×468, 컨테이너 폭과 동일(좌우 여백 0), pitch 480
-          const listX = 60,
-            listY = 312,
-            listW = 940;
+          const listW = 940,
+            listX = (W - listW) / 2, // 가운데 (위 주석 참고)
+            listY = 312;
           const listH = 20 + cards.length * 468 + (cards.length - 1) * 12 + 20;
           ctx.fillStyle = "#ffffff";
           roundRect(ctx, listX, listY, listW, listH, 0);
@@ -647,7 +650,7 @@
               ctx.lineWidth = 1.5;
               ctx.beginPath();
               ctx.moveTo(listX + 30, cy + 468);
-              ctx.lineTo(listX + 940 - 30, cy + 468);
+              ctx.lineTo(listX + listW - 30, cy + 468);
               ctx.stroke();
             }
             cy += 480;
