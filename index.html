@@ -70,6 +70,7 @@
     <script defer src="scripts/23-render-event.js"></script>
     <script defer src="scripts/24-panel-collapse.js"></script>
     <script defer src="scripts/25-render-scent.js"></script>
+    <script defer src="scripts/26-section-order.js"></script>
   </head>
   <body>
     <!-- ============================================================
@@ -376,6 +377,16 @@
           </div>
           <input type="file" id="heroFile" accept="image/*" hidden />
           <div class="hint" id="imgHint"></div>
+        </div>
+
+        <div class="block" id="secBlock">
+          <label class="h"
+            ><span class="num">12</span> 섹션 순서
+            <span class="cnt">드래그</span></label
+          >
+          <div class="secpick" id="secOrder"></div>
+          <button class="secreset" id="secReset">기본 순서로</button>
+          <div class="hint">상세페이지에서 위→아래로 놓이는 순서입니다.</div>
         </div>
 
         <div class="block" id="evBlock">
