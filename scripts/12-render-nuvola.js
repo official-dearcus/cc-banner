@@ -309,7 +309,11 @@
         return typeof scentH === "function" ? scentH() : 0;
       }
       function nvCanvasH() {
-        return NV.MAIN_H + nvOptionH() + nvScentH() + nvColorH() + nvEventH();
+        /* nvDetail 과 같은 목록에서 합산한다 — 섹션이 늘어도 한 곳만 고치면 된다 */
+        return Object.keys(NV_SECTIONS).reduce(
+          (a, k) => a + (NV_SECTIONS[k].h() || 0),
+          0,
+        );
       }
 
       /* ── section-main : 01 사진형 / 02 그라데이션형 / 03 그리드형 ── */
@@ -1723,18 +1727,58 @@
       }
 
       /* ── 누볼라 상세페이지 전체 ── */
+      /* 섹션 하나 = 높이 함수 + 그리기 함수.
+         순서는 26-section-order 가 정한다(드래그로 바뀐다).
+         높이 합계는 순서와 무관하므로 캔버스 길이는 안 변한다.
+         ⚠ nvMain 은 y 인자가 없다(항상 0 에 그린다) → translate 로 옮긴다.
+           나머지도 같은 방식으로 통일해서, 섹션이 어디로 가든 계산이 같다. */
+      const NV_SECTIONS = {
+        main: {
+          h: () => NV.MAIN_H,
+          draw: (ctx, W, th) => nvMain(ctx, W, th),
+        },
+        option: {
+          h: () => nvOptionH(),
+          draw: (ctx, W, th) => nvOption(ctx, W, 0, th),
+        },
+        scent: {
+          h: () => nvScentH(),
+          draw: (ctx, W, th) =>
+            typeof scentSection === "function" && scentSection(ctx, W, 0, th),
+        },
+        color: {
+          h: () => nvColorH(),
+          draw: (ctx, W, th) => hasColors() && nvColor(ctx, W, 0, th),
+        },
+        event: {
+          h: () => nvEventH(),
+          draw: (ctx, W, th) =>
+            typeof evSection === "function" && evSection(ctx, W, 0, th),
+        },
+      };
+      function nvSecOrder() {
+        const keys = Object.keys(NV_SECTIONS);
+        const saved =
+          typeof secOrder === "function" ? secOrder() : keys;
+        const out = saved.filter((k) => keys.includes(k));
+        for (const k of keys) if (!out.includes(k)) out.push(k);
+        return out;
+      }
       function nvDetail(ctx, W, th) {
         const H = nvCanvasH();
         ctx.clearRect(0, 0, W, H);
         ctx.fillStyle = th.colorBgLight || "#ffffff";
         ctx.fillRect(0, 0, W, H);
-        nvMain(ctx, W, th);
-        const oy = NV.MAIN_H;
-        nvOption(ctx, W, oy, th);
-        const sy = oy + nvOptionH();
-        if (typeof scentSection === "function") scentSection(ctx, W, sy, th);
-        const cy = sy + nvScentH();
-        if (hasColors()) nvColor(ctx, W, cy, th);
-        if (typeof evSection === "function")
-          evSection(ctx, W, cy + nvColorH(), th);
+        let y = 0;
+        for (const k of nvSecOrder()) {
+          const S = NV_SECTIONS[k];
+          if (!S) continue;
+          const sh = S.h() || 0;
+          if (sh <= 0) continue;
+          ctx.save();
+          ctx.translate(0, y);
+          S.draw(ctx, W, th);
+          ctx.restore();
+          y += sh;
+        }
       }
