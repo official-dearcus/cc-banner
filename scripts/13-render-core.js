@@ -11,18 +11,12 @@
           cardTops().total +
           60 +
           /* 이벤트 배너는 패밀리와 무관하게 상세 마지막 섹션이다.
-             ⚠ 예전엔 nvDetail 에만 붙여서 뱀부 01·02 에서는 안 보였다. */
+             ⚠ 예전엔 nvDetail 에만 붙여서 뱀부 01·02 에서는 안 보였다.
+             순서를 바꿔도 합계는 같으므로 이 식은 그대로다. */
           (typeof evSectionH === "function" ? evSectionH() : 0)
         );
       }
       /* 구형 상세에서 이벤트 섹션이 시작하는 y (옵션 카드 목록 끝) */
-      function legacyBodyH() {
-        const O = OPT[state.tpl] || OPT["01"];
-        return (
-          SHARED.HERO_H + O.body.y + O.list.y + O.list.pad * 2 +
-          cardTops().total + 60
-        );
-      }
 
       function draw() {
         const W = SHARED.W,
@@ -73,10 +67,52 @@
         ctx.fillStyle = th.sectionBg || "#fff";
         ctx.fillRect(0, 0, W, H);
 
-        state.tpl === "01" ? hero01(ctx, W, th) : hero02(ctx, W, th);
-
+        /* 섹션 순서 (26-section-order). 구형도 히어로·옵션·이벤트 셋으로 나뉘어
+           있어서 신형과 같은 방식으로 옮겨 그린다.
+           ⚠ hero01/02 와 옵션 묶음은 y 인자가 없다(절대좌표로 그린다)
+             → ctx.translate 로 옮긴다. 그리는 내용은 안 건드렸다. */
+        const LEG = {
+          main: {
+            h: () => SHARED.HERO_H,
+            draw: () => (state.tpl === "01" ? hero01(ctx, W, th) : hero02(ctx, W, th)),
+          },
+          option: { h: () => legacyOptionH(), draw: () => legacyOption(ctx, W, th) },
+          event: {
+            h: () => (typeof evSectionH === "function" ? evSectionH() : 0),
+            draw: () =>
+              typeof evSection === "function" && evSection(ctx, W, 0, th),
+          },
+        };
+        let ly = 0;
+        for (const k of legacySecOrder()) {
+          const S = LEG[k];
+          if (!S) continue;
+          const sh = S.h() || 0;
+          if (sh <= 0) continue;
+          ctx.save();
+          ctx.translate(0, ly);
+          S.draw();
+          ctx.restore();
+          ly += sh;
+        }
+      }
+      /* 구형에서 쓰는 섹션만 골라 순서를 맞춘다 (향·컬러는 구형에 없다) */
+      function legacySecOrder() {
+        const keys = ["main", "option", "event"];
+        const saved = typeof secOrder === "function" ? secOrder() : keys;
+        const out = saved.filter((k) => keys.includes(k));
+        for (const k of keys) if (!out.includes(k)) out.push(k);
+        return out;
+      }
+      /* 히어로를 뺀 옵션 묶음의 높이 (제목 + 카드 목록 + 아래 여백 60) */
+      function legacyOptionH() {
+        const O = OPT[state.tpl] || OPT["01"];
+        return O.body.y + O.list.y + O.list.pad * 2 + cardTops().total + 60;
+      }
+      /* 옵션 묶음 — 예전 코드 그대로, 시작 y 만 0 기준으로 바꿨다 */
+      function legacyOption(ctx, W, th) {
         const O = OPT[state.tpl];
-        const oy = SHARED.HERO_H;
+        const oy = 0;
         const by = oy + O.body.y;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
@@ -112,7 +148,6 @@
             ? card01(ctx, r, cardX, top, th)
             : card02(ctx, r, cardX, top, th);
         });
-        if (typeof evSection === "function") evSection(ctx, W, legacyBodyH(), th);
       }
 
       /* ---- 멀티 포맷 미리보기 ---- */

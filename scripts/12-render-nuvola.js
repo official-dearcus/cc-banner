@@ -1648,19 +1648,34 @@
       }
 
       /* 누볼라 피드 슬라이드 구성: [히어로, 옵션…, 사이즈?, 컬러?] */
+      /* 피드 슬라이드도 상세와 같은 순서를 따른다 (2026-08-28 요청).
+         한 섹션이 여러 장이 될 수 있어서(옵션·이벤트) 묶음 단위로 이어 붙인다.
+         ⚠ 사이즈 안내는 상세에 없는 섹션이라 옵션 묶음 바로 뒤에 붙인다. */
+      function nvFeedGroupsOf(key) {
+        if (key === "main") return [{ t: "hero" }];
+        if (key === "option") {
+          const out = [];
+          const per = 2;
+          for (let i = 0; i < state.rows.length; i += per)
+            out.push({ t: "opt", rows: state.rows.slice(i, i + per) });
+          if (state.sizeInfoOn && nvSizeInfoImg()) out.push({ t: "size" });
+          return out;
+        }
+        if (key === "scent")
+          return typeof scentFeedCount === "function" && scentFeedCount()
+            ? [{ t: "scent" }]
+            : [];
+        if (key === "color") return hasColors() ? [{ t: "color" }] : [];
+        if (key === "event")
+          return typeof evFeedGroups === "function" &&
+            typeof evOn === "function" && evOn()
+            ? evFeedGroups().map((g) => ({ t: "event", evs: g }))
+            : [];
+        return [];
+      }
       function nvFeedPlan() {
-        const plan = [{ t: "hero" }];
-        const per = 2;
-        for (let i = 0; i < state.rows.length; i += per)
-          plan.push({ t: "opt", rows: state.rows.slice(i, i + per) });
-        /* 향 섹션은 옵션 다음 장 (상세에서도 옵션 바로 아래) */
-        if (typeof scentFeedCount === "function" && scentFeedCount())
-          plan.push({ t: "scent" });
-        if (state.sizeInfoOn && nvSizeInfoImg()) plan.push({ t: "size" });
-        if (hasColors()) plan.push({ t: "color" });
-        /* 이벤트 배너는 맨 뒤 — 상세에서도 마지막 섹션이다 */
-        if (typeof evFeedGroups === "function" && typeof evOn === "function" && evOn())
-          for (const g of evFeedGroups()) plan.push({ t: "event", evs: g });
+        const plan = [];
+        for (const k of nvSecOrder()) plan.push(...nvFeedGroupsOf(k));
         return plan;
       }
       function nvFeedCount() { return nvFeedPlan().length; }

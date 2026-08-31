@@ -166,10 +166,24 @@
         // groups: [[2],[2],...,[1 or 2]]
         return groups; // 각 원소가 옵션면 1장
       }
+      /* 구형 피드도 상세와 같은 순서를 따른다 (2026-08-28 요청).
+         슬라이드 목록을 먼저 만들고 인덱스로 꺼내 쓴다. */
+      function legacyFeedPlan() {
+        const out = [];
+        for (const k of (typeof legacySecOrder === "function"
+          ? legacySecOrder()
+          : ["main", "option", "event"])) {
+          if (k === "main") out.push({ t: "hero" });
+          else if (k === "option")
+            feedSlides().forEach((s, i) => out.push({ t: "opt", i }));
+          else if (k === "event")
+            for (let i = 0; i < evFeedN(); i++) out.push({ t: "event", i });
+        }
+        return out;
+      }
       function feedCount() {
         if (nvIsOn()) return nvFeedCount();
-        /* 히어로 1 + 옵션면 N + 이벤트면 M (이벤트가 없으면 0) */
-        return 1 + feedSlides().length + evFeedN();
+        return legacyFeedPlan().length;
       }
       function evFeedN() {
         return typeof evFeedCount === "function" ? evFeedCount() : 0;
@@ -584,17 +598,20 @@
         if (nvIsOn()) { nvFeedSlide(ctx, idx, th); return; }
         const W = 1080,
           H = 1350;
-        if (idx === 0) {
+        const plan = legacyFeedPlan();
+        const p = plan[idx];
+        if (!p) return;
+        if (p.t === "hero") {
           feedHero(ctx, th);
           return;
         }
-        const slides = feedSlides();
-        /* 이벤트면은 옵션면 뒤에 붙는다 (상세에서도 마지막 섹션) */
-        const evStart = 1 + slides.length;
-        if (idx >= evStart && evFeedN()) {
-          evFeedSlide(ctx, evFeedGroups()[idx - evStart], th);
+        if (p.t === "event") {
+          evFeedSlide(ctx, evFeedGroups()[p.i], th);
           return;
         }
+        const slides = feedSlides();
+        /* 아래 코드는 idx 를 옵션면 번호로 쓴다 → 순서와 무관하게 맞춘다 */
+        idx = p.i + 1;
         const cards = slides[idx - 1] || [];
         const isLastOdd = idx - 1 === slides.length - 1 && cards.length === 1;
 

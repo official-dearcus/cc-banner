@@ -41,11 +41,11 @@
         const box = document.getElementById("secOrder");
         if (!box) return;
         const blk = document.getElementById("secBlock");
-        /* 구형 렌더러(뱀부 01·02)에서는 순서를 못 바꾼다 → 섹션 자체를 숨긴다 */
-        const on = typeof nvIsOn === "function" && nvIsOn();
-        if (blk) blk.hidden = !on;
-        if (!on) return;
-        const order = secOrder();
+        if (blk) blk.hidden = false;
+        /* 구형 렌더러(뱀부 01·02)에는 향·컬러 섹션이 없다 → 그 둘은 숨긴다 */
+        const legacy = !(typeof nvIsOn === "function" && nvIsOn());
+        const usable = legacy ? ["main", "option", "event"] : SEC_DEFAULT;
+        const order = secOrder().filter((k) => usable.includes(k));
         /* 지금 화면에 실제로 나오는 섹션만 보여준다 (높이 0 이면 회색으로) */
         const h = {
           main: () => (typeof NV !== "undefined" ? NV.MAIN_H : 1),
@@ -57,6 +57,7 @@
         box.innerHTML = order
           .map((k, i) => {
             const live = (h[k] ? h[k]() : 0) > 0;
+            /* 구형에서 숨긴 섹션은 위 filter 에서 이미 빠졌다 */
             return `<div class="secrow${live ? "" : " off"}" data-i="${i}" data-k="${k}">
         <span class="secdrag" title="끌어서 순서 변경">⠿</span>
         <span class="secno">${i + 1}</span>
@@ -96,18 +97,21 @@
             const r = el.getBoundingClientRect();
             const aft = e.clientY - r.top > r.height / 2;
             let to = +el.dataset.i + (aft ? 1 : 0);
-            const list = secOrder();
-            const item = list[from];
-            list.splice(from, 1);
+            /* 화면에 보이는 것만 재배열하고, 숨긴 섹션(구형의 향·컬러)은
+               원래 자리 관계를 유지한 채 뒤에 붙인다 — 신형으로 돌아가도 안 잃는다 */
+            const vis = order.slice();
+            const item = vis[from];
+            vis.splice(from, 1);
             if (from < to) to--;
-            list.splice(to, 0, item);
+            vis.splice(to, 0, item);
+            const hidden = secOrder().filter((k) => !vis.includes(k));
             from = null;
-            setSecOrder(list);
+            setSecOrder(vis.concat(hidden));
           };
         });
         const rs = document.getElementById("secReset");
         if (rs) {
-          const same = order.join() === SEC_DEFAULT.join();
+          const same = order.join() === usable.join();
           rs.disabled = same;
           rs.onclick = resetSecOrder;
         }
