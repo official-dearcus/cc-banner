@@ -1,4 +1,27 @@
-cc-banner  build 2026-08-28-C
+cc-banner  build 2026-08-28-D
+섹션별 따로 저장 (요청 2026-08-28)
+  다운로드 옆 [섹션별 따로] 체크 → ZIP 에 Sections/ 폴더가 함께 들어간다.
+  체크 안 하면 예전과 완전히 같다(상세 1 · 썸네일 1 · 피드 N).
+
+    Sections/…_Detail_Hero.png     860 × 그 섹션 높이
+              …_Detail_Option.png
+              …_Detail_Scent.png
+              …_Detail_Color.png
+              …_Detail_Event.png   ← 이벤트만 따로 쓸 때
+              …_Feed_Hero.png      1080×1350
+              …_Feed_Option.png    (여러 장이면 Option1·Option2…)
+              …_Feed_Event.png
+
+  섹션 목록은 26-section-order 를 그대로 쓴다 → 순서를 바꾸면 파일 순서도 따라간다.
+  안 쓰이는 섹션(높이 0)은 파일이 안 생긴다.
+  구형(뱀부 01·02)도 된다 — 히어로·옵션·이벤트. 향·컬러는 구형에 없다.
+
+  이번에 정리한 것
+    LEGACY_SECTIONS       구형 섹션 정의를 밖으로 꺼내 그리기와 저장이 같이 쓴다
+    legacyFeedGroupsOf()  구형 피드 묶음
+    feedPlanBySection()   피드 슬라이드를 섹션별로 묶어준다
+
+이전:
 섹션 순서 — 구형(뱀부 01·02)과 인스타 피드까지 확장 (요청 2026-08-28)
 
 1) 구형 렌더러도 순서 변경 (13-render-core)
@@ -21,23 +44,3 @@ cc-banner  build 2026-08-28-C
      신형  hero → opt → scent → color → event
            ⇒  event → color → scent → opt → hero
    캔버스 높이는 순서와 무관하게 그대로다(구형 2463 확인).
-
-이전:
-상세페이지 섹션 순서를 드래그로 (요청 2026-08-28)
-  scripts/26-section-order.js 신설 + nvDetail 구조 변경.
-    섹션 하나 = 높이 함수 + 그리기 함수 (NV_SECTIONS)
-      main 히어로 · option 옵션 · scent 향 안내 · color 컬러 안내 · event 이벤트
-    nvDetail 이 목록을 순서대로 돌며 ctx.translate 로 옮겨 그린다.
-    ⚠ nvMain 은 y 인자가 없어 항상 0 에 그렸다 → translate 로 통일했다.
-      덕분에 히어로도 순서를 바꿀 수 있다.
-    nvCanvasH 도 같은 목록에서 합산 — 순서를 바꿔도 캔버스 길이는 그대로다.
-
-  패널 [12] 섹션 순서 — ⠿ 손잡이로 드래그 (가격 카드·이벤트와 같은 방식).
-    지금 안 쓰이는 섹션(높이 0)은 흐리게 "안 쓰임" 으로 표시한다.
-    [기본 순서로] 버튼. 기본과 같으면 비활성.
-    저장값이 깨져도 버틴다 — 모르는 키는 버리고 빠진 키는 뒤에 붙인다.
-      (섹션이 새로 생겨도 예전 설정이 안 깨진다)
-
-  ⚠ 뱀부 01·02 는 구형 렌더러(13-render-core)라 순서 고정이다.
-    그 경우 패널의 순서 섹션 자체를 숨긴다.
-  ⚠ 인스타 피드 슬라이드 순서는 안 건드렸다(nvFeedPlan 그대로).
