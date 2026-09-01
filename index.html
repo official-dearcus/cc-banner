@@ -72,6 +72,7 @@
     <script defer src="scripts/25-render-scent.js"></script>
     <script defer src="scripts/26-section-order.js"></script>
     <script defer src="scripts/27-export-pick.js"></script>
+    <script defer src="scripts/28-try-event.js"></script>
   </head>
   <body>
     <!-- ============================================================
@@ -378,6 +379,16 @@
           </div>
           <input type="file" id="heroFile" accept="image/*" hidden />
           <div class="hint" id="imgHint"></div>
+        </div>
+
+        <div class="block" id="tryBlock">
+          <label class="h"
+            ><span class="num">12</span> 써볼래요 이벤트
+            <span id="tryCount" class="cnt"></span
+          ></label>
+          <div class="evpick" id="tryEvents"></div>
+          <button class="evadd" id="tryAdd">+ 써볼래요 추가</button>
+          <div class="hint" id="tryHint"></div>
         </div>
 
         <div class="block" id="secBlock">

@@ -1,4 +1,27 @@
-cc-banner  build 2026-08-28-E
+cc-banner  build 2026-09-01-A
+"써볼래요 이벤트" 추가 — 인스타 피드 전용 (요청 2026-09-01)
+  scripts/28-try-event.js 신설. 기존 이벤트 배너(23-render-event)의 폼을 그대로 쓴다.
+  패널 [써볼래요 이벤트] — 이벤트 블록 바로 아래. 인원 + 경품 드롭다운.
+
+  이벤트와 다른 점 셋
+    ① 경품이 GiftMaster 가 아니라 "그 제품군의 제품" 이다
+       드롭다운에 지금 제품군의 제품이 뜬다. 제품군을 바꾸면 후보도 바뀐다.
+       이름은 제품명, 사진은 그 제품의 썸네일을 쓴다.
+       (evGiftText/evGiftImg 가 ev.giftLabel·ev.giftUrl 을 먼저 본다)
+    ② 제목이 "써볼래요 이벤트" 고정 · Pretendard Bold 72px
+       ⚠ 피드는 상세 대비 1.2558 배라 그냥 72 를 주면 91 이 된다.
+         titleSizeAbs 로 배율을 안 먹이고 72 그대로 그린다.
+    ③ 상세페이지에 안 들어간다 — NV_SECTIONS.try 의 높이가 늘 0 이다.
+       상세 캔버스 높이가 안 변하는 것으로 확인.
+
+  섹션 순서(26)와 받을 항목(27)에도 잡힌다.
+    순서 목록에서는 피드 장수로 "쓰이는지"를 판단한다(상세 높이가 없으므로).
+    받을 항목에서는 "섹션별 · 피드"에만 뜬다. 파일명 …_Feed_TryEvent.png
+  피드 한 장에 2개까지 — 이벤트와 같은 규칙.
+  문장 문구는 EventMaster 에 typeKey "try" 행을 넣으면 시트에서 바꿀 수 있다
+  (없으면 기본값: 제목 "써볼래요 이벤트" · 본문 "써볼래요").
+
+이전:
 받을 항목 고르기 (요청 2026-08-28)
   D 에서는 "섹션별 따로" 체크 하나였다 — 켜면 전부 다 붙어 나와서,
   이벤트 한 장만 필요해도 ZIP 을 통째로 받아 안에서 찾아야 했다.
@@ -16,26 +39,3 @@ cc-banner  build 2026-08-28-E
 
   예) 이벤트만  → state.dlPick = ["sec:event:d","sec:event:f"]
       결과 2장: …_Detail_Event.png · …_Feed_Event.png
-
-이전:
-섹션별 따로 저장 (요청 2026-08-28)
-  다운로드 옆 [섹션별 따로] 체크 → ZIP 에 Sections/ 폴더가 함께 들어간다.
-  체크 안 하면 예전과 완전히 같다(상세 1 · 썸네일 1 · 피드 N).
-
-    Sections/…_Detail_Hero.png     860 × 그 섹션 높이
-              …_Detail_Option.png
-              …_Detail_Scent.png
-              …_Detail_Color.png
-              …_Detail_Event.png   ← 이벤트만 따로 쓸 때
-              …_Feed_Hero.png      1080×1350
-              …_Feed_Option.png    (여러 장이면 Option1·Option2…)
-              …_Feed_Event.png
-
-  섹션 목록은 26-section-order 를 그대로 쓴다 → 순서를 바꾸면 파일 순서도 따라간다.
-  안 쓰이는 섹션(높이 0)은 파일이 안 생긴다.
-  구형(뱀부 01·02)도 된다 — 히어로·옵션·이벤트. 향·컬러는 구형에 없다.
-
-  이번에 정리한 것
-    LEGACY_SECTIONS       구형 섹션 정의를 밖으로 꺼내 그리기와 저장이 같이 쓴다
-    legacyFeedGroupsOf()  구형 피드 묶음
-    feedPlanBySection()   피드 슬라이드를 섹션별로 묶어준다
