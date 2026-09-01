@@ -467,9 +467,16 @@
            3장 검산: 228 + 250 + 228 + 64×2 = 834 = list 높이 ✓ */
       const EVF = {
         W: 1080, H: 1350,
-        headY: 115, headW: 1000,
-        subSize: 60, subLH: 48, headGap: 20, titleSize: 92, titleLH: 72,
-        box: { x: 56, y: 315, w: 968, h: 974 },
+        headW: 1000,
+        /* 헤더 규격은 다른 피드 슬라이드(NVF.opt)와 똑같이 간다 (요청 2026-09-01).
+           ⚠ .fig "feed event" 는 03 규격(60/48/20/92)이라 그대로 쓰면
+             01·02 에서 제목이 92px 로 커지고 소제목 아래 여백도 달랐다.
+             01·02  headY 118 · sub 52/lh52 · gap 28 · title 72/lh72
+             03     headY 100 · sub 60/lh48 · gap 20 · title 92/lh72 */
+        /* 흰 박스 — 세로는 내용에 맞춰 늘어난다 (요청 2026-09-01).
+           h 는 최대치(= .fig 3장일 때). 카드가 적으면 그만큼 짧아진다.
+           .fig 검산: 위 78 + 내용 834 + 아래 62 = 974 ✓ */
+        box: { x: 56, y: 315, w: 968, hMax: 974, padTop: 78, padBottom: 62 },
         listW: 860,
         txtW: 520, txtGap: 12,          // 글 폭 · 글↔이미지 간격
         imgW: 328, imgH: 228,           // 기준 크기 (넘치면 같이 줄인다)
@@ -483,6 +490,19 @@
         minImgH: 150,                   // 4장 이상이면 여기까지 줄인다
       };
       const EVF_IMG_RATIO = EVF.imgW / EVF.imgH; // 1.4386
+      /* 다른 피드 슬라이드와 같은 헤더 규격을 꺼낸다 */
+      function evfHeadCfg() {
+        const O = (typeof NVF !== "undefined" && NVF.opt) || {};
+        const o = state.tpl === "03" && O.head03 ? { ...O, ...O.head03 } : O;
+        return {
+          headY: o.headY ?? 118,
+          subSize: o.eyebrow ?? 52,
+          subLH: o.eyebrowLH ?? 52,
+          headGap: o.headGap ?? 28,
+          titleSize: o.heading ?? 72,
+          titleLH: o.headingLH ?? 72,
+        };
+      }
 
       /* ── 글 높이 재기 ──
          이름 1줄 + 본문 N줄 + (주석 1줄). 줄바꿈은 낱말 단위. */
@@ -520,7 +540,8 @@
       function evfImgH(group) {
         if (!group.length || group.length > EVF.maxPerSlide) return 0;
         const ms = group.map(evfMeasure);
-        const avail = EVF.box.h;
+        /* 박스가 늘어나도 최대치를 넘을 순 없다 */
+        const avail = EVF.box.hMax - EVF.box.padTop - EVF.box.padBottom;
         const fit = (ih) => {
           const gap = Math.round(EVF.rowGap * 2 * (ih / EVF.imgH));
           return (
@@ -550,21 +571,22 @@
       /* ── 그리기 ── */
       function evfHead(ctx, th, S, opt) {
         const o = opt || {};
+        const H = evfHeadCfg();
         const cx = EVF.W / 2;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        /* 셀러 줄 — .fig 은 "이름 & Dear.cus" 한 줄이다 */
+        /* 셀러 줄 — "이름 & Dear.cus" 한 줄 */
         ctx.fillStyle = S.subInk || evColor(th, S.subInkKey || S.titleInkKey, "#ffffff");
-        ctx.font = `400 ${EVF.subSize}px ${S.sellerFont || "'Afacad Flux', Pretendard"}`;
+        ctx.font = `400 ${H.subSize}px ${S.sellerFont || "'Afacad Flux', Pretendard"}`;
         const seller = state.seller || "Seller_name";
         const tail = S.subTail || "& Dear.cus";
-        trk(ctx, `${seller} ${tail}`, cx, EVF.headY + EVF.subLH / 2, -2, "center");
+        trk(ctx, `${seller} ${tail}`, cx, H.headY + H.subLH / 2, -2, "center");
         /* 제목 */
         ctx.fillStyle = S.titleInk || evColor(th, S.titleInkKey, "#ffffff");
-        const size = o.titleSizeAbs || EVF.titleSize;
+        const size = o.titleSizeAbs || H.titleSize;
         ctx.font = `${o.titleWeight || S.titleWeight} ${size}px ${o.titleFont || S.titleFont}`;
         trk(ctx, o.title || evTitle(), cx,
-          EVF.headY + EVF.subLH + EVF.headGap + EVF.titleLH / 2, -2, "center");
+          H.headY + H.subLH + H.headGap + H.titleLH / 2, -2, "center");
         ctx.textBaseline = "alphabetic";
       }
       function evfDrawCard(ctx, ev, x, top, m, ih, iw) {
@@ -612,10 +634,6 @@
         ctx.fillRect(0, 0, W, H);
         evfHead(ctx, th, S, opt);
 
-        /* 흰 박스 */
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(B.x, B.y, B.w, B.h);
-
         const ih = evfImgH(evs) || EVF.minImgH;
         const iw = Math.round(ih * EVF_IMG_RATIO);
         const scale = ih / EVF.imgH;
@@ -623,9 +641,14 @@
         const ms = evs.map(evfMeasure);
         const hs = ms.map((m) => Math.max(m.txtH, ih));
         const listH = hs.reduce((a, b) => a + b, 0) + gap * (evs.length - 1);
-        /* 가로: 박스 안 가운데 · 세로: 박스 안 가운데 (.fig) */
+        /* 흰 박스 — 내용 높이에 맞춰 그린다. 카드가 늘면 아래로 길어진다. */
+        const boxH = Math.min(B.hMax, B.padTop + listH + B.padBottom);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(B.x, B.y, B.w, boxH);
+
+        /* 가로는 박스 안 가운데. 세로는 위에서부터 (요청 2026-09-01) */
         const lx = B.x + (B.w - EVF.listW) / 2;
-        let cy = B.y + (B.h - listH) / 2;
+        let cy = B.y + B.padTop;
 
         evs.forEach((e, i) => {
           evfDrawCard(ctx, e, lx, cy, ms[i], ih, iw);
