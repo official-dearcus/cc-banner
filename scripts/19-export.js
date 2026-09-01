@@ -56,46 +56,44 @@
           throw new Error(
             "이 제품군은 아직 템플릿이 등록되지 않았습니다 — 템플릿을 먼저 선택하세요",
           );
+        /* 고른 항목만 만든다 (27-export-pick). 안 고른 건 그리지도 않는다. */
+        const want = (k) => (typeof dlHas === "function" ? dlHas(k) : true);
+
         // 상세: 기존 draw 는 #preview 를 쓰므로 오프스크린으로 재현
         //  ⚠ drawDetailTo(ctx, W, th) — W 를 빼먹으면 히어로 좌표가 전부 NaN 이 되어
         //    createLinearGradient 가 non-finite 로 터진다(미리보기는 W 를 넘기므로 멀쩡).
-        const detailH = canvasH();
-        out.push({
-          channel: "Detail",
-          name: `${baseName()}_Detail.png`,
-          canvas: renderOff(SHARED.W, detailH, (ctx) =>
-            drawDetailTo(ctx, SHARED.W, TH()),
-          ),
-        });
-        // 썸네일
-        out.push({
-          channel: "Detail",
-          name: `${baseName()}_Thumb.png`,
-          canvas: renderOff(1080, 1080, (ctx) => drawThumb(ctx, th)),
-        });
-        // 피드 N장
-        const n = feedCount();
-        for (let i = 0; i < n; i++) {
+        if (want("detail"))
           out.push({
-            channel: "Insta",
-            name: `${baseName()}_Feed${i + 1}.png`,
-            canvas: renderOff(1080, 1350, (ctx) => drawFeedSlide(ctx, i, th)),
+            channel: "Detail",
+            name: `${baseName()}_Detail.png`,
+            canvas: renderOff(SHARED.W, canvasH(), (ctx) =>
+              drawDetailTo(ctx, SHARED.W, TH()),
+            ),
           });
+        // 썸네일
+        if (want("thumb"))
+          out.push({
+            channel: "Detail",
+            name: `${baseName()}_Thumb.png`,
+            canvas: renderOff(1080, 1080, (ctx) => drawThumb(ctx, th)),
+          });
+        // 피드 N장
+        if (want("feed")) {
+          const n = feedCount();
+          for (let i = 0; i < n; i++)
+            out.push({
+              channel: "Insta",
+              name: `${baseName()}_Feed${i + 1}.png`,
+              canvas: renderOff(1080, 1350, (ctx) => drawFeedSlide(ctx, i, th)),
+            });
         }
-        /* 섹션별 따로 저장 (2026-08-28 요청) — 켤 때만 붙는다.
-           상세는 그 섹션 높이만큼 잘라 한 장, 피드는 그 섹션이 차지하는 장들. */
-        if (sectionSplitOn()) out.push(...buildSectionImages(th));
+        out.push(...buildSectionImages(th, want));
         return out;
       }
 
       /* ---------- 섹션별 이미지 ----------
          상세 한 장을 통째로 받는 대신, 이벤트 안내만 따로 쓰고 싶을 때가 있다.
          섹션 목록(26-section-order)을 그대로 쓰므로 순서를 바꿔도 따라간다. */
-      function sectionSplitOn() {
-        const el = document.getElementById("dlSplit");
-        return !!(el && el.checked);
-      }
-      /* 지금 렌더러에서 쓰는 섹션 목록 — [{key, label, h, drawDetail}] */
       function exportSections() {
         const legacy = !(typeof nvIsOn === "function" && nvIsOn());
         const order = legacy
@@ -114,11 +112,12 @@
         main: "Hero", option: "Option", scent: "Scent",
         color: "Color", event: "Event",
       };
-      function buildSectionImages(th) {
+      function buildSectionImages(th, want) {
         const out = [];
         const W = SHARED.W;
         /* 상세 — 섹션 하나씩 */
         for (const s of exportSections()) {
+          if (!want(`sec:${s.key}:d`)) continue;
           const h = Math.round(s.def.h());
           if (h <= 0) continue;
           out.push({
@@ -130,6 +129,7 @@
         /* 피드 — 섹션이 차지하는 장들. 한 섹션이 여러 장일 수 있다(옵션·이벤트) */
         const plan = typeof feedPlanBySection === "function" ? feedPlanBySection() : [];
         for (const g of plan) {
+          if (!want(`sec:${g.key}:f`)) continue;
           g.idxs.forEach((idx, i) => {
             out.push({
               channel: "Sections",
