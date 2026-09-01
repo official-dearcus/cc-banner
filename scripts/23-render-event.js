@@ -451,20 +451,46 @@
            k = 960 / 상세 bodyW   (01 은 1.297 · 02·03 은 1.263)
          카드는 슬라이드당 2장. 옵션 카드와 같은 규칙이고,
          3줄짜리 카드가 두 장 겹쳐도 1350 안에 들어간다. */
-      const EVF = { W: 1080, H: 1350, bodyX: 60, bodyW: 960, perSlide: 2 };
+      /* topY — 다른 피드 슬라이드와 상단을 맞춘다 (2026-09-01 요청).
+         컬러 슬라이드 txtY 115 · 옵션 슬라이드 headY 118 → 115 로 통일.
+         ⚠ 예전엔 세로 가운데 정렬이라 카드 장수에 따라 제목 높이가 달랐다
+           (1장짜리 써볼래요는 한참 아래에서 시작했다).
+         bottom — 아래 최소 여백. 여기까지 보고 한 장에 몇 개 넣을지 정한다. */
+      const EVF = { W: 1080, H: 1350, bodyX: 60, bodyW: 960, topY: 115, bottom: 40 };
       function evfK() { return EVF.bodyW / evCfg().bodyW; }
       /* 배율을 먹인 카드 치수 */
       function evfCard(ctx, ev, k) {
         const m = evMeasure(ctx, ev);
         return { ...m, cardH: Math.round(m.cardH * k), txtH: Math.round(m.txtH * k) };
       }
-      function evFeedGroups() {
-        const evs = evList();
+      /* 한 장에 들어가는 만큼만 담는다.
+         카드 높이가 문장 길이에 따라 다르므로(2줄/3줄) 고정 장수로 나누면
+         어떤 조합은 넘치고 어떤 조합은 자리가 남는다. 재서 채운다. */
+      function evFeedFit(list) {
+        const S = evCfg(), k = evfK();
+        const avail =
+          EVF.H - EVF.topY - EVF.bottom -
+          Math.round(evHeadH() * k) - Math.round(S.headGap * k) -
+          Math.round(S.listPad * k) * 2;
+        const gap = Math.round((S.divKey ? S.divGap * 2 : S.gap) * k);
         const out = [];
-        for (let i = 0; i < evs.length; i += EVF.perSlide)
-          out.push(evs.slice(i, i + EVF.perSlide));
+        let cur = [], h = 0;
+        for (const e of list) {
+          const ch = Math.round(evMeasure(_mc, e).cardH * k);
+          const add = cur.length ? gap + ch : ch;
+          if (cur.length && h + add > avail) {
+            out.push(cur);
+            cur = [e];
+            h = ch;
+          } else {
+            cur.push(e);
+            h += add;
+          }
+        }
+        if (cur.length) out.push(cur);
         return out;
       }
+      function evFeedGroups() { return evFeedFit(evList()); }
       function evFeedCount() { return evOn() ? evFeedGroups().length : 0; }
       /* 슬라이드 하나 */
       function evFeedSlide(ctx, evs, th, opt) {
@@ -480,9 +506,8 @@
           listPadK * 2 + ms.reduce((a, m) => a + m.cardH, 0) + gapK * (ms.length - 1);
         const headH = Math.round(evHeadH() * k);
         const headGap = Math.round(S.headGap * k);
-        /* 장수에 따라 내용 높이가 달라지므로 세로 가운데에 둔다 */
-        const contentH = headH + headGap + listH;
-        const top = Math.max(Math.round(EV.padTop * k), Math.round((H - contentH) / 2));
+        /* 다른 피드 슬라이드와 상단을 맞춘다 — 장수와 무관하게 늘 같은 자리 */
+        const top = EVF.topY;
 
         evfHead(ctx, W, top, th, S, k, opt);
         const listY = top + headH + headGap;

@@ -111,13 +111,14 @@
       }
 
       /* ── 피드 ── */
-      const TRY_PER_SLIDE = 2; // 이벤트와 같은 규칙
+      /* 이벤트와 같은 규칙 — 한 장에 들어가는 만큼 담는다 (evFeedFit) */
       function tryFeedGroups() {
         const l = tryList();
-        const out = [];
-        for (let i = 0; i < l.length; i += TRY_PER_SLIDE)
-          out.push(l.slice(i, i + TRY_PER_SLIDE));
-        return out;
+        if (!l.length) return [];
+        if (typeof evFeedFit !== "function") return [l];
+        /* evFeedFit 은 이벤트 모양을 잰다 → 변환한 뒤 원본으로 되돌린다 */
+        const conv = l.map(tryAsEvent);
+        return evFeedFit(conv).map((g) => g.map((c) => l[conv.indexOf(c)]));
       }
       function tryFeedCount() { return tryOn() ? tryFeedGroups().length : 0; }
       function tryFeedSlide(ctx, evs, th) {
