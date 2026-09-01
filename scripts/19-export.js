@@ -82,6 +82,64 @@
             canvas: renderOff(1080, 1350, (ctx) => drawFeedSlide(ctx, i, th)),
           });
         }
+        /* 섹션별 따로 저장 (2026-08-28 요청) — 켤 때만 붙는다.
+           상세는 그 섹션 높이만큼 잘라 한 장, 피드는 그 섹션이 차지하는 장들. */
+        if (sectionSplitOn()) out.push(...buildSectionImages(th));
+        return out;
+      }
+
+      /* ---------- 섹션별 이미지 ----------
+         상세 한 장을 통째로 받는 대신, 이벤트 안내만 따로 쓰고 싶을 때가 있다.
+         섹션 목록(26-section-order)을 그대로 쓰므로 순서를 바꿔도 따라간다. */
+      function sectionSplitOn() {
+        const el = document.getElementById("dlSplit");
+        return !!(el && el.checked);
+      }
+      /* 지금 렌더러에서 쓰는 섹션 목록 — [{key, label, h, drawDetail}] */
+      function exportSections() {
+        const legacy = !(typeof nvIsOn === "function" && nvIsOn());
+        const order = legacy
+          ? (typeof legacySecOrder === "function" ? legacySecOrder() : [])
+          : (typeof nvSecOrder === "function" ? nvSecOrder() : []);
+        const defs = {};
+        if (!legacy && typeof NV_SECTIONS !== "undefined")
+          for (const k of Object.keys(NV_SECTIONS)) defs[k] = NV_SECTIONS[k];
+        if (legacy && typeof LEGACY_SECTIONS !== "undefined")
+          for (const k of Object.keys(LEGACY_SECTIONS)) defs[k] = LEGACY_SECTIONS[k];
+        return order
+          .map((k) => ({ key: k, def: defs[k] }))
+          .filter((s) => s.def && (s.def.h() || 0) > 0);
+      }
+      const SEC_FILE = {
+        main: "Hero", option: "Option", scent: "Scent",
+        color: "Color", event: "Event",
+      };
+      function buildSectionImages(th) {
+        const out = [];
+        const W = SHARED.W;
+        /* 상세 — 섹션 하나씩 */
+        for (const s of exportSections()) {
+          const h = Math.round(s.def.h());
+          if (h <= 0) continue;
+          out.push({
+            channel: "Sections",
+            name: `${baseName()}_Detail_${SEC_FILE[s.key] || s.key}.png`,
+            canvas: renderOff(W, h, (ctx) => s.def.draw(ctx, W, th)),
+          });
+        }
+        /* 피드 — 섹션이 차지하는 장들. 한 섹션이 여러 장일 수 있다(옵션·이벤트) */
+        const plan = typeof feedPlanBySection === "function" ? feedPlanBySection() : [];
+        for (const g of plan) {
+          g.idxs.forEach((idx, i) => {
+            out.push({
+              channel: "Sections",
+              name:
+                `${baseName()}_Feed_${SEC_FILE[g.key] || g.key}` +
+                (g.idxs.length > 1 ? i + 1 : "") + ".png",
+              canvas: renderOff(1080, 1350, (ctx) => drawFeedSlide(ctx, idx, th)),
+            });
+          });
+        }
         return out;
       }
 

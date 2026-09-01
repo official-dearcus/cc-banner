@@ -168,17 +168,20 @@
       }
       /* 구형 피드도 상세와 같은 순서를 따른다 (2026-08-28 요청).
          슬라이드 목록을 먼저 만들고 인덱스로 꺼내 쓴다. */
+      /* 섹션 하나가 차지하는 슬라이드 묶음 (26-section-order 가 같이 쓴다) */
+      function legacyFeedGroupsOf(k) {
+        if (k === "main") return [{ t: "hero" }];
+        if (k === "option") return feedSlides().map((s, i) => ({ t: "opt", i }));
+        if (k === "event")
+          return Array.from({ length: evFeedN() }, (_, i) => ({ t: "event", i }));
+        return [];
+      }
       function legacyFeedPlan() {
         const out = [];
         for (const k of (typeof legacySecOrder === "function"
           ? legacySecOrder()
-          : ["main", "option", "event"])) {
-          if (k === "main") out.push({ t: "hero" });
-          else if (k === "option")
-            feedSlides().forEach((s, i) => out.push({ t: "opt", i }));
-          else if (k === "event")
-            for (let i = 0; i < evFeedN(); i++) out.push({ t: "event", i });
-        }
+          : ["main", "option", "event"]))
+          out.push(...legacyFeedGroupsOf(k));
         return out;
       }
       function feedCount() {

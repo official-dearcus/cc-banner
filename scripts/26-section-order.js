@@ -36,6 +36,25 @@
       }
       function resetSecOrder() { setSecOrder(SEC_DEFAULT); }
 
+      /* 피드 슬라이드를 섹션별로 묶어 돌려준다 — [{key, idxs:[슬라이드번호…]}]
+         "섹션별 따로 저장"(19-export)이 쓴다. 순서를 바꾸면 그대로 따라간다. */
+      function feedPlanBySection() {
+        const legacy = !(typeof nvIsOn === "function" && nvIsOn());
+        const order = legacy ? legacySecOrder() : nvSecOrder();
+        const groups = [];
+        let idx = 0;
+        for (const k of order) {
+          const n = legacy
+            ? legacyFeedGroupsOf(k).length
+            : nvFeedGroupsOf(k).length;
+          if (n > 0) {
+            groups.push({ key: k, idxs: Array.from({ length: n }, (_, i) => idx + i) });
+            idx += n;
+          }
+        }
+        return groups;
+      }
+
       /* ---------- 패널 UI ---------- */
       function renderSecOrder() {
         const box = document.getElementById("secOrder");

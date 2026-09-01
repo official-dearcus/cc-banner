@@ -71,31 +71,36 @@
            있어서 신형과 같은 방식으로 옮겨 그린다.
            ⚠ hero01/02 와 옵션 묶음은 y 인자가 없다(절대좌표로 그린다)
              → ctx.translate 로 옮긴다. 그리는 내용은 안 건드렸다. */
-        const LEG = {
-          main: {
-            h: () => SHARED.HERO_H,
-            draw: () => (state.tpl === "01" ? hero01(ctx, W, th) : hero02(ctx, W, th)),
-          },
-          option: { h: () => legacyOptionH(), draw: () => legacyOption(ctx, W, th) },
-          event: {
-            h: () => (typeof evSectionH === "function" ? evSectionH() : 0),
-            draw: () =>
-              typeof evSection === "function" && evSection(ctx, W, 0, th),
-          },
-        };
         let ly = 0;
         for (const k of legacySecOrder()) {
-          const S = LEG[k];
+          const S = LEGACY_SECTIONS[k];
           if (!S) continue;
           const sh = S.h() || 0;
           if (sh <= 0) continue;
           ctx.save();
           ctx.translate(0, ly);
-          S.draw();
+          S.draw(ctx, W, th);
           ctx.restore();
           ly += sh;
         }
       }
+      /* 구형 섹션 정의 — 그리기와 "섹션별 따로 저장"(19-export)이 같이 쓴다 */
+      const LEGACY_SECTIONS = {
+        main: {
+          h: () => SHARED.HERO_H,
+          draw: (ctx, W, th) =>
+            state.tpl === "01" ? hero01(ctx, W, th) : hero02(ctx, W, th),
+        },
+        option: {
+          h: () => legacyOptionH(),
+          draw: (ctx, W, th) => legacyOption(ctx, W, th),
+        },
+        event: {
+          h: () => (typeof evSectionH === "function" ? evSectionH() : 0),
+          draw: (ctx, W, th) =>
+            typeof evSection === "function" && evSection(ctx, W, 0, th),
+        },
+      };
       /* 구형에서 쓰는 섹션만 골라 순서를 맞춘다 (향·컬러는 구형에 없다) */
       function legacySecOrder() {
         const keys = ["main", "option", "event"];
