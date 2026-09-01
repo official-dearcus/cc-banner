@@ -82,20 +82,27 @@
             t2_02: "",
             copy: "",
             copyBold: "",
-            rows: g.rows.map((r) => ({
-              name: r.name,
-              optionInfo: r.optionInfo || [],
-              normal: r.normalPrice,
-              sale: r.salePrice,
-              badge: r.badge || "none",
-              colorLine: r.colorLine || "",
-              thumbUrl: r.thumbUrl || "",
-              thumb: null,
-              thumbSrc: "",
-            })),
+            /* enabled=FALSE 인 행은 옵션 카드에서 빼고 offRows 로 따로 넘긴다.
+               써볼래요 이벤트 경품 후보로는 계속 쓴다 (2026-09-01). */
+            rows: g.rows.filter((r) => r.enabled !== false).map(rowOut),
+            offRows: g.rows.filter((r) => r.enabled === false).map(rowOut),
           };
         }
         return out;
+      }
+
+      function rowOut(r) {
+        return {
+          name: r.name,
+          optionInfo: r.optionInfo || [],
+          normal: r.normalPrice,
+          sale: r.salePrice,
+          badge: r.badge || "none",
+          colorLine: r.colorLine || "",
+          thumbUrl: r.thumbUrl || "",
+          thumb: null,
+          thumbSrc: "",
+        };
       }
 
       function showSheetErrors(errors, okMsg) {

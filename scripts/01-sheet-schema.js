@@ -111,6 +111,10 @@
             colorRowGap: { type: "number", group: true, optional: true },
             colorTitle: { type: "string", group: true, optional: true }, // 컬러 섹션 제목(그룹 공통 폴백) — 템플릿별은 TemplateMaster 사용
             sortOrder: { type: "number", optional: true },
+            /* FALSE 면 옵션 카드에 안 나온다. 행은 살아 있어서
+               써볼래요 이벤트 경품 후보로는 계속 뜬다 (2026-09-01 요청).
+               옵션으로는 안 파는 단품을 시트 한 곳에서 관리할 수 있다. */
+            enabled: { type: "bool", optional: true, default: true },
             // 제품명 = 텍스트 노드 1개. 피그마에서 폭 안에서 자동 줄바꿈됨.
             // name 권장. 구 시트 호환을 위해 name1/name2 가 있으면 공백으로 합침.
             name: { type: "string", optional: true },

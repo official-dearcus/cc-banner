@@ -29,23 +29,65 @@
       }
       function tryOn() { return tryList().length > 0; }
 
-      /* 경품 후보 = 지금 제품군의 제품들 */
+      /* 경품 후보 (2026-09-01 확장)
+           row     이 제품군의 옵션 제품
+           gift    GiftMaster 선물 목록 — 옵션에 없는 단품이 보통 여기 있다
+           custom  직접 입력 — 이름과 사진 주소를 그 자리에서 넣는다
+         값은 e.pick 에 {kind, …} 로 들어간다.
+         ⚠ 예전 저장분은 e.rowIdx(숫자) 였다 → tryPick() 이 알아서 바꿔 준다. */
       function tryProducts() {
         const g = (typeof G === "function" && G()[state.group]) || {};
-        return (g.rows || []).map((r, i) => ({
-          i,
-          name: typeof rowName === "function" ? rowName(r) : r.name || "",
-          url: r.thumbUrl || "",
+        const nm = (r) => (typeof rowName === "function" ? rowName(r) : r.name || "");
+        const on = (g.rows || []).map((r, i) => ({
+          kind: "row", i, name: nm(r), url: r.thumbUrl || "",
+        }));
+        /* enabled=FALSE 인 행 — 옵션엔 안 나오지만 경품으로는 쓴다.
+           i 는 offRows 안의 번호라 kind 를 나눠 저장한다. */
+        const off = (g.offRows || []).map((r, i) => ({
+          kind: "off", i, name: nm(r), url: r.thumbUrl || "",
+        }));
+        return on.concat(off);
+      }
+      function tryGifts() {
+        const list = typeof evGifts === "function" ? evGifts() : [];
+        return list.map((x) => ({
+          kind: "gift",
+          key: x.giftKey,
+          name: x.label || x.giftKey,
+          url: x.url || "",
         }));
       }
-      function tryProduct(idx) {
-        const list = tryProducts();
-        return list[Math.max(0, Math.min(list.length - 1, idx | 0))] || null;
+      /* 드롭다운에 뜨는 전체 후보 */
+      function tryCandidates() {
+        return tryProducts().concat(tryGifts());
+      }
+      /* 저장값 → {kind,…} 로 정규화 (구형 rowIdx 호환) */
+      function tryPick(e) {
+        if (e && e.pick && e.pick.kind) return e.pick;
+        return { kind: "row", i: (e && e.rowIdx) | 0 };
+      }
+      function tryPickKey(p) {
+        if (p.kind === "gift") return `gift:${p.key}`;
+        if (p.kind === "custom") return "custom";
+        if (p.kind === "off") return `off:${p.i}`;
+        return `row:${p.i}`;
+      }
+      /* 고른 값 → {name, url} */
+      function tryProduct(e) {
+        const p = tryPick(e);
+        if (p.kind === "custom")
+          return { name: p.name || "", url: p.url || "" };
+        if (p.kind === "gift") {
+          const hit = tryGifts().find((x) => x.key === p.key);
+          return hit || { name: "", url: "" };
+        }
+        const list = tryProducts().filter((x) => x.kind === (p.kind === "off" ? "off" : "row"));
+        return list[Math.max(0, Math.min(list.length - 1, p.i | 0))] || { name: "", url: "" };
       }
       /* 이벤트 렌더러가 알아듣는 모양으로 바꾼다.
          giftLabel / giftUrl 을 직접 넣으면 GiftMaster 를 안 본다. */
       function tryAsEvent(e) {
-        const p = tryProduct(e.rowIdx);
+        const p = tryProduct(e);
         const t = tryType();
         return {
           typeKey: "try",
@@ -97,9 +139,12 @@
         return state.tryEvents || (state.tryEvents = []);
       }
       function tryAdd() {
-        const ps = tryProducts();
-        if (!ps.length) return;
-        tryTarget().push({ num: 10, rowIdx: 0 });
+        const ps = tryCandidates();
+        /* 후보가 하나도 없어도 직접 입력으로 시작할 수 있다 */
+        tryTarget().push({
+          num: 10,
+          pick: ps.length ? { ...ps[0] } : { kind: "custom", name: "", url: "" },
+        });
         renderTryEvents();
         if (typeof draw === "function") draw();
       }
@@ -107,45 +152,77 @@
         const box = document.getElementById("tryEvents");
         if (!box) return;
         const LIST = tryTarget();
-        const ps = tryProducts();
+        const all = tryProducts();
+        const rows = all.filter((p) => p.kind === "row");
+        const offs = all.filter((p) => p.kind === "off");
+        const gifts = tryGifts();
         const hint = document.getElementById("tryHint");
         const add = document.getElementById("tryAdd");
         const cnt = document.getElementById("tryCount");
         if (cnt) cnt.textContent = LIST.length ? `${LIST.length}개` : "";
-        if (!ps.length) {
-          box.innerHTML = "";
-          if (add) add.disabled = true;
-          if (hint)
-            hint.innerHTML =
-              "이 제품군에 제품이 없습니다. 경품은 제품군의 제품 중에서 고릅니다.";
-          return;
-        }
         if (add) add.disabled = false;
         if (hint)
           hint.innerHTML = LIST.length
-            ? "인스타 피드에만 들어갑니다. 상세페이지에는 안 나옵니다."
-            : "경품은 이 제품군의 제품 중에서 고릅니다. 인스타 피드 전용입니다.";
-        box.innerHTML = LIST.map((e, i) => {
-          const opts = ps
-            .map(
-              (p) =>
-                `<option value="${p.i}"${p.i === e.rowIdx ? " selected" : ""}>${esc(p.name)}</option>`,
-            )
+            ? "인스타 피드에만 들어갑니다. 옵션 외 단품은 시트에서 <b>enabled=FALSE</b> 로 넣어두면 여기에 뜹니다."
+            : "경품은 제품군의 제품·선물 목록에서 고르거나 직접 입력합니다. 인스타 피드 전용입니다.";
+
+        const opt = (list, cur) =>
+          list
+            .map((p) => {
+              const k = tryPickKey(p);
+              return `<option value="${esc(k)}"${k === cur ? " selected" : ""}>${esc(p.name)}</option>`;
+            })
             .join("");
+
+        box.innerHTML = LIST.map((e, i) => {
+          const p = tryPick(e);
+          const cur = tryPickKey(p);
+          const custom = p.kind === "custom";
           return `<div class="evrow" data-i="${i}">
       <span class="evdrag" title="끌어서 순서 변경">⠿</span>
-      <div class="evnum"><input type="number" min="1" max="9999" data-i="${i}" value="${e.num}" /><span>명</span></div>
+      <div class="evnum"><input type="number" min="1" max="9999" data-f="num" data-i="${i}" value="${e.num}" /><span>명</span></div>
       <button class="evdel" data-i="${i}" title="삭제">×</button>
-      <select class="evgift" data-i="${i}">${opts}</select>
+      <select class="evgift" data-i="${i}">
+        ${rows.length ? `<optgroup label="제품군 제품">${opt(rows, cur)}</optgroup>` : ""}
+        ${offs.length ? `<optgroup label="옵션 외 단품">${opt(offs, cur)}</optgroup>` : ""}
+        ${gifts.length ? `<optgroup label="선물 목록">${opt(gifts, cur)}</optgroup>` : ""}
+        <option value="custom"${custom ? " selected" : ""}>직접 입력…</option>
+      </select>
+      ${
+        custom
+          ? `<input class="trycus" data-f="cname" data-i="${i}" value="${esc(p.name || "")}" placeholder="경품 이름" />
+             <input class="trycus" data-f="curl" data-i="${i}" value="${esc(p.url || "")}" placeholder="사진 주소 (선택)" />`
+          : ""
+      }
       <div class="evprev">${esc(trySentence(e))}</div>
     </div>`;
         }).join("");
 
         const after = () => { renderTryEvents(); if (typeof draw === "function") draw(); };
-        box.querySelectorAll(".evnum input").forEach((inp) => (inp.onchange = () => {
+        /* 직접 입력은 타이핑 중 다시 그리면 커서가 튄다 → 캔버스만 갱신 */
+        const live = () => { if (typeof draw === "function") draw(); };
+
+        box.querySelectorAll('input[data-f="num"]').forEach((inp) => (inp.onchange = () => {
           LIST[+inp.dataset.i].num = Math.max(1, parseInt(inp.value, 10) || 1); after(); }));
         box.querySelectorAll(".evgift").forEach((s) => (s.onchange = () => {
-          LIST[+s.dataset.i].rowIdx = +s.value; after(); }));
+          const e2 = LIST[+s.dataset.i];
+          const v = s.value;
+          if (v === "custom") e2.pick = { kind: "custom", name: "", url: "" };
+          else {
+            const hit = tryCandidates().find((p) => tryPickKey(p) === v);
+            if (hit) e2.pick = { ...hit };
+          }
+          delete e2.rowIdx;
+          after();
+        }));
+        box.querySelectorAll(".trycus").forEach((inp) => (inp.oninput = () => {
+          const e2 = LIST[+inp.dataset.i];
+          if (!e2.pick || e2.pick.kind !== "custom") return;
+          e2.pick[inp.dataset.f === "cname" ? "name" : "url"] = inp.value;
+          const pv = inp.closest(".evrow").querySelector(".evprev");
+          if (pv) pv.textContent = trySentence(e2);
+          live();
+        }));
         box.querySelectorAll(".evdel").forEach((b) => (b.onclick = () => {
           LIST.splice(+b.dataset.i, 1); after(); }));
 
@@ -199,7 +276,11 @@
             const _d = draw;
             draw = function () {
               const r = _d.apply(this, arguments);
-              renderTryEvents();
+              /* ⚠ 직접 입력 칸에 타이핑 중이면 다시 그리지 않는다 —
+                 DOM 을 새로 만들면 커서가 맨 뒤로 튄다. */
+              const a = document.activeElement;
+              const box = document.getElementById("tryEvents");
+              if (!(box && a && box.contains(a))) renderTryEvents();
               return r;
             };
           }
