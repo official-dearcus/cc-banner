@@ -126,7 +126,7 @@
         evFeedSlide(ctx, evs.map(tryAsEvent), th, {
           title: TRY_TITLE,
           titleFont: TRY_TITLE_FONT,
-          titleSizeAbs: TRY_TITLE_SIZE, // 피드에 그려지는 실제 크기 (배율 안 먹임)
+          titleSizeAbs: TRY_TITLE_SIZE, // 피드에 그려지는 실제 크기
           titleWeight: TRY_TITLE_WEIGHT,
         });
       }
