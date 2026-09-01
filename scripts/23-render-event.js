@@ -154,8 +154,10 @@
       /* 선물 표기 — 수량이 2 이상이면 "수세미 2개".
          조사는 이 문자열 기준이라 자동으로 맞는다 ("2개" → 받침 없음 → 를). */
       function evGiftText(ev) {
+        /* giftLabel 이 있으면 시트(GiftMaster)를 안 본다.
+           써볼래요 이벤트는 경품이 그 제품군의 제품이라 여기로 들어온다. */
         const g = evGift(ev.giftKey);
-        const label = (g && g.label) || "";
+        const label = ev.giftLabel != null ? String(ev.giftLabel) : (g && g.label) || "";
         const q = Math.max(1, parseInt(ev.qty, 10) || 1);
         return q > 1 ? `${label} ${q}개` : label;
       }
@@ -174,6 +176,7 @@
       function evPartOf(ev) {
         const g = evGift(ev.giftKey);
         const q = Math.max(1, parseInt(ev.qty, 10) || 1);
+        if (ev.giftLabel != null) return evParticle(evGiftText(ev));
         return q > 1 ? evParticle(evGiftText(ev)) : evGiftParticle(g);
       }
       function evTokens(ev) {
@@ -295,7 +298,7 @@
       }
       function evDrawGift(ctx, ev, x, y, D) {
         const g = evGift(ev.giftKey);
-        const im = g && evGiftImg(g.url);
+        const im = evGiftImg(ev.giftUrl != null ? ev.giftUrl : g && g.url);
         if (!im) return;
         /* 앞에서 뒤로 그린다 → 배열 마지막(오른쪽 아래)이 맨 위 */
         for (const p of evGiftLayout(ev.qty, D)) {
@@ -383,12 +386,21 @@
         }
         ctx.textAlign = "center";
       }
-      function evDrawTitle(ctx, W, y, th, S, k) {
+      /* opt 로 제목을 통째로 갈아끼울 수 있다 (써볼래요 이벤트) */
+      function evDrawTitle(ctx, W, y, th, S, k, opt) {
+        const o = opt || {};
         const R = (v) => Math.round(v * k);
         ctx.textAlign = "center"; ctx.textBaseline = "middle";
         ctx.fillStyle = S.titleInk || evColor(th, S.titleInkKey, "#ffffff");
-        ctx.font = `${S.titleWeight} ${R(S.titleSize)}px ${S.titleFont}`;
-        trk(ctx, evTitle(), W / 2, y + R(S.titleLH) / 2, -2, "center");
+        const font = o.titleFont || S.titleFont;
+        const weight = o.titleWeight || S.titleWeight;
+        /* titleSizeAbs 는 배율을 안 먹인다 — 피드에서 "72px" 로 그대로 그린다.
+           (피드는 상세 대비 1.2558 배라 72 를 주면 91 이 돼 버린다) */
+        const px = o.titleSizeAbs
+          ? o.titleSizeAbs
+          : R(o.titleSize || S.titleSize);
+        ctx.font = `${weight} ${px}px ${font}`;
+        trk(ctx, o.title || evTitle(), W / 2, y + R(S.titleLH) / 2, -2, "center");
         ctx.textBaseline = "alphabetic";
       }
       function evDrawHead(ctx, W, y, th, S) {
@@ -455,7 +467,7 @@
       }
       function evFeedCount() { return evOn() ? evFeedGroups().length : 0; }
       /* 슬라이드 하나 */
-      function evFeedSlide(ctx, evs, th) {
+      function evFeedSlide(ctx, evs, th, opt) {
         const S = evCfg(), C = EV.card, k = evfK();
         const W = EVF.W, H = EVF.H;
         ctx.fillStyle = evColor(th, S.bgKey);
@@ -472,7 +484,7 @@
         const contentH = headH + headGap + listH;
         const top = Math.max(Math.round(EV.padTop * k), Math.round((H - contentH) / 2));
 
-        evfHead(ctx, W, top, th, S, k);
+        evfHead(ctx, W, top, th, S, k, opt);
         const listY = top + headH + headGap;
         if (S.listBg || S.listBgKey) {
           ctx.fillStyle = S.listBg || evColor(th, S.listBgKey);
@@ -492,9 +504,11 @@
           }
         });
       }
-      function evfHead(ctx, W, y, th, S, k) {
+      function evfHead(ctx, W, y, th, S, k, opt) {
         evDrawSub(ctx, W, y, th, S, k);
-        evDrawTitle(ctx, W, y + Math.round(S.subH * k) + Math.round(S.subGap * k), th, S, k);
+        evDrawTitle(
+          ctx, W, y + Math.round(S.subH * k) + Math.round(S.subGap * k), th, S, k, opt,
+        );
       }
       function evfDrawCard(ctx, ev, x, top, th, S, m, k) {
         const C = EV.card;

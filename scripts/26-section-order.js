@@ -15,6 +15,7 @@
         { key: "scent", label: "향 안내" },
         { key: "color", label: "컬러 안내" },
         { key: "event", label: "이벤트" },
+        { key: "try", label: "써볼래요 이벤트" },
       ];
       const SEC_DEFAULT = SEC_DEFS.map((s) => s.key);
       function secLabel(k) {
@@ -63,7 +64,7 @@
         if (blk) blk.hidden = false;
         /* 구형 렌더러(뱀부 01·02)에는 향·컬러 섹션이 없다 → 그 둘은 숨긴다 */
         const legacy = !(typeof nvIsOn === "function" && nvIsOn());
-        const usable = legacy ? ["main", "option", "event"] : SEC_DEFAULT;
+        const usable = legacy ? ["main", "option", "event", "try"] : SEC_DEFAULT;
         const order = secOrder().filter((k) => usable.includes(k));
         /* 지금 화면에 실제로 나오는 섹션만 보여준다 (높이 0 이면 회색으로) */
         const h = {
@@ -72,6 +73,8 @@
           scent: () => (typeof nvScentH === "function" ? nvScentH() : 0),
           color: () => (typeof nvColorH === "function" ? nvColorH() : 0),
           event: () => (typeof nvEventH === "function" ? nvEventH() : 0),
+          /* 피드 전용이라 상세 높이가 없다 → 피드 장수로 "쓰이는지"를 본다 */
+          try: () => (typeof tryFeedCount === "function" ? tryFeedCount() : 0),
         };
         box.innerHTML = order
           .map((k, i) => {

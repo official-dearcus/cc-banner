@@ -1671,6 +1671,11 @@
             typeof evOn === "function" && evOn()
             ? evFeedGroups().map((g) => ({ t: "event", evs: g }))
             : [];
+        if (key === "try")
+          return typeof tryFeedGroups === "function" &&
+            typeof tryOn === "function" && tryOn()
+            ? tryFeedGroups().map((g) => ({ t: "try", evs: g }))
+            : [];
         return [];
       }
       function nvFeedPlan() {
@@ -1688,6 +1693,7 @@
         if (p.t === "color") { nvfColor(ctx, W, H, th); return; }
         if (p.t === "event") { evFeedSlide(ctx, p.evs, th); return; }
         if (p.t === "scent") { scentFeedSlide(ctx, th); return; }
+        if (p.t === "try") { tryFeedSlide(ctx, p.evs, th); return; }
         ctx.fillStyle = nvOptBg(th) || "#f0f3dd";
         ctx.fillRect(0, 0, W, H);
         const O = NVF.opt, S = NVF.size;
@@ -1769,6 +1775,12 @@
           h: () => nvEventH(),
           draw: (ctx, W, th) =>
             typeof evSection === "function" && evSection(ctx, W, 0, th),
+        },
+        /* 써볼래요 이벤트 — 인스타 피드 전용이라 상세 높이는 늘 0 이다 */
+        try: {
+          h: () => 0,
+          draw: () => {},
+          feedOnly: true,
         },
       };
       function nvSecOrder() {

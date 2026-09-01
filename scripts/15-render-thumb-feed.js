@@ -174,13 +174,17 @@
         if (k === "option") return feedSlides().map((s, i) => ({ t: "opt", i }));
         if (k === "event")
           return Array.from({ length: evFeedN() }, (_, i) => ({ t: "event", i }));
+        if (k === "try")
+          return typeof tryFeedCount === "function"
+            ? Array.from({ length: tryFeedCount() }, (_, i) => ({ t: "try", i }))
+            : [];
         return [];
       }
       function legacyFeedPlan() {
         const out = [];
         for (const k of (typeof legacySecOrder === "function"
           ? legacySecOrder()
-          : ["main", "option", "event"]))
+          : ["main", "option", "event", "try"]))
           out.push(...legacyFeedGroupsOf(k));
         return out;
       }
@@ -610,6 +614,10 @@
         }
         if (p.t === "event") {
           evFeedSlide(ctx, evFeedGroups()[p.i], th);
+          return;
+        }
+        if (p.t === "try") {
+          tryFeedSlide(ctx, tryFeedGroups()[p.i], th);
           return;
         }
         const slides = feedSlides();

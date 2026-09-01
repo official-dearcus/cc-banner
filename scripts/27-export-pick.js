@@ -61,11 +61,20 @@
         box.innerHTML =
           `<div class="dlgrp">기본</div>` +
           DL_BASE.map((b) => row(b.key, b.label)).join("") +
-          (secs.length
+          /* 상세가 없는 섹션(써볼래요)은 상세 목록에서 뺀다 */
+          (secs.some((s) => s.detailH > 0)
             ? `<div class="dlgrp">섹션별 · 상세</div>` +
-              secs.map((s) => row(`sec:${s.key}:d`, secLabel(s.key))).join("") +
-              `<div class="dlgrp">섹션별 · 피드</div>` +
-              secs.map((s) => row(`sec:${s.key}:f`, secLabel(s.key))).join("")
+              secs
+                .filter((s) => s.detailH > 0)
+                .map((s) => row(`sec:${s.key}:d`, secLabel(s.key)))
+                .join("")
+            : "") +
+          (secs.some((s) => s.feedN > 0)
+            ? `<div class="dlgrp">섹션별 · 피드</div>` +
+              secs
+                .filter((s) => s.feedN > 0)
+                .map((s) => row(`sec:${s.key}:f`, secLabel(s.key)))
+                .join("")
             : "") +
           `<div class="dlacts">
              <button type="button" id="dlAllOn">전부</button>
@@ -77,7 +86,10 @@
         });
         const setAll = (on) => {
           const all = DL_BASE.map((b) => b.key).concat(
-            secs.flatMap((s) => [`sec:${s.key}:d`, `sec:${s.key}:f`]),
+            secs.flatMap((s) =>
+              [s.detailH > 0 ? `sec:${s.key}:d` : null,
+               s.feedN > 0 ? `sec:${s.key}:f` : null].filter(Boolean),
+            ),
           );
           state.dlPick = on ? all : [];
           renderDlPick();

@@ -104,13 +104,25 @@
           for (const k of Object.keys(NV_SECTIONS)) defs[k] = NV_SECTIONS[k];
         if (legacy && typeof LEGACY_SECTIONS !== "undefined")
           for (const k of Object.keys(LEGACY_SECTIONS)) defs[k] = LEGACY_SECTIONS[k];
+        const feedN = (k) => {
+          try {
+            const g =
+              typeof feedPlanBySection === "function"
+                ? feedPlanBySection().find((x) => x.key === k)
+                : null;
+            return g ? g.idxs.length : 0;
+          } catch (e) {
+            return 0;
+          }
+        };
+        /* 피드 전용 섹션(써볼래요)은 상세 높이가 0 이라 여기서 걸러지면 안 된다 */
         return order
-          .map((k) => ({ key: k, def: defs[k] }))
-          .filter((s) => s.def && (s.def.h() || 0) > 0);
+          .map((k) => ({ key: k, def: defs[k], detailH: (defs[k] && defs[k].h()) || 0, feedN: feedN(k) }))
+          .filter((s) => s.def && (s.detailH > 0 || s.feedN > 0));
       }
       const SEC_FILE = {
         main: "Hero", option: "Option", scent: "Scent",
-        color: "Color", event: "Event",
+        color: "Color", event: "Event", try: "TryEvent",
       };
       function buildSectionImages(th, want) {
         const out = [];
@@ -118,8 +130,8 @@
         /* 상세 — 섹션 하나씩 */
         for (const s of exportSections()) {
           if (!want(`sec:${s.key}:d`)) continue;
-          const h = Math.round(s.def.h());
-          if (h <= 0) continue;
+          const h = Math.round(s.detailH);
+          if (h <= 0) continue; // 피드 전용 섹션은 상세 파일이 없다
           out.push({
             channel: "Sections",
             name: `${baseName()}_Detail_${SEC_FILE[s.key] || s.key}.png`,
