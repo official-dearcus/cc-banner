@@ -503,6 +503,10 @@
         border-color: #d94b4b;
         color: #d94b4b;
       }
+      /* 직접 입력 칸 */
+      #tryEvents .trycus {
+        grid-column: 1 / -1;
+      }
       #tryEvents .evprev {
         grid-column: 1 / -1;
         font-size: 11px;
