@@ -82,6 +82,28 @@
         letter-spacing: 0.08em;
         text-transform: uppercase;
       }
+      /* 다운로드 옵션 (섹션별 따로 저장) */
+      .dlopt {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 0 8px;
+        font-size: 12px;
+        color: var(--ink-soft);
+        white-space: nowrap;
+        cursor: pointer;
+        user-select: none;
+      }
+      .dlopt input {
+        margin: 0;
+        width: 14px;
+        height: 14px;
+        accent-color: var(--accent);
+        cursor: pointer;
+      }
+      .dlopt:hover {
+        color: var(--accent);
+      }
       .scalesel {
         display: inline-flex;
         border: 1px solid var(--line);
