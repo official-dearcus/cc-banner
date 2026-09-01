@@ -456,7 +456,19 @@
          ⚠ 예전엔 세로 가운데 정렬이라 카드 장수에 따라 제목 높이가 달랐다
            (1장짜리 써볼래요는 한참 아래에서 시작했다).
          bottom — 아래 최소 여백. 여기까지 보고 한 장에 몇 개 넣을지 정한다. */
-      const EVF = { W: 1080, H: 1350, bodyX: 60, bodyW: 960, topY: 115, bottom: 40 };
+      const EVF = {
+        W: 1080, H: 1350, bodyX: 60, bodyW: 960,
+        topY: 115,
+        bottom: 20, // 요청 2026-09-01 — 40 에서 줄였다
+        maxPerSlide: 3, // 한 장에 최대 3개
+        /* 3개가 안 들어가면 카드만 조금 줄인다(제목·상단은 그대로 두어 정렬 유지).
+           여기까지 줄여도 안 되면 다음 장으로 넘긴다.
+           .fig 카드 크기로는 02 만 3개가 겨우 들어가고 01 은 103px, 03 은 48px
+           모자란다 — 아래 여백을 0 으로 해도 안 된다.
+           실제로 필요한 배율: 01 0.85 · 02 0.99 · 03 0.87
+           (01 은 본문 폭이 740 이라 피드 확대율이 1.297 로 제일 크다) */
+        minShrink: 0.84,
+      };
       function evfK() { return EVF.bodyW / evCfg().bodyW; }
       /* 배율을 먹인 카드 치수 */
       function evfCard(ctx, ev, k) {
@@ -466,25 +478,44 @@
       /* 한 장에 들어가는 만큼만 담는다.
          카드 높이가 문장 길이에 따라 다르므로(2줄/3줄) 고정 장수로 나누면
          어떤 조합은 넘치고 어떤 조합은 자리가 남는다. 재서 채운다. */
-      function evFeedFit(list) {
+      /* 한 장에 쓸 수 있는 세로 (제목·상단 여백을 뺀 나머지) */
+      function evfAvail() {
         const S = evCfg(), k = evfK();
-        const avail =
+        return (
           EVF.H - EVF.topY - EVF.bottom -
           Math.round(evHeadH() * k) - Math.round(S.headGap * k) -
-          Math.round(S.listPad * k) * 2;
+          Math.round(S.listPad * k) * 2
+        );
+      }
+      /* 카드 묶음이 필요로 하는 세로 (배율 s 를 먹였을 때) */
+      function evfNeed(group, s) {
+        const S = evCfg(), k = evfK() * s;
         const gap = Math.round((S.divKey ? S.divGap * 2 : S.gap) * k);
+        return (
+          group.reduce((a, e) => a + Math.round(evMeasure(_mc, e).cardH * k), 0) +
+          gap * (group.length - 1)
+        );
+      }
+      /* 이 묶음을 한 장에 넣을 수 있나 → 가능하면 쓸 배율, 아니면 0 */
+      function evfShrinkFor(group) {
+        if (group.length > EVF.maxPerSlide) return 0;
+        const avail = evfAvail();
+        if (evfNeed(group, 1) <= avail) return 1;
+        /* 최소한만 줄인다 — 1.00 → 0.86 사이에서 되는 첫 값 */
+        for (let s = 0.99; s >= EVF.minShrink - 1e-9; s -= 0.01)
+          if (evfNeed(group, s) <= avail) return +s.toFixed(2);
+        return 0;
+      }
+      function evFeedFit(list) {
         const out = [];
-        let cur = [], h = 0;
+        let cur = [];
         for (const e of list) {
-          const ch = Math.round(evMeasure(_mc, e).cardH * k);
-          const add = cur.length ? gap + ch : ch;
-          if (cur.length && h + add > avail) {
+          const next = cur.concat([e]);
+          if (cur.length && !evfShrinkFor(next)) {
             out.push(cur);
             cur = [e];
-            h = ch;
           } else {
-            cur.push(e);
-            h += add;
+            cur = next;
           }
         }
         if (cur.length) out.push(cur);
@@ -499,9 +530,12 @@
         ctx.fillStyle = evColor(th, S.bgKey);
         ctx.fillRect(0, 0, W, H);
 
-        const ms = evs.map((e) => evfCard(ctx, e, k));
-        const gapK = Math.round((S.divKey ? S.divGap * 2 : S.gap) * k);
-        const listPadK = Math.round(S.listPad * k);
+        /* 3개가 빠듯하면 카드만 조금 줄인다. 제목·상단은 그대로라 정렬이 유지된다. */
+        const shrink = evfShrinkFor(evs) || EVF.minShrink;
+        const ck = k * shrink;
+        const ms = evs.map((e) => evfCard(ctx, e, ck));
+        const gapK = Math.round((S.divKey ? S.divGap * 2 : S.gap) * ck);
+        const listPadK = Math.round(S.listPad * ck);
         const listH =
           listPadK * 2 + ms.reduce((a, m) => a + m.cardH, 0) + gapK * (ms.length - 1);
         const headH = Math.round(evHeadH() * k);
@@ -513,17 +547,17 @@
         const listY = top + headH + headGap;
         if (S.listBg || S.listBgKey) {
           ctx.fillStyle = S.listBg || evColor(th, S.listBgKey);
-          ctx.fillRect(EVF.bodyX, listY, EVF.bodyW, listH);
+          ctx.fillRect(EVF.bodyX, listY, Math.round(EVF.bodyW * shrink), listH);
         }
         let cy = listY + listPadK;
         ms.forEach((m, i) => {
-          evfDrawCard(ctx, evs[i], EVF.bodyX + Math.round(S.cardX * k), cy, th, S, m, k);
+          evfDrawCard(ctx, evs[i], EVF.bodyX + Math.round(S.cardX * ck), cy, th, S, m, ck);
           cy += m.cardH;
           if (i < ms.length - 1) {
             if (S.divKey) {
               ctx.fillStyle = evColor(th, S.divKey, "#ddd");
-              ctx.fillRect(EVF.bodyX + Math.round(S.cardX * k), cy + gapK / 2,
-                Math.round(S.cardW * k), Math.max(1, Math.round(S.divW * k)));
+              ctx.fillRect(EVF.bodyX + Math.round(S.cardX * ck), cy + gapK / 2,
+                Math.round(S.cardW * ck), Math.max(1, Math.round(S.divW * ck)));
             }
             cy += gapK;
           }

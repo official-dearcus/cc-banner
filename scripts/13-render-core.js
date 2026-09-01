@@ -103,7 +103,9 @@
       };
       /* 구형에서 쓰는 섹션만 골라 순서를 맞춘다 (향·컬러는 구형에 없다) */
       function legacySecOrder() {
-        const keys = ["main", "option", "event"];
+        /* ⚠ "try"(써볼래요)를 빠뜨려서 뱀부에서 아예 안 나왔다(2026-09-01 신고).
+           상세에는 안 그려지지만(LEGACY_SECTIONS 에 없다) 피드 순서에는 있어야 한다. */
+        const keys = ["main", "option", "event", "try"];
         const saved = typeof secOrder === "function" ? secOrder() : keys;
         const out = saved.filter((k) => keys.includes(k));
         for (const k of keys) if (!out.includes(k)) out.push(k);
