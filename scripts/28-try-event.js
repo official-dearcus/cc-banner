@@ -123,9 +123,12 @@
       function tryFeedCount() { return tryOn() ? tryFeedGroups().length : 0; }
       function tryFeedSlide(ctx, evs, th) {
         if (typeof evFeedSlide !== "function") return;
+        /* 배경·글자색을 옵션 피드 슬라이드와 통일한다 (요청 2026-09-02) */
+        const skin =
+          typeof evOptFeedSkin === "function" ? evOptFeedSkin(th) : {};
         evFeedSlide(ctx, evs.map(tryAsEvent), th, {
-          /* 이벤트 피드와 구분되게 같은 계열에서 조금 다른 배경 (요청 2026-09-02) */
-          bg: typeof evTryBg === "function" ? evTryBg(th) : undefined,
+          bg: skin.bg,
+          ink: skin.ink,
           title: TRY_TITLE,
           titleFont: TRY_TITLE_FONT,
           titleSizeAbs: TRY_TITLE_SIZE, // 피드에 그려지는 실제 크기

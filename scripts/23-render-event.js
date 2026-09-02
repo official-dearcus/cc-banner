@@ -143,28 +143,6 @@
         const k = state.theme;
         return (tbl && (tbl[k] || tbl.green)) || th || {};
       }
-      /* 같은 계열에서 조금만 다른 색 — 써볼래요 이벤트 배경 (요청 2026-09-02).
-         밝은 배경은 살짝 어둡게, 어두운 배경은 살짝 밝게 민다.
-         템플릿마다 배경 키가 달라도(01 colorBg · 02 colorBgLight · 03 accent)
-         같은 규칙 하나로 처리된다. */
-      function evShade(hex, amt) {
-        const h = String(hex || "#000000").replace("#", "");
-        const n = parseInt(h.length === 3 ? h.replace(/./g, "$&$&") : h, 16);
-        const p = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
-        const lum = (0.2126 * p[0] + 0.7152 * p[1] + 0.0722 * p[2]) / 255;
-        /* 밝으면 검정 쪽, 어두우면 흰색 쪽으로 amt 만큼 */
-        const to = lum > 0.5 ? 0 : 255;
-        return (
-          "#" +
-          p
-            .map((v) => Math.round(v + (to - v) * amt).toString(16).padStart(2, "0"))
-            .join("")
-        );
-      }
-      const EV_TRY_SHADE = 0.1; // 10% — 계열은 같고 차이는 알아볼 정도
-      function evTryBg(th) {
-        return evShade(evColor(th, evCfg().bgKey), EV_TRY_SHADE);
-      }
       function evColor(th, key, dflt) {
         const p = evPalette(th);
         return p[key] || (th && th[key]) || dflt || "#ffffff";
@@ -513,6 +491,21 @@
       };
       const EVF_IMG_RATIO = EVF.imgW / EVF.imgH; // 1.4386
       /* 다른 피드 슬라이드와 같은 헤더 규격을 꺼낸다 */
+      /* 옵션 피드 슬라이드와 똑같은 배경·글자색 (요청 2026-09-02).
+         써볼래요가 이 값을 쓴다 — 색을 새로 만들지 않고 이미 있는 걸 그대로 가져온다.
+           배경  nvOptBg(th)     01 colorBgLight · 02·03 colorBg
+           글자  nvCfg().optInkKey (없으면 진한 배경이면 흰색, 아니면 accent) */
+      function evOptFeedSkin(th) {
+        const bg =
+          typeof nvOptBg === "function" ? nvOptBg(th) : evColor(th, evCfg().bgKey);
+        const C = typeof nvCfg === "function" ? nvCfg() : {};
+        const onDark =
+          typeof nvOnDark === "function" ? nvOnDark("option") : !!C.optDark;
+        const ink =
+          (C.optInkKey && th && th[C.optInkKey]) ||
+          (onDark ? "#ffffff" : (th && th.accent) || "#000000");
+        return { bg, ink };
+      }
       function evfHeadCfg() {
         const O = (typeof NVF !== "undefined" && NVF.opt) || {};
         const o = state.tpl === "03" && O.head03 ? { ...O, ...O.head03 } : O;
@@ -598,13 +591,14 @@
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         /* 셀러 줄 — "이름 & Dear.cus" 한 줄 */
-        ctx.fillStyle = S.subInk || evColor(th, S.subInkKey || S.titleInkKey, "#ffffff");
+        ctx.fillStyle =
+          o.ink || S.subInk || evColor(th, S.subInkKey || S.titleInkKey, "#ffffff");
         ctx.font = `400 ${H.subSize}px ${S.sellerFont || "'Afacad Flux', Pretendard"}`;
         const seller = state.seller || "Seller_name";
         const tail = S.subTail || "& Dear.cus";
         trk(ctx, `${seller} ${tail}`, cx, H.headY + H.subLH / 2, -2, "center");
         /* 제목 */
-        ctx.fillStyle = S.titleInk || evColor(th, S.titleInkKey, "#ffffff");
+        ctx.fillStyle = o.ink || S.titleInk || evColor(th, S.titleInkKey, "#ffffff");
         const size = o.titleSizeAbs || H.titleSize;
         ctx.font = `${o.titleWeight || S.titleWeight} ${size}px ${o.titleFont || S.titleFont}`;
         trk(ctx, o.title || evTitle(), cx,
