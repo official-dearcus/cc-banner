@@ -496,8 +496,21 @@
            배경  nvOptBg(th)     01 colorBgLight · 02·03 colorBg
            글자  nvCfg().optInkKey (없으면 진한 배경이면 흰색, 아니면 accent) */
       function evOptFeedSkin(th) {
+        /* ⚠ 구형(뱀부)은 테마에 colorBg / colorBgLight 키가 없다 →
+             nvOptBg 가 undefined 를 돌려주고 색이 안 바뀌었다(2026-09-02 신고).
+           구형 피드 옵션면(15-render-thumb-feed)이 쓰는 규칙을 그대로 쓴다:
+             배경  th.sectionBg   (02 기본 #b9ca7d · 그 외 #f0f3dd)
+             글자  02 는 흰색 · 그 외 th.accent */
+        const legacy = !(typeof nvIsOn === "function" && nvIsOn());
+        if (legacy) {
+          const bg =
+            (th && th.sectionBg) || (state.tpl === "02" ? "#b9ca7d" : "#f0f3dd");
+          const ink = state.tpl === "02" ? "#ffffff" : (th && th.accent) || "#000000";
+          return { bg, ink };
+        }
         const bg =
-          typeof nvOptBg === "function" ? nvOptBg(th) : evColor(th, evCfg().bgKey);
+          (typeof nvOptBg === "function" && nvOptBg(th)) ||
+          evColor(th, evCfg().bgKey);
         const C = typeof nvCfg === "function" ? nvCfg() : {};
         const onDark =
           typeof nvOnDark === "function" ? nvOnDark("option") : !!C.optDark;
