@@ -1,4 +1,14 @@
-cc-banner  build 2026-09-02-C
+cc-banner  build 2026-09-02-D
+뱀부(구형)에서 써볼래요 색이 안 바뀌던 문제 (2026-09-02 신고)
+  C 는 nvOptBg(th) 로 배경을 가져왔는데, 구형 테마에는 colorBg / colorBgLight
+  키가 아예 없다(accent · circleBg · badgeBorder · sectionBg 넷뿐).
+  → undefined 가 돌아와 이벤트 배경으로 되돌아갔다.
+  구형 피드 옵션면(15-render-thumb-feed)이 쓰는 규칙을 그대로 쓴다:
+    배경  th.sectionBg   (02 기본 #b9ca7d · 그 외 #f0f3dd)
+    글자  02 는 흰색 · 그 외 th.accent
+  신형은 C 그대로. 검증: 뱀부 01/02 × green·blue·pink 에서 옵션면과 일치.
+
+이전:
 써볼래요 배경·제목색을 옵션 피드 슬라이드와 통일 (요청 2026-09-02)
   B 에서 계열색을 10% 밀어 만들었는데 색이 안 좋았다. 새로 만들지 않고
   이미 있는 값을 그대로 가져온다 (evOptFeedSkin).
@@ -7,13 +17,3 @@ cc-banner  build 2026-09-02-C
   green 기준  01 #f0f3dd/#65812d · 02·03 #b9ca7d/#ffffff
   evShade / evTryBg 는 지웠다.
   이벤트 피드 자체는 그대로다 — 배경·글자색은 opt.bg / opt.ink 로만 덮어쓴다.
-
-이전:
-써볼래요 이벤트 배경을 이벤트 피드와 구분 (요청 2026-09-02)
-  같은 계열에서 10% 만 민다 (evShade / EV_TRY_SHADE).
-    밝은 배경은 검정 쪽, 어두운 배경은 흰색 쪽 —
-    템플릿마다 배경 키가 달라도(01 colorBg · 02 colorBgLight · 03 accent)
-    규칙 하나로 처리된다. 모든 템플릿·6색 공통.
-  green 기준  01 #b9ca7d → #a7b671   02 #f0f3dd → #d8dbc7   03 #65812d → #748e42
-  색차 28~40 — 같은 계열로 보이면서 구분은 된다.
-  이벤트 피드 자체는 안 바뀐다(배경은 opt.bg 로만 덮어쓴다).
