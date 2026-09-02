@@ -86,7 +86,11 @@
       <div class="ro">
         <img class="thumbprev" ${r.thumbSrc ? `src="${r.thumbSrc}"` : ""} />
         <div class="roinfo">
-          <div class="roname">${esc(rowName(r))}</div>
+          ${
+            r._edit
+              ? `<input class="ronameedit" data-ni="${i}" value="${esc(rowName(r))}" placeholder="제품명" />`
+              : `<div class="roname">${esc(rowName(r))}</div>`
+          }
           ${
             r._edit
               ? attrEditHTML(r, i)
@@ -191,6 +195,21 @@
               renderRows();
             }),
         );
+        /* 제품명 — [옵션 수정] 을 눌렀을 때만 고칠 수 있다.
+           ⚠ 빈 카드를 추가하면 "신규 제품" 이 글자로만 찍혀 바꿀 방법이 없었다
+             (2026-09-02 신고). name1/name2 로 들어온 구형 행도 여기서 name 으로
+             합쳐지므로 rowName() 과 결과가 어긋나지 않는다. */
+        box.querySelectorAll("input[data-ni]").forEach((inp) => {
+          inp.oninput = () => {
+            const r = state.rows[+inp.dataset.ni];
+            /* rowName() 은 name → [n1,n2] 순으로 본다(16-render-cards).
+               고치면 name 하나로 정리해서 옛 필드가 다시 이기지 않게 한다. */
+            r.name = inp.value;
+            delete r.n1;
+            delete r.n2;
+            draw();
+          };
+        });
         /* 입력 중에는 다시 그리지 않는다 — 커서가 튀기 때문에 캔버스만 갱신 */
         box.querySelectorAll("input[data-af]").forEach((inp) => {
           inp.oninput = () => {
