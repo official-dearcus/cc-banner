@@ -666,6 +666,24 @@
         color: var(--accent);
       }
 
+      /* 제품명 편집 — 평소의 .roname 과 같은 크기로 보이게 */
+      .ronameedit {
+        width: 100%;
+        margin: 0 0 6px;
+        padding: 4px 7px;
+        font: inherit;
+        font-size: 12.5px;
+        font-weight: 700;
+        color: var(--ink);
+        border: 1px solid var(--accent-weak);
+        border-radius: 7px;
+        background: #fff;
+      }
+      .ronameedit:focus {
+        border-color: var(--accent);
+        outline: none;
+      }
+
       /* ---- 옵션 줄 직접 수정 ---- */
       .roedit-btn {
         margin-top: 6px;
