@@ -143,6 +143,28 @@
         const k = state.theme;
         return (tbl && (tbl[k] || tbl.green)) || th || {};
       }
+      /* 같은 계열에서 조금만 다른 색 — 써볼래요 이벤트 배경 (요청 2026-09-02).
+         밝은 배경은 살짝 어둡게, 어두운 배경은 살짝 밝게 민다.
+         템플릿마다 배경 키가 달라도(01 colorBg · 02 colorBgLight · 03 accent)
+         같은 규칙 하나로 처리된다. */
+      function evShade(hex, amt) {
+        const h = String(hex || "#000000").replace("#", "");
+        const n = parseInt(h.length === 3 ? h.replace(/./g, "$&$&") : h, 16);
+        const p = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+        const lum = (0.2126 * p[0] + 0.7152 * p[1] + 0.0722 * p[2]) / 255;
+        /* 밝으면 검정 쪽, 어두우면 흰색 쪽으로 amt 만큼 */
+        const to = lum > 0.5 ? 0 : 255;
+        return (
+          "#" +
+          p
+            .map((v) => Math.round(v + (to - v) * amt).toString(16).padStart(2, "0"))
+            .join("")
+        );
+      }
+      const EV_TRY_SHADE = 0.1; // 10% — 계열은 같고 차이는 알아볼 정도
+      function evTryBg(th) {
+        return evShade(evColor(th, evCfg().bgKey), EV_TRY_SHADE);
+      }
       function evColor(th, key, dflt) {
         const p = evPalette(th);
         return p[key] || (th && th[key]) || dflt || "#ffffff";
@@ -628,9 +650,10 @@
         return cardH;
       }
       function evFeedSlide(ctx, evs, th, opt) {
+        const o = opt || {};
         const S = evCfg();
         const W = EVF.W, H = EVF.H, B = EVF.box;
-        ctx.fillStyle = evColor(th, S.bgKey);
+        ctx.fillStyle = o.bg || evColor(th, S.bgKey);
         ctx.fillRect(0, 0, W, H);
         evfHead(ctx, th, S, opt);
 

@@ -124,6 +124,8 @@
       function tryFeedSlide(ctx, evs, th) {
         if (typeof evFeedSlide !== "function") return;
         evFeedSlide(ctx, evs.map(tryAsEvent), th, {
+          /* 이벤트 피드와 구분되게 같은 계열에서 조금 다른 배경 (요청 2026-09-02) */
+          bg: typeof evTryBg === "function" ? evTryBg(th) : undefined,
           title: TRY_TITLE,
           titleFont: TRY_TITLE_FONT,
           titleSizeAbs: TRY_TITLE_SIZE, // 피드에 그려지는 실제 크기
