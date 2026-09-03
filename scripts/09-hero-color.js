@@ -177,9 +177,17 @@
         if (!panel) return;
         let n = 1;
         panel.querySelectorAll(".block").forEach((b) => {
-          if (b.hidden || b.offsetParent === null) {
+          /* navoff = 지금 탭에 안 속한 블록 (30-nav). offsetParent 로도 걸리지만
+             레이아웃 계산 전에는 못 믿으므로 클래스를 직접 본다. */
+          if (b.classList.contains("navoff") || b.hidden || b.offsetParent === null) {
             const s0 = b.querySelector("label.h > .num");
-            if (s0 && !b.hidden) s0.textContent = n; // 숨김 아님(레이아웃 미측정) 대비
+            /* 정말 숨은 게 아니라 레이아웃이 아직 안 잡힌 경우(초기 렌더·테스트)
+               까지 건너뛰면 번호가 전부 1 이 된다 → 그때는 세어 준다. */
+            const reallyHidden = b.classList.contains("navoff") || b.hidden;
+            if (!reallyHidden) {
+              if (s0) s0.textContent = n++;
+              return;
+            }
             return;
           }
           const sp = b.querySelector("label.h > .num");
