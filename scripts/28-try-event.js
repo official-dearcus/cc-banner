@@ -37,8 +37,11 @@
 
       /* 경품 후보 (2026-09-01 확장)
            row     이 제품군의 옵션 제품
-           gift    GiftMaster 선물 목록 — 옵션에 없는 단품이 보통 여기 있다
+           off     같은 제품군의 enabled=FALSE 행 (옵션엔 안 나오는 단품)
            custom  직접 입력 — 이름과 사진 주소를 그 자리에서 넣는다
+         ⚠ GiftMaster 선물 목록은 드롭다운에 안 띄운다 (요청 2026-09-03).
+           써볼래요 경품은 "그 제품군의 제품" 이라 이벤트 사은품과 섞이면 안 된다.
+           예전에 gift 로 저장된 값은 tryProduct 가 그대로 읽어 준다(안 깨진다).
          값은 e.pick 에 {kind, …} 로 들어간다.
          ⚠ 예전 저장분은 e.rowIdx(숫자) 였다 → tryPick() 이 알아서 바꿔 준다. */
       function tryProducts() {
@@ -54,6 +57,7 @@
         }));
         return on.concat(off);
       }
+      /* 드롭다운에는 안 뜨지만, 예전에 gift 로 저장된 값을 읽으려면 필요하다 */
       function tryGifts() {
         const list = typeof evGifts === "function" ? evGifts() : [];
         return list.map((x) => ({
@@ -63,9 +67,9 @@
           url: x.url || "",
         }));
       }
-      /* 드롭다운에 뜨는 전체 후보 */
+      /* 드롭다운에 뜨는 전체 후보 — 선물 목록은 뺀다 (요청 2026-09-03) */
       function tryCandidates() {
-        return tryProducts().concat(tryGifts());
+        return tryProducts();
       }
       /* 저장값 → {kind,…} 로 정규화 (구형 rowIdx 호환) */
       function tryPick(e) {
@@ -168,7 +172,7 @@
         const all = tryProducts();
         const rows = all.filter((p) => p.kind === "row");
         const offs = all.filter((p) => p.kind === "off");
-        const gifts = tryGifts();
+
         const hint = document.getElementById("tryHint");
         const add = document.getElementById("tryAdd");
         const cnt = document.getElementById("tryCount");
@@ -176,8 +180,8 @@
         if (add) add.disabled = false;
         if (hint)
           hint.innerHTML = LIST.length
-            ? "인스타 피드에만 들어갑니다. 옵션 외 단품은 시트에서 <b>enabled=FALSE</b> 로 넣어두면 여기에 뜹니다."
-            : "경품은 제품군의 제품·선물 목록에서 고르거나 직접 입력합니다. 인스타 피드 전용입니다.";
+            ? "인스타 피드에만 들어갑니다. 옵션 외 단품은 <b>ProductMaster</b> 에 <b>enabled=FALSE</b> 로 넣어두면 여기에 뜹니다."
+            : "경품은 이 제품군의 제품 중에서 고릅니다. 없으면 직접 입력하세요. 인스타 피드 전용입니다.";
 
         const opt = (list, cur) =>
           list
@@ -199,7 +203,6 @@
       <select class="evgift" data-i="${i}">
         ${rows.length ? `<optgroup label="제품군 제품">${opt(rows, cur)}</optgroup>` : ""}
         ${offs.length ? `<optgroup label="옵션 외 단품">${opt(offs, cur)}</optgroup>` : ""}
-        ${gifts.length ? `<optgroup label="선물 목록">${opt(gifts, cur)}</optgroup>` : ""}
         <option value="custom"${custom ? " selected" : ""}>직접 입력…</option>
       </select>
       ${
