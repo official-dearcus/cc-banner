@@ -39,9 +39,10 @@
           return [];
         }
       }
-      /* 고른 항목이 하나도 없으면 다운로드를 막는다 */
-      function dlCount() {
-        const secs = dlSections().map((s) => s.key);
+      /* 고른 항목이 하나도 없으면 다운로드를 막는다.
+         secs 를 넘기면 다시 계산하지 않는다(renderDlPick 이 이미 갖고 있다). */
+      function dlCount(pre) {
+        const secs = (pre || dlSections()).map((s) => s.key);
         return dlPick().filter(
           (k) =>
             DL_DEFAULT.includes(k) ||
@@ -102,7 +103,7 @@
         if (b3) b3.onclick = () => { state.dlPick = DL_DEFAULT.slice(); renderDlPick(); };
 
         /* 버튼 글자에 개수를 보여준다 — 열어보지 않아도 몇 개인지 안다 */
-        const n = dlCount();
+        const n = dlCount(secs);
         const tog = document.getElementById("dlPickBtn");
         if (tog) tog.textContent = `받을 항목 (${n})`;
         const dl = document.getElementById("dlBtn");

@@ -590,7 +590,36 @@
         if (line.length) lines.push(line);
         return { tk, lines };
       }
+      /* 카드 치수는 같은 입력이면 결과가 같다. 한 번 재면 기억해 둔다.
+         evFeedFit 이 묶음을 늘려 가며 반복해서 재는데다(prefix 마다),
+         evfImgH 가 이미지 높이를 낮춰 가며 다시 부르기 때문에
+         같은 카드를 수십 번 재고 있었다.
+         템플릿이 바뀌면 폭·글자 규격이 달라지므로 키에 넣는다. */
+      const EVF_M_CACHE = new Map();
+      function evfMeasureKey(ev) {
+        /* ⚠ giftKey 만 넣으면 시트를 다시 불러와 선물 이름이 바뀌었을 때
+             옛 치수가 남는다 → 실제로 그려질 문구를 그대로 키에 넣는다. */
+        const t = evType(ev.typeKey);
+        return [
+          state.tpl, EVF.txtW, EVF.bodySize,
+          ev.num,
+          evGiftText(ev),
+          (t && (t.bodyLabel || t.titleLabel)) || "",
+          (t && t.titleLabel) || "",
+          ev.note, ev._p1, ev._tail,
+        ].join("\u0001");
+      }
       function evfMeasure(ev) {
+        const k = evfMeasureKey(ev);
+        const hit = EVF_M_CACHE.get(k);
+        if (hit) return hit;
+        const m = evfMeasureRaw(ev);
+        /* 무한정 쌓이지 않게 — 행사 하나에 카드가 수십 개를 넘지 않는다 */
+        if (EVF_M_CACHE.size > 200) EVF_M_CACHE.clear();
+        EVF_M_CACHE.set(k, m);
+        return m;
+      }
+      function evfMeasureRaw(ev) {
         const m = evfLines(ev);
         const bodyH = m.lines.length * EVF.bodyLH;
         const note = String(ev.note || "").trim();

@@ -104,16 +104,19 @@
           for (const k of Object.keys(NV_SECTIONS)) defs[k] = NV_SECTIONS[k];
         if (legacy && typeof LEGACY_SECTIONS !== "undefined")
           for (const k of Object.keys(LEGACY_SECTIONS)) defs[k] = LEGACY_SECTIONS[k];
+        /* ⚠ 예전엔 키마다 feedPlanBySection() 을 다시 계산했다.
+             섹션이 6개면 전체 피드 계획을 6번 만든 셈이라
+             "받을 항목" 을 그릴 때만 글자 폭 계산이 3천 번 넘게 돌았다.
+             한 번만 만들어 놓고 찾아 쓴다. */
+        let plan = [];
+        try {
+          if (typeof feedPlanBySection === "function") plan = feedPlanBySection();
+        } catch (e) {
+          plan = [];
+        }
         const feedN = (k) => {
-          try {
-            const g =
-              typeof feedPlanBySection === "function"
-                ? feedPlanBySection().find((x) => x.key === k)
-                : null;
-            return g ? g.idxs.length : 0;
-          } catch (e) {
-            return 0;
-          }
+          const g = plan.find((x) => x.key === k);
+          return g ? g.idxs.length : 0;
         };
         /* 피드 전용 섹션(써볼래요)은 상세 높이가 0 이라 여기서 걸러지면 안 된다 */
         return order
