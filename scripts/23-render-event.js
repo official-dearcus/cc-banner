@@ -310,12 +310,11 @@
         const im = evGiftImg(ev.giftUrl != null ? ev.giftUrl : g && g.url);
         if (!im) return;
         /* 앞에서 뒤로 그린다 → 배열 마지막(오른쪽 아래)이 맨 위.
-           칸은 정사각인데 사진은 그렇지 않을 수 있다 → 원본 비율 그대로 넣는다
-           (cover 로 채우면 가로로 긴 사진이 좌우로 잘린다. 2026-09-03) */
-        const r = (im.width || 1) / (im.height || 1);
+           칸을 꽉 채운다(cover) — 피드와 같은 규칙. 상세 칸은 정사각이라
+           정사각 사진은 안 잘리고, 가로로 긴 사진만 좌우가 잘린다. */
         for (const p of evGiftLayout(ev.qty, D)) {
           const dx = x + p.x, dy = y + p.y, s = p.s;
-          drawRatioFit(ctx, im, dx, dy, s, s, r);
+          clipRect(ctx, dx, dy, s, s, () => cover(ctx, im, dx, dy, s, s));
         }
       }
       function evDrawCard(ctx, ev, x, top, th, S, m) {
@@ -675,12 +674,12 @@
         const iy = top + (cardH - ih) / 2;
         const g = evGift(ev.giftKey);
         const im = evGiftImg(ev.giftUrl != null ? ev.giftUrl : g && g.url);
-        /* ⚠ cover 로 채우면 정사각·세로 사진이 위아래로 잘린다
-             (.fig 은 미리 1.44:1 로 잘린 사진이라 문제가 없었다. 2026-09-03 신고)
-           원본 비율 그대로 칸 안에 넣는다 — 잘리지 않고 남는 쪽에 여백이 생긴다. */
-        if (im)
-          drawRatioFit(ctx, im, ix, iy, iw, ih,
-            (im.width || 1) / (im.height || 1));
+        /* 칸을 꽉 채운다(cover). 넘치는 쪽은 잘린다.
+           ⚠ 안 잘리게 넣어 봤더니(2026-09-03) 정사각 사진이 228×228 로 작아져
+             오히려 못하다는 판단 — 크기를 택하고 되돌렸다.
+             칸이 1.44:1 이라 정사각 사진은 위아래 30% 가 잘린다.
+             선물 사진을 1.44:1(예: 1440×1000)로 올리면 안 잘린다. */
+        if (im) clipRect(ctx, ix, iy, iw, ih, () => cover(ctx, im, ix, iy, iw, ih));
         return cardH;
       }
       function evFeedSlide(ctx, evs, th, opt) {
