@@ -73,6 +73,7 @@
     <script defer src="scripts/26-section-order.js"></script>
     <script defer src="scripts/27-export-pick.js"></script>
     <script defer src="scripts/28-try-event.js"></script>
+    <script defer src="scripts/30-nav.js"></script>
     <script defer src="scripts/29-perf.js"></script>
   </head>
   <body>
@@ -144,16 +145,19 @@
     </div>
     <div class="app">
       <header class="top">
-        <div class="logo">CC <b>배너</b> 제너레이터</div>
+        <div class="logo">CC <b>BANNER</b></div>
         <span class="tag" id="tplTag">뱀부500</span>
         <div class="spacer"></div>
         <span id="statusline">폰트 로딩 중…</span>
       </header>
 
+      <!-- 좌측 세로 탭 (30-nav.js 가 채운다) — 요청 2026-09-03 재구성 -->
+      <nav class="rail" id="rail"></nav>
+
       <aside class="col left">
-        <!-- [2] 제품군 네비게이터 — 좌측 상단 고정 -->
+        <!-- [2] 제품군 네비게이터 — "제품군" 탭에서만 보인다 -->
         <nav class="gnav" id="gnav" hidden></nav>
-        <div class="block">
+        <div class="block" data-nav="data">
           <label class="h" style="cursor: pointer" id="srcToggle">
             <span class="num">⚙</span> 데이터 소스
             <span id="srcState" class="cnt"></span>
@@ -276,7 +280,7 @@
           <div id="sheetErr"></div>
         </div>
 
-        <div class="block">
+        <div class="block" data-nav="data">
           <label class="h"><span class="num">1</span> 제품군</label>
           <input type="text" id="groupSearch" class="groupsearch" placeholder="제품명 검색" />
           <div id="group" class="groupgrid"></div>
@@ -285,13 +289,13 @@
           </div>
         </div>
 
-        <div class="block">
+        <div class="block" data-nav="data">
           <label class="h"><span class="num">2</span> 셀러명</label>
           <input type="text" id="seller" maxlength="24" />
           <div class="hint" id="sellerHint"></div>
         </div>
 
-        <div class="block">
+        <div class="block" data-nav="data">
           <label class="h"
             ><span class="num">3</span> 히어로 타이틀 (2줄)</label
           >
@@ -305,7 +309,7 @@
           />
         </div>
 
-        <div class="block">
+        <div class="block" data-nav="data">
           <label class="h"><span class="num">4</span> 공구 기간</label>
           <div class="row">
             <input type="date" id="d1" /><input type="date" id="d2" />
@@ -313,7 +317,7 @@
           <div class="hint" id="dateHint"></div>
         </div>
 
-        <div class="block" id="copyBlock" hidden>
+        <div class="block" data-nav="data" id="copyBlock" hidden>
           <label class="h"
             ><span class="num">5</span> 하단 카피 (02 전용)</label
           >
@@ -327,7 +331,7 @@
           />
         </div>
 
-        <div class="block">
+        <div class="block" data-nav="data">
           <label class="h"
             ><span class="num">6</span>
             <span id="seriesLabel">시리즈 제목 (한글)</span></label
@@ -337,7 +341,7 @@
 
         <div id="nvBlocks"></div>
 
-        <div class="block">
+        <div class="block" data-nav="data">
           <label class="h"
             ><span class="num">7</span> 가격 카드
             <span id="rowCount" class="cnt"></span
@@ -357,18 +361,18 @@
           <button class="clpall" id="clpAll" type="button">전부 접기</button>
         </div>
 
-        <div class="block">
+        <div class="block" data-nav="tpl">
           <label class="h"><span class="num">8</span> 템플릿</label>
           <div id="tplList"></div>
           <div class="hint" id="tplHint"></div>
         </div>
 
-        <div class="block" id="themeBlock">
+        <div class="block" data-nav="tpl" id="themeBlock">
           <label class="h"><span class="num">9</span> 컬러</label>
           <div class="swatches" id="themeSw"></div>
         </div>
 
-        <div class="block">
+        <div class="block" data-nav="tpl">
           <label class="h"
             ><span class="num">10</span>
             <span id="imgLabel">히어로 이미지</span></label
@@ -382,7 +386,7 @@
           <div class="hint" id="imgHint"></div>
         </div>
 
-        <div class="block" id="evBlock">
+        <div class="block" data-nav="data" id="evBlock">
           <label class="h"
             ><span class="num">11</span> 이벤트
             <span id="evCount" class="cnt"></span
@@ -392,7 +396,7 @@
           <div class="hint" id="pnEvHint"></div>
         </div>
 
-        <div class="block" id="tryBlock">
+        <div class="block" data-nav="data" id="tryBlock">
           <label class="h"
             ><span class="num">12</span> 써볼래요 이벤트
             <span id="tryCount" class="cnt"></span
@@ -402,14 +406,14 @@
           <div class="hint" id="tryHint"></div>
         </div>
 
-        <div class="block" id="secBlock">
+        <div class="block" data-nav="order" id="secBlock">
           <label class="h"
             ><span class="num">13</span> 섹션 순서
             <span class="cnt">드래그</span></label
           >
           <div class="secpick" id="secOrder"></div>
           <button class="secreset" id="secReset">기본 순서로</button>
-          <div class="hint">상세페이지에서 위→아래로 놓이는 순서입니다.</div>
+          <div class="hint" id="navHint">상세페이지에서 위 → 아래로 놓이는 순서입니다.</div>
         </div>
 
 
@@ -428,25 +432,10 @@
           <button data-f="thumb">썸네일</button>
           <button data-f="feed">인스타 피드</button>
         </div>
-        <div class="stage-bar">
-          <div class="zoom">
-            미리보기
-            <input type="range" id="zoom" min="15" max="50" value="26" />
-            <span id="zoomVal">26%</span>
-          </div>
-          <div class="actions">
-            <div class="scalesel" id="scaleSel">
-              <button data-x="1" class="on">1x</button>
-              <button data-x="2">2x</button>
-            </div>
-            <button class="btn" id="shareBtn">공유 코드</button>
-            <div class="dlpick">
-              <button class="btn" id="dlPickBtn" type="button">받을 항목</button>
-              <div class="dlpickbox" id="dlPickBox" hidden></div>
-            </div>
-            <button class="btn primary" id="dlBtn">다운로드 (ZIP)</button>
-            <div class="dlsum" id="dlSum"></div>
-          </div>
+        <div class="zoom">
+          미리보기
+          <input type="range" id="zoom" min="15" max="50" value="26" />
+          <span id="zoomVal">26%</span>
         </div>
         <div class="stage" id="stageDetail"><canvas id="preview"></canvas></div>
         <div class="stage" id="stageThumb" hidden>
@@ -456,6 +445,22 @@
           <div id="feedScroll"></div>
         </div>
       </main>
+
+      <div class="exportdock">
+        <div class="row">
+          <div class="scalesel" id="scaleSel">
+            <button data-x="1" class="on">1x</button>
+            <button data-x="2">2x</button>
+          </div>
+          <button class="btn" id="shareBtn">공유코드</button>
+        </div>
+        <div class="dlpick">
+          <button class="btn wide" id="dlPickBtn" type="button">받을 항목</button>
+          <div class="dlpickbox" id="dlPickBox" hidden></div>
+        </div>
+        <button class="btn primary wide" id="dlBtn">다운로드 (ZIP)</button>
+        <div class="dlsum" id="dlSum"></div>
+      </div>
 
       <aside class="col right">
         <div class="block">
