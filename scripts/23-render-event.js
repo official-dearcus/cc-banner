@@ -547,7 +547,13 @@
         const tk = evTokens(ev);
         const ls = (EVF.bodySize * -2) / 100;
         _mc.font = `400 ${EVF.bodySize}px Pretendard`;
+        /* ⚠ p1 과 p2 는 원래 별개 줄이라 p2 첫 낱말의 앞 간격이 0 이다.
+             피드는 두 덩이를 한 흐름으로 이어 붙이므로 그대로 두면
+             "…10명에게네이버 포인트" 처럼 붙어 버린다(2026-09-03 신고).
+             이음매에 공백(-1 = 실제 공백 폭)을 넣고 줄바꿈도 허용한다. */
         const all = [...tk.p1, ...tk.p2];
+        if (tk.p1.length && tk.p2.length)
+          all[tk.p1.length] = { ...all[tk.p1.length], glue: -1, br: true };
         const lines = [];
         let line = [], x = 0;
         const spaceW = trkWidth(_mc, " ", ls) || EVF.bodySize * 0.3;
