@@ -55,10 +55,18 @@
         const nb = document.getElementById("nvBlocks");
         if (nb) nb.classList.toggle("navoff", NAV_CUR !== "tpl");
         if (typeof renumberBlocks === "function") renumberBlocks();
-        const hint = document.getElementById("navHint");
-        if (hint)
-          hint.textContent =
-            NAV_CUR === "order" ? "상세페이지에서 위 → 아래로 놓이는 순서입니다." : "";
+        /* 탭 제목 (.fig 화면구성) — 데이터·템플릿 탭은 제목이 없다 */
+        const ti = document.getElementById("navTitle");
+        if (ti) {
+          const n = (SESSION && SESSION.groups && SESSION.groups.length) || 0;
+          ti.textContent =
+            NAV_CUR === "group"
+              ? `제품군${n ? " " + n + "개" : ""}`
+              : NAV_CUR === "order"
+                ? "드래그로 이동"
+                : "";
+          ti.hidden = !ti.textContent;
+        }
       }
       function navRender() {
         const rail = document.getElementById("rail");

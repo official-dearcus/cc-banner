@@ -56,8 +56,9 @@
           }
           const toggle = () => {
             const now = !block.classList.contains("collapsed");
+            /* ⚠ 예전엔 펼침을 지웠는데, 이제 기본이 "접힘"이라
+                 지우면 다음에 다시 접힌다 → 양쪽 다 기록한다. */
             COLLAPSED[key] = now;
-            if (!now) delete COLLAPSED[key];
             saveCollapsed();
             applyCollapse(block, now);
           };
@@ -68,7 +69,12 @@
               toggle();
             }
           });
-          applyCollapse(block, !!COLLAPSED[key]);
+          /* 처음 보는 블록은 접어 둔다 (.fig 화면구성 — 줄 목록으로 보인다).
+             제품군·순서 탭은 내용 자체가 목록이라 편다. 2026-09-03 */
+          const nav = block.dataset.nav;
+          const startClosed = nav === "data" || nav === "tpl";
+          const saved = COLLAPSED[key];
+          applyCollapse(block, saved === undefined ? startClosed : !!saved);
         });
       }
       /* 전부 펴기 / 접기 */
