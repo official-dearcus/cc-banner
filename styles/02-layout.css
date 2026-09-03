@@ -2,7 +2,7 @@
       .app {
         display: grid;
         /* 맨 앞에 세로 탭(rail) 열이 붙었다 — 2026-09-03 재구성 */
-        grid-template-columns: 88px var(--leftw, 520px) 6px minmax(0, 1fr) 260px;
+        grid-template-columns: 90px var(--leftw, 513px) 6px minmax(0, 1fr) 260px;
         grid-template-rows: 56px 1fr;
         grid-template-areas:
           "top  top  top     top    top"
@@ -10,27 +10,43 @@
         height: 100vh;
       }
       /* ── 좌측 세로 탭 ── */
+      /* .fig 화면구성 실측 — 90 폭 · 50×50 버튼 · gap5 · 사이 구분선 · r5 */
       .rail {
         grid-area: rail;
         display: flex;
         flex-direction: column;
-        gap: 4px;
-        padding: 22px 12px;
+        align-items: center;
+        gap: 5px;
+        padding: 20px;
         border-right: 1px solid var(--line);
         background: #fff;
         overflow-y: auto;
       }
       .rail button {
-        padding: 13px 6px;
+        flex: 0 0 auto;
+        width: 50px;
+        height: 50px;
         border: 0;
-        border-radius: 10px;
+        border-radius: 5px;
         background: transparent;
         font: inherit;
-        font-size: 12.5px;
-        font-weight: 600;
+        font-size: 12px;
         color: var(--ink-soft);
         cursor: pointer;
         transition: background 0.12s, color 0.12s;
+      }
+      .rail button + button {
+        margin-top: 5px;
+      }
+      /* 버튼 사이 구분선 (.fig Line) */
+      .rail button + button::before {
+        content: "";
+        display: block;
+        position: relative;
+        top: -8px;
+        width: 50px;
+        height: 1px;
+        background: var(--line);
       }
       .rail button:hover {
         background: var(--accent-weak, #f2f0f6);
@@ -39,6 +55,7 @@
       .rail button.on {
         background: var(--accent);
         color: #fff;
+        font-weight: 700;
       }
       /* 탭에 안 속한 항목은 감춘다 (DOM 에는 남는다 — 30-nav 주석 참고) */
       .navoff {

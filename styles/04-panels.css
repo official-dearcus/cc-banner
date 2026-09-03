@@ -608,6 +608,81 @@
         cursor: default;
       }
 
+      /* 제품군 목록 (.fig 40 높이 · gap8 · r8 · 번호 배지 20×20 r3) */
+      .gnav .gt {
+        height: 40px;
+        border-radius: 8px;
+      }
+      .gnav .list {
+        gap: 8px;
+      }
+
+      /* 탭 제목 (.fig 15px SemiBold #333 · 위 40 왼쪽 15) */
+      .navtitle {
+        margin: 24px 0 12px 5px;
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--ink);
+      }
+      .navtitle[hidden] {
+        display: none;
+      }
+
+      /* ── 접힌 줄 모양 (.fig 화면구성 실측) ──
+         480×60 · 번호 배지 20×20 r3 · 이름 12 Bold · 오른쪽 상태 10 · ">" */
+      .col.left .block.collapsed {
+        margin: 0;
+        padding: 0;
+        border: 0;
+        border-bottom: 1px solid var(--line);
+        border-radius: 0;
+        background: transparent;
+      }
+      .col.left .block.collapsed > label.h {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        height: 60px;
+        margin: 0;
+        padding: 0 12px;
+        border-radius: 0;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--ink);
+      }
+      .col.left .block.collapsed > label.h .num {
+        flex: 0 0 auto;
+        width: 20px;
+        height: 20px;
+        border-radius: 3px;
+        background: #7f69df;
+        color: #fff;
+        font-size: 12px;
+        font-weight: 600;
+        line-height: 20px;
+        text-align: center;
+      }
+      .col.left .block.collapsed > label.h .cnt,
+      .col.left .block.collapsed > label.h .opt {
+        margin-left: auto;
+        font-size: 10px;
+        font-weight: 500;
+        color: var(--ink-soft);
+      }
+      /* 화살표를 ">" 모양으로 (접혔을 때만) */
+      .col.left .block.collapsed > label.h .clp {
+        margin-left: auto;
+        width: 6px;
+        height: 6px;
+        border-right: 2px solid var(--ink);
+        border-bottom: 2px solid var(--ink);
+        transform: rotate(-45deg);
+      }
+      .col.left .block.collapsed > label.h .cnt + .clp,
+      .col.left .block.collapsed > label.h .opt + .clp {
+        margin-left: 10px;
+      }
+
       /* ---- 섹션 접기 (24-panel-collapse) ---- */
       .block > label.h {
         cursor: pointer;
