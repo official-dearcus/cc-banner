@@ -35,18 +35,16 @@
         cursor: pointer;
         transition: background 0.12s, color 0.12s;
       }
+      /* 버튼 사이 구분선 (.fig Line) — 위 여백 안에 선을 둔다 */
       .rail button + button {
-        margin-top: 5px;
+        margin-top: 10px;
+        border-top: 1px solid var(--line);
+        padding-top: 10px;
+        height: 61px;
+        border-radius: 0 0 5px 5px;
       }
-      /* 버튼 사이 구분선 (.fig Line) */
-      .rail button + button::before {
-        content: "";
-        display: block;
-        position: relative;
-        top: -8px;
-        width: 50px;
-        height: 1px;
-        background: var(--line);
+      .rail button + button.on {
+        border-top-color: transparent;
       }
       .rail button:hover {
         background: var(--accent-weak, #f2f0f6);
@@ -86,12 +84,17 @@
         background: var(--panel);
         border-bottom: 1px solid var(--line);
       }
+      /* .fig 화면구성 — Pretendard ExtraBold 28 · 전체 보라
+         ⚠ Playfair Display 세리프였다. 폰트가 안 뜨면 더 깨져 보인다. */
       header.top .logo {
-        font-family: "Playfair Display", serif;
-        font-weight: 500;
-        font-size: 19px;
+        font-family: Pretendard, system-ui, sans-serif;
+        font-weight: 800;
+        font-size: 28px;
+        letter-spacing: -0.01em;
+        color: var(--accent);
       }
       header.top .logo b {
+        font-weight: 800;
         color: var(--accent);
       }
       header.top .tag {
