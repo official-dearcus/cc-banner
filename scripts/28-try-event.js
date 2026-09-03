@@ -48,12 +48,14 @@
         const g = (typeof G === "function" && G()[state.group]) || {};
         const nm = (r) => (typeof rowName === "function" ? rowName(r) : r.name || "");
         const on = (g.rows || []).map((r, i) => ({
-          kind: "row", i, name: nm(r), url: r.thumbUrl || "",
+          kind: "row", i, name: nm(r),
+          url: r.thumbUrl || "", feedUrl: r.feedThumbUrl || "",
         }));
         /* enabled=FALSE 인 행 — 옵션엔 안 나오지만 경품으로는 쓴다.
            i 는 offRows 안의 번호라 kind 를 나눠 저장한다. */
         const off = (g.offRows || []).map((r, i) => ({
-          kind: "off", i, name: nm(r), url: r.thumbUrl || "",
+          kind: "off", i, name: nm(r),
+          url: r.thumbUrl || "", feedUrl: r.feedThumbUrl || "",
         }));
         return on.concat(off);
       }
@@ -65,6 +67,7 @@
           key: x.giftKey,
           name: x.label || x.giftKey,
           url: x.url || "",
+          feedUrl: x.feedUrl || "",
         }));
       }
       /* 드롭다운에 뜨는 전체 후보 — 선물 목록은 뺀다 (요청 2026-09-03) */
@@ -86,10 +89,10 @@
       function tryProduct(e) {
         const p = tryPick(e);
         if (p.kind === "custom")
-          return { name: p.name || "", url: p.url || "" };
+          return { name: p.name || "", url: p.url || "", feedUrl: p.feedUrl || "" };
         if (p.kind === "gift") {
           const hit = tryGifts().find((x) => x.key === p.key);
-          return hit || { name: "", url: "" };
+          return hit || { name: p.name || "", url: p.url || "", feedUrl: p.feedUrl || "" };
         }
         const list = tryProducts().filter((x) => x.kind === (p.kind === "off" ? "off" : "row"));
         return list[Math.max(0, Math.min(list.length - 1, p.i | 0))] || { name: "", url: "" };
@@ -105,6 +108,7 @@
           qty: Math.max(1, parseInt(e.qty, 10) || 1),
           giftLabel: (p && p.name) || "",
           giftUrl: (p && p.url) || "",
+          giftFeedUrl: (p && p.feedUrl) || "",
           _title: t.titleLabel,
           _body: t.bodyLabel,
           _p1: TRY_LEAD,
@@ -208,7 +212,8 @@
       ${
         custom
           ? `<input class="trycus" data-f="cname" data-i="${i}" value="${esc(p.name || "")}" placeholder="경품 이름" />
-             <input class="trycus" data-f="curl" data-i="${i}" value="${esc(p.url || "")}" placeholder="사진 주소 (선택)" />`
+             <input class="trycus" data-f="curl" data-i="${i}" value="${esc(p.url || "")}" placeholder="사진 주소 — 상세용 (선택)" />
+             <input class="trycus" data-f="cfeed" data-i="${i}" value="${esc(p.feedUrl || "")}" placeholder="사진 주소 — 피드용 (비우면 위와 동일)" />`
           : ""
       }
       <div class="evprev">${esc(trySentence(e))}</div>
@@ -242,7 +247,11 @@
         box.querySelectorAll(".trycus").forEach((inp) => (inp.oninput = () => {
           const e2 = LIST[+inp.dataset.i];
           if (!e2.pick || e2.pick.kind !== "custom") return;
-          e2.pick[inp.dataset.f === "cname" ? "name" : "url"] = inp.value;
+          const key =
+            inp.dataset.f === "cname" ? "name"
+            : inp.dataset.f === "cfeed" ? "feedUrl"
+            : "url";
+          e2.pick[key] = inp.value;
           const pv = inp.closest(".evrow").querySelector(".evprev");
           if (pv) pv.textContent = trySentence(e2);
           live();

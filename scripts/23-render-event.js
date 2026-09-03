@@ -305,9 +305,22 @@
             .catch(() => {});
         return null;
       }
-      function evDrawGift(ctx, ev, x, y, D) {
+      /* 선물 사진 주소를 고른다.
+         상세(240 정사각)와 피드(328×228)는 칸 비율이 달라 한 장으로는 한쪽이
+         잘린다 → 시트에 피드용을 따로 올릴 수 있다 (2026-09-03).
+           GiftMaster    url / feedUrl
+           ProductMaster thumbUrl / feedThumbUrl  (써볼래요 경품)
+         피드용이 비어 있으면 상세용을 그대로 쓴다 — 기존 시트는 안 바뀐다. */
+      function evGiftUrl(ev, feed) {
         const g = evGift(ev.giftKey);
-        const im = evGiftImg(ev.giftUrl != null ? ev.giftUrl : g && g.url);
+        const own = feed ? ev.giftFeedUrl : ev.giftUrl;
+        if (own) return own;
+        if (ev.giftUrl != null || ev.giftFeedUrl != null) return ev.giftUrl || "";
+        if (!g) return "";
+        return (feed && g.feedUrl) || g.url || "";
+      }
+      function evDrawGift(ctx, ev, x, y, D) {
+        const im = evGiftImg(evGiftUrl(ev, false));
         if (!im) return;
         /* 앞에서 뒤로 그린다 → 배열 마지막(오른쪽 아래)이 맨 위.
            칸을 꽉 채운다(cover) — 피드와 같은 규칙. 상세 칸은 정사각이라
@@ -672,8 +685,7 @@
         /* 이미지 — 글 오른쪽, 카드 안에서 세로 가운데 */
         const ix = x + EVF.txtW + EVF.txtGap;
         const iy = top + (cardH - ih) / 2;
-        const g = evGift(ev.giftKey);
-        const im = evGiftImg(ev.giftUrl != null ? ev.giftUrl : g && g.url);
+        const im = evGiftImg(evGiftUrl(ev, true));
         /* 칸을 꽉 채운다(cover). 넘치는 쪽은 잘린다.
            ⚠ 안 잘리게 넣어 봤더니(2026-09-03) 정사각 사진이 228×228 로 작아져
              오히려 못하다는 판단 — 크기를 택하고 되돌렸다.

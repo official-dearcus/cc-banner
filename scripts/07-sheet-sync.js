@@ -100,6 +100,7 @@
           badge: r.badge || "none",
           colorLine: r.colorLine || "",
           thumbUrl: r.thumbUrl || "",
+          feedThumbUrl: r.feedThumbUrl || "",
           thumb: null,
           thumbSrc: "",
         };

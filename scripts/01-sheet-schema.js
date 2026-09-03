@@ -127,6 +127,8 @@
             normalPrice: { type: "number" },
             salePrice: { type: "number" },
             thumbUrl: { type: "url", optional: true },
+            /* 써볼래요 경품으로 쓸 때의 피드용 사진 (비우면 thumbUrl) */
+            feedThumbUrl: { type: "url", optional: true },
             badge: {
               type: "enum",
               values: ["none", "renewal", "new"],
@@ -229,7 +231,11 @@
             giftKey: { type: "string" },
             label: { type: "string" },
             particle: { type: "string", optional: true },
+            /* url 은 상세용(240 정사각). 피드 칸은 328×228 이라 비율이 달라
+               정사각 사진이 위아래로 잘린다 → 피드용을 따로 올릴 수 있게
+               feedUrl 을 둔다. 비우면 url 을 그대로 쓴다 (2026-09-03). */
             url: { type: "url", optional: true },
+            feedUrl: { type: "url", optional: true },
             enabled: { type: "bool", optional: true, default: true },
             sortOrder: { type: "number", optional: true },
           },
