@@ -82,6 +82,43 @@
         letter-spacing: 0.08em;
         text-transform: uppercase;
       }
+      /* 내보내기 묶음 — 화면 오른쪽 아래 고정 (2026-09-03 재구성) */
+      .exportdock {
+        position: fixed;
+        right: 24px;
+        bottom: 24px;
+        z-index: 30;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        width: 200px;
+      }
+      .exportdock .row {
+        display: flex;
+        gap: 8px;
+      }
+      .exportdock .row .scalesel {
+        flex: 0 0 auto;
+      }
+      .exportdock .row .btn {
+        flex: 1;
+      }
+      .exportdock .btn.wide {
+        width: 100%;
+      }
+      .exportdock .dlpick {
+        display: block;
+      }
+      .exportdock .dlpickbox {
+        top: auto;
+        bottom: calc(100% + 6px);
+      }
+      .exportdock .dlsum {
+        text-align: right;
+        font-size: 11px;
+        color: var(--ink-soft);
+      }
+
       /* 받을 항목 고르기 (27-export-pick) */
       .dlpick {
         position: relative;

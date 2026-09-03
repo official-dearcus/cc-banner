@@ -1,10 +1,48 @@
 /* CC 배너 제너레이터 — 02-layout */
       .app {
         display: grid;
-        grid-template-columns: var(--leftw, 600px) 6px minmax(0, 1fr) 260px;
+        /* 맨 앞에 세로 탭(rail) 열이 붙었다 — 2026-09-03 재구성 */
+        grid-template-columns: 88px var(--leftw, 520px) 6px minmax(0, 1fr) 260px;
         grid-template-rows: 56px 1fr;
-        grid-template-areas: "top top top top" "left resizer center right";
+        grid-template-areas:
+          "top  top  top     top    top"
+          "rail left resizer center right";
         height: 100vh;
+      }
+      /* ── 좌측 세로 탭 ── */
+      .rail {
+        grid-area: rail;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 22px 12px;
+        border-right: 1px solid var(--line);
+        background: #fff;
+        overflow-y: auto;
+      }
+      .rail button {
+        padding: 13px 6px;
+        border: 0;
+        border-radius: 10px;
+        background: transparent;
+        font: inherit;
+        font-size: 12.5px;
+        font-weight: 600;
+        color: var(--ink-soft);
+        cursor: pointer;
+        transition: background 0.12s, color 0.12s;
+      }
+      .rail button:hover {
+        background: var(--accent-weak, #f2f0f6);
+        color: var(--ink);
+      }
+      .rail button.on {
+        background: var(--accent);
+        color: #fff;
+      }
+      /* 탭에 안 속한 항목은 감춘다 (DOM 에는 남는다 — 30-nav 주석 참고) */
+      .navoff {
+        display: none !important;
       }
       .resizer {
         grid-area: resizer;
