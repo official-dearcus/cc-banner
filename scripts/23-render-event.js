@@ -309,10 +309,13 @@
         const g = evGift(ev.giftKey);
         const im = evGiftImg(ev.giftUrl != null ? ev.giftUrl : g && g.url);
         if (!im) return;
-        /* 앞에서 뒤로 그린다 → 배열 마지막(오른쪽 아래)이 맨 위 */
+        /* 앞에서 뒤로 그린다 → 배열 마지막(오른쪽 아래)이 맨 위.
+           칸은 정사각인데 사진은 그렇지 않을 수 있다 → 원본 비율 그대로 넣는다
+           (cover 로 채우면 가로로 긴 사진이 좌우로 잘린다. 2026-09-03) */
+        const r = (im.width || 1) / (im.height || 1);
         for (const p of evGiftLayout(ev.qty, D)) {
           const dx = x + p.x, dy = y + p.y, s = p.s;
-          clipRect(ctx, dx, dy, s, s, () => cover(ctx, im, dx, dy, s, s));
+          drawRatioFit(ctx, im, dx, dy, s, s, r);
         }
       }
       function evDrawCard(ctx, ev, x, top, th, S, m) {
@@ -672,7 +675,12 @@
         const iy = top + (cardH - ih) / 2;
         const g = evGift(ev.giftKey);
         const im = evGiftImg(ev.giftUrl != null ? ev.giftUrl : g && g.url);
-        if (im) clipRect(ctx, ix, iy, iw, ih, () => cover(ctx, im, ix, iy, iw, ih));
+        /* ⚠ cover 로 채우면 정사각·세로 사진이 위아래로 잘린다
+             (.fig 은 미리 1.44:1 로 잘린 사진이라 문제가 없었다. 2026-09-03 신고)
+           원본 비율 그대로 칸 안에 넣는다 — 잘리지 않고 남는 쪽에 여백이 생긴다. */
+        if (im)
+          drawRatioFit(ctx, im, ix, iy, iw, ih,
+            (im.width || 1) / (im.height || 1));
         return cardH;
       }
       function evFeedSlide(ctx, evs, th, opt) {
