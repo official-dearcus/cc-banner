@@ -190,6 +190,15 @@
           String(s).split(/\s+/).filter(Boolean).map((x, i) => ({
             t: x, w, glue: i === 0 ? 0 : sp, br: i > 0,
           }));
+        /* 써볼래요처럼 문장이 다른 종류는 자기 문구를 들고 온다 (_p1 / _p2 / _tail).
+           선물 이름만 굵게, 나머지는 보통 — 규칙은 이벤트와 같다. */
+        if (ev._p1 != null) {
+          const q1 = words(ev._p1, 400);
+          const q2 = words(gift, 600);
+          q2.push({ t: par, w: 400, glue: 0, br: false });
+          q2.push({ t: ev._tail || "드립니다.", w: 400, glue: EV.card.particleGap, br: true });
+          return { p1: q1, p2: q2, title: ev._title || (t ? t.titleLabel : ""), num };
+        }
         /* 1줄 — "구매 선착순 10명에게"
            ⚠ .fig 은 "구매 선착순"·"10"·"명에게" 를 간격 0 으로 붙여 놨지만
              (144 → 144 → 177) 붙여 읽히므로 요청(2026-08-12)대로 띄운다. */

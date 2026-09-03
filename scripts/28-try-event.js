@@ -16,6 +16,12 @@
       /* 문장에 쓰는 말. EventMaster 에 typeKey "try" 행이 있으면 그 값이 이긴다
          → 문구를 바꾸고 싶으면 시트에서 고치면 된다. */
       const TRY_TYPE_FALLBACK = { titleLabel: "써볼래요 이벤트", bodyLabel: "써볼래요" };
+      /* 문장 (요청 2026-09-02)
+           이벤트에 선정되신 분께 [제품명] [개수][을/를] 증정드립니다.
+         이벤트와 문장 구조가 달라 evTokens 에 _p1 / _tail 로 넘긴다.
+         인원(num)은 문장에서 빠지고 제목의 "(N명)" 에만 남는다. */
+      const TRY_LEAD = "이벤트에 선정되신 분께";
+      const TRY_TAIL = "증정드립니다.";
       function tryType() {
         const t = typeof evType === "function" ? evType("try") : null;
         return t || TRY_TYPE_FALLBACK;
@@ -92,22 +98,22 @@
         return {
           typeKey: "try",
           num: e.num,
-          qty: 1,
+          qty: Math.max(1, parseInt(e.qty, 10) || 1),
           giftLabel: (p && p.name) || "",
           giftUrl: (p && p.url) || "",
           _title: t.titleLabel,
           _body: t.bodyLabel,
+          _p1: TRY_LEAD,
+          _tail: TRY_TAIL,
         };
       }
       /* 문장 미리보기 — 배너와 같은 함수를 쓴다 */
       function trySentence(e) {
         const ev = tryAsEvent(e);
-        if (typeof evSentence !== "function") return "";
-        /* evSentence 는 evType(typeKey) 를 보므로, 시트에 try 가 없으면
-           여기서 직접 조립한다(같은 문장 규칙). */
-        if (typeof evType === "function" && evType("try")) return evSentence(ev);
+        const gift =
+          typeof evGiftText === "function" ? evGiftText(ev) : ev.giftLabel;
         const par = typeof evPartOf === "function" ? evPartOf(ev) : "를";
-        return `${ev._body} ${ev.num}명에게 ${ev.giftLabel}${par} 드립니다.`;
+        return `${TRY_LEAD} ${gift}${par} ${TRY_TAIL}`;
       }
 
       /* ── 피드 ── */
@@ -149,6 +155,7 @@
         /* 후보가 하나도 없어도 직접 입력으로 시작할 수 있다 */
         tryTarget().push({
           num: 10,
+          qty: 1,
           pick: ps.length ? { ...ps[0] } : { kind: "custom", name: "", url: "" },
         });
         renderTryEvents();
@@ -187,6 +194,7 @@
           return `<div class="evrow" data-i="${i}">
       <span class="evdrag" title="끌어서 순서 변경">⠿</span>
       <div class="evnum"><input type="number" min="1" max="9999" data-f="num" data-i="${i}" value="${e.num}" /><span>명</span></div>
+      <div class="evnum evqty"><input type="number" min="1" max="20" data-f="qty" data-i="${i}" value="${e.qty || 1}" /><span>개</span></div>
       <button class="evdel" data-i="${i}" title="삭제">×</button>
       <select class="evgift" data-i="${i}">
         ${rows.length ? `<optgroup label="제품군 제품">${opt(rows, cur)}</optgroup>` : ""}
@@ -208,8 +216,15 @@
         /* 직접 입력은 타이핑 중 다시 그리면 커서가 튄다 → 캔버스만 갱신 */
         const live = () => { if (typeof draw === "function") draw(); };
 
-        box.querySelectorAll('input[data-f="num"]').forEach((inp) => (inp.onchange = () => {
-          LIST[+inp.dataset.i].num = Math.max(1, parseInt(inp.value, 10) || 1); after(); }));
+        box.querySelectorAll('input[data-f="num"], input[data-f="qty"]').forEach(
+          (inp) => (inp.onchange = () => {
+            const f = inp.dataset.f;
+            const cap = f === "qty" ? 20 : 9999;
+            LIST[+inp.dataset.i][f] =
+              Math.min(cap, Math.max(1, parseInt(inp.value, 10) || 1));
+            after();
+          }),
+        );
         box.querySelectorAll(".evgift").forEach((s) => (s.onchange = () => {
           const e2 = LIST[+s.dataset.i];
           const v = s.value;
