@@ -47,24 +47,29 @@
         document.querySelectorAll(".col.left .block[data-nav]").forEach((b) => {
           b.classList.toggle("navoff", b.dataset.nav !== NAV_CUR);
         });
-        /* 구분선("디자인 템플릿")은 템플릿 탭에서만 */
+        /* "디자인 템플릿" 구분선은 .fig 화면구성에 없다 — 탭으로 나뉘어 필요 없어졌다.
+           [전부 접기] 버튼도 같이 사라진다(줄을 눌러 하나씩 연다). */
         document.querySelectorAll(".col.left .secdiv").forEach((d) => {
-          d.classList.toggle("navoff", NAV_CUR !== "tpl");
+          d.classList.add("navoff");
         });
-        /* 누볼라 추가 블록(#nvBlocks)은 템플릿 쪽 내용이다 */
+        /* 누볼라 추가 블록(#nvBlocks) — 안내 문구·사이즈 안내는 "내용"이라 데이터 탭.
+           ⚠ 안쪽 .block 에도 표시해야 한다. 안 하면 다른 탭에서 번호만 먹고
+             화면엔 안 보여서 번호가 건너뛴다(7번 실종, 2026-09-03 신고). */
         const nb = document.getElementById("nvBlocks");
-        if (nb) nb.classList.toggle("navoff", NAV_CUR !== "tpl");
+        if (nb) {
+          const off = NAV_CUR !== "data";
+          nb.classList.toggle("navoff", off);
+          nb.querySelectorAll(".block").forEach((b) =>
+            b.classList.toggle("navoff", off),
+          );
+        }
         if (typeof renumberBlocks === "function") renumberBlocks();
         /* 탭 제목 (.fig 화면구성) — 데이터·템플릿 탭은 제목이 없다 */
         const ti = document.getElementById("navTitle");
         if (ti) {
           const n = (SESSION && SESSION.groups && SESSION.groups.length) || 0;
-          ti.textContent =
-            NAV_CUR === "group"
-              ? `제품군${n ? " " + n + "개" : ""}`
-              : NAV_CUR === "order"
-                ? "드래그로 이동"
-                : "";
+          /* 제품군 목록은 자기 제목("제품군 N개")을 이미 그린다 → 겹치지 않게 비운다 */
+          ti.textContent = NAV_CUR === "order" ? "드래그로 이동" : "";
           ti.hidden = !ti.textContent;
         }
       }

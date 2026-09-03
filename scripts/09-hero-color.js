@@ -179,11 +179,17 @@
         panel.querySelectorAll(".block").forEach((b) => {
           /* navoff = 지금 탭에 안 속한 블록 (30-nav). offsetParent 로도 걸리지만
              레이아웃 계산 전에는 못 믿으므로 클래스를 직접 본다. */
-          if (b.classList.contains("navoff") || b.hidden || b.offsetParent === null) {
+          if (
+            b.hidden ||
+            (b.closest && b.closest(".navoff")) ||
+            b.offsetParent === null
+          ) {
             const s0 = b.querySelector("label.h > .num");
             /* 정말 숨은 게 아니라 레이아웃이 아직 안 잡힌 경우(초기 렌더·테스트)
                까지 건너뛰면 번호가 전부 1 이 된다 → 그때는 세어 준다. */
-            const reallyHidden = b.classList.contains("navoff") || b.hidden;
+            /* 조상이 숨겨져 있어도 안 보인다 (#nvBlocks 안의 블록) */
+            const reallyHidden =
+              b.hidden || (b.closest && b.closest(".navoff") !== null);
             if (!reallyHidden) {
               if (s0) s0.textContent = n++;
               return;
