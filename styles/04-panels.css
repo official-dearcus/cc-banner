@@ -617,6 +617,20 @@
         gap: 8px;
       }
 
+      /* 블록 안에 딸린 입력 묶음 (하단 카피처럼 조건부로 나오는 것) */
+      .block .sub {
+        margin-top: 16px;
+      }
+      .block .sub[hidden] {
+        display: none;
+      }
+      .block .sublabel {
+        margin-bottom: 7px;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--ink);
+      }
+
       /* 탭 제목 (.fig 15px SemiBold #333 · 위 40 왼쪽 15) */
       .navtitle {
         margin: 24px 0 12px 5px;
