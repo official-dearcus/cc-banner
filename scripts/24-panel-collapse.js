@@ -39,6 +39,7 @@
       }
       function bindCollapse(root) {
         const scope = root || document;
+        /* 좌·우 패널의 모든 토글이 대상이다 (화살표·동작 통일 2026-09-04) */
         scope.querySelectorAll(".block > label.h").forEach((head) => {
           if (head.dataset.clpBound) return;
           const block = head.parentElement;
@@ -72,7 +73,9 @@
           /* 처음 보는 블록은 접어 둔다 (.fig 화면구성 — 줄 목록으로 보인다).
              제품군·순서 탭은 내용 자체가 목록이라 편다. 2026-09-03 */
           const nav = block.dataset.nav;
-          const startClosed = nav === "data" || nav === "tpl";
+          /* 우측 패널(상태·경고 · 생성 이력)도 접힌 채 시작한다 */
+          const right = !!block.closest(".col.right");
+          const startClosed = nav === "data" || nav === "tpl" || right;
           const saved = COLLAPSED[key];
           applyCollapse(block, saved === undefined ? startClosed : !!saved);
         });
