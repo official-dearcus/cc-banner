@@ -2,7 +2,7 @@
    이벤트 배너 (.fig event_comp01·02·03 실측)
 
    구조   section  860 × 가변
-            padTop 80
+            padTop 150   (.fig 은 80 이었으나 옵션 섹션과 맞춤 · 2026-09-04)
             txt-wrap   (셀러줄 + 제목)
             headGap
             event_list (카드 N장)
@@ -67,7 +67,11 @@
       /* ── 치수 (.fig 실측) ── */
       const EV = {
         W: 860,
-        padTop: 80,
+        /* 상단 여백을 옵션 섹션과 맞춘다 (요청 2026-09-04).
+           옵션은 신형 NV.opt.padTop 150 · 구형 OPT[*].body.y 150 으로 둘 다 150.
+           이벤트만 80 이라 제목이 위로 붙어 보였다.
+           ⚠ 피드(EVF)는 별개다 — 거기는 안 건드린다. */
+        padTop: 150,
         padBottom: 60,
         nameInk: "#605a4b",
         bodyInk: "#555555",
