@@ -628,9 +628,12 @@
         display: none;
       }
 
-      /* ── 접힌 줄 모양 (.fig 화면구성 실측) ──
-         480×60 · 번호 배지 20×20 r3 · 이름 12 Bold · 오른쪽 상태 10 · ">" */
-      .col.left .block.collapsed {
+      /* ── 줄 모양 (.fig 화면구성 실측) ──
+         480×60 · 번호 배지 20×20 r3 · 이름 12 Bold · 오른쪽 상태 10 · 화살표
+         ⚠ 예전엔 .collapsed 일 때만 이 모양을 줘서, 펴면 여백·배지색·화살표가
+           전부 예전 스타일로 튀었다(2026-09-04 신고). 접힘/펼침 상관없이 준다. */
+      .col.left .block,
+      .col.right .block {
         margin: 0;
         padding: 0;
         border: 0;
@@ -638,7 +641,8 @@
         border-radius: 0;
         background: transparent;
       }
-      .col.left .block.collapsed > label.h {
+      .col.left .block > label.h,
+      .col.right .block > label.h {
         display: flex;
         align-items: center;
         gap: 8px;
@@ -649,8 +653,14 @@
         font-size: 12px;
         font-weight: 700;
         color: var(--ink);
+        cursor: pointer;
       }
-      .col.left .block.collapsed > label.h .num {
+      .col.left .block > label.h:hover,
+      .col.right .block > label.h:hover {
+        background: transparent;
+        color: var(--accent);
+      }
+      .col.left .block > label.h .num {
         flex: 0 0 auto;
         width: 20px;
         height: 20px;
@@ -662,25 +672,23 @@
         line-height: 20px;
         text-align: center;
       }
-      .col.left .block.collapsed > label.h .cnt,
-      .col.left .block.collapsed > label.h .opt {
+      /* 오른쪽 부가정보(개수·상태)는 화살표 앞에 */
+      .col.left .block > label.h .cnt,
+      .col.left .block > label.h .opt {
         margin-left: auto;
         font-size: 10px;
         font-weight: 500;
         color: var(--ink-soft);
       }
-      /* 화살표를 ">" 모양으로 (접혔을 때만) */
-      .col.left .block.collapsed > label.h .clp {
-        margin-left: auto;
-        width: 6px;
-        height: 6px;
-        border-right: 2px solid var(--ink);
-        border-bottom: 2px solid var(--ink);
-        transform: rotate(-45deg);
+      /* 펼쳤을 때 내용은 줄 아래에 여백을 두고 */
+      .col.left .block > *:not(label.h),
+      .col.right .block > *:not(label.h) {
+        margin-left: 12px;
+        margin-right: 12px;
       }
-      .col.left .block.collapsed > label.h .cnt + .clp,
-      .col.left .block.collapsed > label.h .opt + .clp {
-        margin-left: 10px;
+      .col.left .block:not(.collapsed),
+      .col.right .block:not(.collapsed) {
+        padding-bottom: 14px;
       }
 
       /* ---- 섹션 접기 (24-panel-collapse) ---- */
@@ -699,19 +707,31 @@
         outline: 2px solid var(--accent);
         outline-offset: 1px;
       }
-      /* 헤더 맨 오른쪽 화살표 — 접히면 옆을 가리킨다 */
+      /* 화살표 — 모든 토글이 같은 모양 (2026-09-04 통일)
+           접힘  ›  오른쪽
+           펼침  ⌄  아래   (돌아가기만 한다) */
       .block > label.h .clp {
-        margin-left: auto;
+        flex: 0 0 auto;
+        margin-left: 10px;
         width: 7px;
         height: 7px;
-        border-right: 1.5px solid var(--ink-soft);
-        border-bottom: 1.5px solid var(--ink-soft);
-        transform: rotate(45deg) translate(-2px, -2px);
+        border-right: 2px solid var(--ink-soft);
+        border-bottom: 2px solid var(--ink-soft);
+        transform: rotate(45deg);
         transition: transform 0.15s;
-        flex: 0 0 auto;
       }
       .block.collapsed > label.h .clp {
-        transform: rotate(-45deg) translate(-2px, 2px);
+        transform: rotate(-45deg);
+      }
+      /* 부가정보(.cnt/.opt)가 이미 margin-left:auto 로 오른쪽에 붙는다.
+         부가정보가 없는 줄은 화살표가 직접 오른쪽 끝으로 가야 한다.
+         → 기본을 auto 로 두고, 부가정보 뒤에 올 때만 간격만 준다. */
+      .block > label.h .clp {
+        margin-left: auto;
+      }
+      .block > label.h .cnt ~ .clp,
+      .block > label.h .opt ~ .clp {
+        margin-left: 10px;
       }
       /* 헤더만 남기고 전부 숨긴다 */
       .block.collapsed > *:not(label.h) {
