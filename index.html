@@ -319,20 +319,6 @@
           <div class="hint" id="dateHint"></div>
         </div>
 
-        <div class="block" data-nav="data" id="copyBlock" hidden>
-          <label class="h"
-            ><span class="num">5</span> 하단 카피 (02 전용)</label
-          >
-          <input type="text" id="copy" maxlength="40" />
-          <input
-            type="text"
-            id="copyBold"
-            maxlength="20"
-            placeholder="굵게 표시할 뒷부분"
-            style="margin-top: 6px"
-          />
-        </div>
-
         <div class="block" data-nav="data">
           <label class="h"
             ><span class="num">6</span>
@@ -367,6 +353,19 @@
           <label class="h"><span class="num">8</span> 템플릿</label>
           <div id="tplList"></div>
           <div class="hint" id="tplHint"></div>
+          <!-- 하단 카피 — 02 를 고르면 여기에 나온다 (요청 2026-09-04).
+               번호가 붙는 별도 블록이 아니라 템플릿 블록 안의 딸린 입력이다. -->
+          <div class="sub" id="copyBlock" hidden>
+            <div class="sublabel">하단 카피</div>
+            <input type="text" id="copy" maxlength="40" />
+            <input
+              type="text"
+              id="copyBold"
+              maxlength="20"
+              placeholder="굵게 표시할 뒷부분"
+              style="margin-top: 6px"
+            />
+          </div>
         </div>
 
         <div class="block" data-nav="tpl" id="themeBlock">
