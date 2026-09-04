@@ -1656,8 +1656,10 @@
         if (key === "option") {
           const out = [];
           const per = 2;
+          /* ⚠ base 를 안 실어 보내서 장마다 OPTION 1·2 로 돌아갔다
+               (2026-09-04 신고). 전체 목록에서 몇 번째인지 같이 넘긴다. */
           for (let i = 0; i < state.rows.length; i += per)
-            out.push({ t: "opt", rows: state.rows.slice(i, i + per) });
+            out.push({ t: "opt", rows: state.rows.slice(i, i + per), base: i });
           if (state.sizeInfoOn && nvSizeInfoImg()) out.push({ t: "size" });
           return out;
         }
@@ -1713,7 +1715,7 @@
                 ctx.fillStyle = th[CSD2.frameKey];
                 ctx.fillRect(B.x + B.pad - fw, y - fw, B.cardW + fw * 2, B.cardH + fw * 2);
               }
-              nvfCard(ctx, r, B.x + B.pad, y, th, B.cardW, B.cardH, i);
+              nvfCard(ctx, r, B.x + B.pad, y, th, B.cardW, B.cardH, (p.base || 0) + i);
               if (CSD2.divKey && th[CSD2.divKey] && i < p.rows.length - 1) {
                 ctx.fillStyle = th[CSD2.divKey];
                 ctx.fillRect(B.x + B.pad, y + B.cardH, B.cardW, CSD2.divFeedW || CSD2.divW);
@@ -1722,7 +1724,10 @@
             });
           } else {
             let y = O.listY;
-            for (const r of p.rows) { nvfCard(ctx, r, O.listX, y, th); y += O.cardH + O.listGap; }
+            p.rows.forEach((r, i) => {
+              nvfCard(ctx, r, O.listX, y, th, undefined, undefined, (p.base || 0) + i);
+              y += O.cardH + O.listGap;
+            });
           }
           return;
         }
