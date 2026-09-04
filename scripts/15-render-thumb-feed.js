@@ -146,7 +146,7 @@
           ctx.fillStyle = "#fff";
           ctx.textBaseline = "middle";
           ctx.font = `400 44px Pretendard`;
-          const c1 = trkWidth(ctx, state.copy, -0.88);
+          const c1 = trkWidth(ctx, state.copy, -0.88) + copyGap(ctx);
           ctx.font = `700 44px Pretendard`;
           const c2 = trkWidth(ctx, state.copyBold, -0.88);
           let bx = (W - (c1 + c2)) / 2;
@@ -282,32 +282,38 @@
           }
           // price-wrap(가로 flex gap24, counter=CENTER) — name-wrap 아래 gap48
           const py = iy + nameWrapH + 48;
-          ctx.fillStyle = th.chipBg || "#f0f3dd";
-          ctx.fillRect(ix, py, 108, 108); // 정사각, radius 0
-          ctx.fillStyle = th.chipText || "#254631";
-          ctx.font = `700 36px GmarketSans, Pretendard`;
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-          trk(ctx, d != null ? d + "%" : "—", ix + 54, py + 55, -0.6, "center");
+          const flat = flatPrice(r); // 할인 없으면 칩·정상가 생략 (2026-09-04)
+          if (!flat) {
+            ctx.fillStyle = th.chipBg || "#f0f3dd";
+            ctx.fillRect(ix, py, 108, 108); // 정사각, radius 0
+            ctx.fillStyle = th.chipText || "#254631";
+            ctx.font = `700 36px GmarketSans, Pretendard`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            trk(ctx, d != null ? d + "%" : "—", ix + 54, py + 55, -0.6, "center");
+          }
           ctx.textAlign = "left";
-          const px = ix + 108 + 24,
+          ctx.textBaseline = "middle";
+          const px = flat ? ix : ix + 108 + 24,
             pcy = py + 54; // gap24, 가격 세로중앙
           ctx.fillStyle = "#333333";
           ctx.font = `700 40px Pretendard`;
           const sp = won(r.sale);
           trk(ctx, sp, px, pcy, -0.8, "left");
-          const spw = trkWidth(ctx, sp, -0.8);
-          ctx.fillStyle = "#666666";
-          ctx.font = `400 28px Pretendard`;
-          const np2 = won(r.normal);
-          trk(ctx, np2, px + spw + 20, pcy + 2, -0.56, "left");
-          const npw2 = trkWidth(ctx, np2, -0.56);
-          ctx.strokeStyle = "#666666";
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.moveTo(px + spw + 20, pcy + 2);
-          ctx.lineTo(px + spw + 20 + npw2, pcy + 2);
-          ctx.stroke();
+          if (!flat) {
+            const spw = trkWidth(ctx, sp, -0.8);
+            ctx.fillStyle = "#666666";
+            ctx.font = `400 28px Pretendard`;
+            const np2 = won(r.normal);
+            trk(ctx, np2, px + spw + 20, pcy + 2, -0.56, "left");
+            const npw2 = trkWidth(ctx, np2, -0.56);
+            ctx.strokeStyle = "#666666";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(px + spw + 20, pcy + 2);
+            ctx.lineTo(px + spw + 20 + npw2, pcy + 2);
+            ctx.stroke();
+          }
           ctx.textBaseline = "alphabetic";
           return CH;
         }
@@ -377,6 +383,8 @@
         // --- box-top (가로 flex, P:SPACE_EVENLY) → 제품명(왼) ┄ 할인율(오른, 104×104) ---
         const boxTopY = ny;
         // 할인율 원 (실측 discount_rate 104×104, 01은 원형 초록)
+        /* 할인이 없으면 원 배지를 안 그린다 (2026-09-04) */
+        if (!flatPrice(r)) {
         ctx.fillStyle = th.circleBg || th.accent;
         ctx.beginPath();
         ctx.arc(ix + IW - 52, boxTopY + 52, 52, 0, 7);
@@ -393,6 +401,7 @@
           -0.6,
           "center",
         );
+        }
         // 제품명 40px lineH52 + 단위 24px (왼쪽, 할인원과 안 겹치게 폭 제한)
         ctx.textAlign = "left";
         ctx.textBaseline = "middle";
@@ -425,25 +434,29 @@
         //   정상가줄(라벨┄값, 취소선) + 혜택가줄(라벨┄값)
         const py = _infoTop + nameH + BLOCK_GAP;
         ctx.textBaseline = "middle";
-        // 정상가줄 (28px, muted, 값 취소선) — SPACE_EVENLY: 라벨 왼 ┄ 값 오른
-        ctx.fillStyle = SHARED.textMuted;
-        ctx.font = `400 28px Pretendard`;
-        trk(ctx, G0.normalLabel || "정상가", ix, py + 23, -0.56, "left");
-        const np = won(r.normal),
-          npw = trkWidth(ctx, np, -0.56);
-        trk(ctx, np, ix + IW, py + 23, -0.56, "right");
-        ctx.strokeStyle = SHARED.textMuted;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(ix + IW - npw, py + 23);
-        ctx.lineTo(ix + IW, py + 23);
-        ctx.stroke();
+        // 정상가줄 (28px, muted, 값 취소선) — 할인 없으면 생략 (2026-09-04)
+        const flat2 = flatPrice(r);
+        if (!flat2) {
+          ctx.fillStyle = SHARED.textMuted;
+          ctx.font = `400 28px Pretendard`;
+          trk(ctx, G0.normalLabel || "정상가", ix, py + 23, -0.56, "left");
+          const np = won(r.normal),
+            npw = trkWidth(ctx, np, -0.56);
+          trk(ctx, np, ix + IW, py + 23, -0.56, "right");
+          ctx.strokeStyle = SHARED.textMuted;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(ix + IW - npw, py + 23);
+          ctx.lineTo(ix + IW, py + 23);
+          ctx.stroke();
+        }
         // 혜택가줄 (40px, strong)
+        const sy2 = flat2 ? py + 23 : py + 47 + 20;
         ctx.fillStyle = "#333333";
         ctx.font = `600 40px Pretendard`;
-        trk(ctx, G0.saleLabel || "혜택가", ix, py + 47 + 20, -0.8, "left");
+        if (!flat2) trk(ctx, G0.saleLabel || "혜택가", ix, sy2, -0.8, "left");
         ctx.font = `700 40px Pretendard`;
-        trk(ctx, won(r.sale), ix + IW, py + 47 + 20, -0.8, "right");
+        trk(ctx, won(r.sale), ix + IW, sy2, -0.8, "right");
         ctx.textBaseline = "alphabetic";
         return CH;
       }
@@ -567,7 +580,7 @@
           ctx.fillStyle = "#fff";
           ctx.textBaseline = "middle";
           ctx.font = `400 44px Pretendard`;
-          const c1 = trkWidth(ctx, state.copy, -0.88);
+          const c1 = trkWidth(ctx, state.copy, -0.88) + copyGap(ctx);
           ctx.font = `700 44px Pretendard`;
           const c2 = trkWidth(ctx, state.copyBold, -0.88);
           let bx = (W - (c1 + c2)) / 2;

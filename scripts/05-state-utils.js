@@ -60,6 +60,22 @@
       }
       const disc = (n, s) =>
         !n || n <= 0 ? null : s > n ? 0 : Math.round(((n - s) / n) * 100);
+      /* 정상가와 혜택가가 같으면(할인 0%) 가격을 한 줄만 보여주고 % 배지는 숨긴다.
+         추가구성 단품처럼 할인이 없는 항목이 "0%" 와 취소선 없는 같은 값 두 줄로
+         나와 어색했다 (요청 2026-09-04). */
+      /* 하단 카피에서 일반 문구와 볼드 문구 사이 한 칸.
+         시트 값에 이미 공백이 있으면 중복하지 않는다.
+         ⚠ 신형 상세에만 있었고 신형 피드·구형 상세·구형 피드 세 곳이 붙어 나왔다
+           (2026-09-04 신고) → 한 함수로 묶어 네 곳이 같이 쓴다.
+         호출 전에 ctx.font 가 "일반" 상태여야 공백 폭이 맞는다. */
+      const copyGap = (ctx) =>
+        /\s$/.test(state.copy || "") || /^\s/.test(state.copyBold || "")
+          ? 0
+          : ctx.measureText(" ").width;
+      const flatPrice = (r) => {
+        const d = disc(r && r.normal, r && r.sale);
+        return d === 0;
+      };
       const TH = () =>
         state.tpl
           ? themeTable(curFam(), state.tpl)[state.theme] ||

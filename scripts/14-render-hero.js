@@ -138,7 +138,7 @@
         ctx.fillRect(0, 1000, W, 80);
         ctx.fillStyle = "#fff";
         ctx.font = `400 32px Pretendard`;
-        const w1 = trkWidth(ctx, state.copy, -0.64);
+        const w1 = trkWidth(ctx, state.copy, -0.64) + copyGap(ctx);
         ctx.font = `700 32px Pretendard`;
         const w2 = trkWidth(ctx, state.copyBold, -0.64);
         let bx2 = (W - (w1 + w2)) / 2;

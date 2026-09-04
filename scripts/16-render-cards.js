@@ -197,45 +197,51 @@
           trk(ctx, l, ox, boxTop + i * 40 + 20, -0.64, "left"),
         );
         if (m.aH) drawAttrs(ctx, m.attrs, ox, boxTop + m.lines * 40 + 10);
-        // 할인 원
+        // 할인 원 — 할인이 없으면 안 그린다 (2026-09-04)
         const d = disc(r.normal, r.sale);
-        ctx.fillStyle = th.circleBg;
-        ctx.beginPath();
-        ctx.arc(ox + 302, boxTop + 40, 40, 0, 7);
-        ctx.fill();
-        ctx.fillStyle = "#fff";
-        ctx.font = `700 28px GmarketSans, Pretendard`;
-        trk(
-          ctx,
-          d != null ? d + "%" : "—",
-          ox + 302,
-          boxTop + 41,
-          -0.56,
-          "center",
-        );
+        if (!flatPrice(r)) {
+          ctx.fillStyle = th.circleBg;
+          ctx.beginPath();
+          ctx.arc(ox + 302, boxTop + 40, 40, 0, 7);
+          ctx.fill();
+          ctx.fillStyle = "#fff";
+          ctx.font = `700 28px GmarketSans, Pretendard`;
+          trk(
+            ctx,
+            d != null ? d + "%" : "—",
+            ox + 302,
+            boxTop + 41,
+            -0.56,
+            "center",
+          );
+        }
 
         // 가격 2줄
         const py = boxTop + m.boxTopH + 36;
         const g = G()[state.group] || {};
-        ctx.fillStyle = SHARED.textMuted;
-        ctx.font = `600 20px Pretendard`;
-        trk(ctx, g.normalLabel || "정상가", ox, py + 18, -0.4, "left");
-        ctx.font = `400 20px Pretendard`;
-        const np = won(r.normal);
-        trk(ctx, np, ox + OW, py + 18, -0.4, "right");
-        const npw = trkWidth(ctx, np, -0.4);
-        ctx.strokeStyle = SHARED.textMuted;
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.moveTo(ox + OW - npw, py + 18);
-        ctx.lineTo(ox + OW, py + 18);
-        ctx.stroke();
-
+        /* 정상가 = 혜택가면 값 한 줄만 (2026-09-04) */
+        const flat = flatPrice(r);
+        if (!flat) {
+          ctx.fillStyle = SHARED.textMuted;
+          ctx.font = `600 20px Pretendard`;
+          trk(ctx, g.normalLabel || "정상가", ox, py + 18, -0.4, "left");
+          ctx.font = `400 20px Pretendard`;
+          const np = won(r.normal);
+          trk(ctx, np, ox + OW, py + 18, -0.4, "right");
+          const npw = trkWidth(ctx, np, -0.4);
+          ctx.strokeStyle = SHARED.textMuted;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(ox + OW - npw, py + 18);
+          ctx.lineTo(ox + OW, py + 18);
+          ctx.stroke();
+        }
+        const sy = flat ? py + 18 : py + 46 + 18;
         ctx.fillStyle = SHARED.textStrong;
         ctx.font = `600 28px Pretendard`;
-        trk(ctx, g.saleLabel || "혜택가", ox, py + 46 + 18, -0.56, "left");
+        if (!flat) trk(ctx, g.saleLabel || "혜택가", ox, sy, -0.56, "left");
         ctx.font = `700 28px Pretendard`;
-        trk(ctx, won(r.sale), ox + OW, py + 46 + 18, -0.56, "right");
+        trk(ctx, won(r.sale), ox + OW, sy, -0.56, "right");
         ctx.textBaseline = "alphabetic";
         return CH;
       }
@@ -292,29 +298,33 @@
         // 가격줄: [칩 80] gap20 [혜택가] gap16 [정상가 취소선] — 라벨 없음
         const py = boxTop + m.boxTopH + 36;
         const d = disc(r.normal, r.sale);
-        ctx.fillStyle = th.chipBg;
-        ctx.fillRect(ox, py, 80, 80);
-        ctx.fillStyle = th.chipText;
-        ctx.font = `700 28px GmarketSans, Pretendard`;
-        trk(ctx, d != null ? d + "%" : "—", ox + 40, py + 41, -0.56, "center");
-
-        let px = ox + 80 + 20;
+        const flat = flatPrice(r); // 할인 없으면 칩·정상가 생략 (2026-09-04)
+        if (!flat) {
+          ctx.fillStyle = th.chipBg;
+          ctx.fillRect(ox, py, 80, 80);
+          ctx.fillStyle = th.chipText;
+          ctx.font = `700 28px GmarketSans, Pretendard`;
+          trk(ctx, d != null ? d + "%" : "—", ox + 40, py + 41, -0.56, "center");
+        }
+        let px = flat ? ox : ox + 80 + 20;
         ctx.fillStyle = SHARED.textStrong;
         ctx.font = `700 28px Pretendard`;
         const sp = won(r.sale);
         trk(ctx, sp, px, py + 40, -0.56, "left");
-        px += trkWidth(ctx, sp, -0.56) + 16;
-        ctx.fillStyle = SHARED.textMuted;
-        ctx.font = `400 20px Pretendard`;
-        const np = won(r.normal);
-        trk(ctx, np, px, py + 40, -0.4, "left");
-        const npw = trkWidth(ctx, np, -0.4);
-        ctx.strokeStyle = SHARED.textMuted;
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.moveTo(px, py + 40);
-        ctx.lineTo(px + npw, py + 40);
-        ctx.stroke();
+        if (!flat) {
+          px += trkWidth(ctx, sp, -0.56) + 16;
+          ctx.fillStyle = SHARED.textMuted;
+          ctx.font = `400 20px Pretendard`;
+          const np = won(r.normal);
+          trk(ctx, np, px, py + 40, -0.4, "left");
+          const npw = trkWidth(ctx, np, -0.4);
+          ctx.strokeStyle = SHARED.textMuted;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(px, py + 40);
+          ctx.lineTo(px + npw, py + 40);
+          ctx.stroke();
+        }
         ctx.textBaseline = "alphabetic";
         return CH;
       }

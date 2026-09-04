@@ -449,13 +449,8 @@
         ctx.fillRect(0, M.bar.y, W, M.bar.h);
         ctx.fillStyle = "#fff"; ctx.textAlign = "center";
         ctx.font = `400 ${M.bar.copySize}px Pretendard`;
-        /* 일반 문구와 볼드 문구가 붙어 나오던 것 수정 —
-           .fig 는 둘 사이에 한 칸 띈다. 시트 값에 공백이 있으면 중복하지 않는다. */
-        const gap1 =
-          /\s$/.test(state.copy || "") || /^\s/.test(state.copyBold || "")
-            ? 0
-            : ctx.measureText(" ").width;
-        const c1 = trkWidth(ctx, state.copy, -0.64) + gap1;
+        /* 일반 문구와 볼드 문구 사이 한 칸 (copyGap · 05-state-utils) */
+        const c1 = trkWidth(ctx, state.copy, -0.64) + copyGap(ctx);
         ctx.font = `700 ${M.bar.copySize}px Pretendard`;
         const c2 = trkWidth(ctx, state.copyBold, -0.64);
         let bx = (W - (c1 + c2)) / 2, bcy = M.bar.y + M.bar.h / 2;
@@ -680,6 +675,7 @@
            예전 코드는 할인율을 제품명 옆 원으로 그리고 정상가/혜택가 라벨을 붙였는데,
            .fig 에는 그런 라벨이 없고 할인율도 가격줄 왼쪽 사각형이다. */
         const d = disc(r.normal, r.sale);
+        const flat = flatPrice(r); // 정상가 = 혜택가 → 한 줄만, 배지 없음
         const CS = nvCard5();
         /* 가격은 name-wrap 바로 아래로 흐른다 (.fig hug). priceDY(고정)는 더 안 쓴다. */
         const py = iy + nameWrapH + (CS0.cardGap ?? O.optGap);
@@ -687,66 +683,78 @@
 
         if (CS.style === "labels") {
           /* ── 01 (.fig 58:586 / 58:588) ── */
-          // 할인율: 이름 오른쪽 위, 원
-          const dx = ix + CS.txtOptW + CS.discGap;
-          ctx.fillStyle = th.accent;
-          ctx.beginPath();
-          ctx.arc(dx + O.discD / 2, btY + O.discD / 2, O.discD / 2, 0, 7);
-          ctx.fill();
-          ctx.fillStyle = "#fff";
-          ctx.font = `700 ${O.discSize}px GmarketSans, Pretendard`;
-          ctx.textAlign = "center";
-          trk(ctx, d != null ? d + "%" : "—", dx + O.discD / 2, btY + O.discD / 2, -0.5, "center");
+          /* 할인율: 이름 오른쪽 위, 원. 할인이 없으면 배지를 안 그린다 (2026-09-04) */
+          if (!flat) {
+            const dx = ix + CS.txtOptW + CS.discGap;
+            ctx.fillStyle = th.accent;
+            ctx.beginPath();
+            ctx.arc(dx + O.discD / 2, btY + O.discD / 2, O.discD / 2, 0, 7);
+            ctx.fill();
+            ctx.fillStyle = "#fff";
+            ctx.font = `700 ${O.discSize}px GmarketSans, Pretendard`;
+            ctx.textAlign = "center";
+            trk(ctx, d != null ? d + "%" : "—", dx + O.discD / 2, btY + O.discD / 2, -0.5, "center");
+          }
           // 가격: 라벨 왼쪽 / 값 오른쪽 정렬, 2줄
+          //  할인이 없으면 "정상가" 줄과 취소선을 지우고 값 한 줄만 남긴다
           const pcy = py + O.priceRowH / 2;
           ctx.textAlign = "left";
-          ctx.fillStyle = "#666666";
-          ctx.font = `600 ${O.normalSize}px Pretendard`;
-          trk(ctx, G0.normalLabel || "정상가", ix, pcy, -0.4, "left");
-          ctx.font = `400 ${O.normalSize}px Pretendard`;
-          const npTxt = won(r.normal);
-          trk(ctx, npTxt, ix + O.optW, pcy, -0.4, "right");
-          const npW = trkWidth(ctx, npTxt, -0.4);
-          ctx.strokeStyle = "#666666";
-          ctx.lineWidth = 1.5;
-          ctx.beginPath();
-          ctx.moveTo(ix + O.optW - npW, pcy);
-          ctx.lineTo(ix + O.optW, pcy);
-          ctx.stroke();
-          const pcy2 = py + O.priceRowH + O.priceGap + O.priceRowH / 2;
+          if (!flat) {
+            ctx.fillStyle = "#666666";
+            ctx.font = `600 ${O.normalSize}px Pretendard`;
+            trk(ctx, G0.normalLabel || "정상가", ix, pcy, -0.4, "left");
+            ctx.font = `400 ${O.normalSize}px Pretendard`;
+            const npTxt = won(r.normal);
+            trk(ctx, npTxt, ix + O.optW, pcy, -0.4, "right");
+            const npW = trkWidth(ctx, npTxt, -0.4);
+            ctx.strokeStyle = "#666666";
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(ix + O.optW - npW, pcy);
+            ctx.lineTo(ix + O.optW, pcy);
+            ctx.stroke();
+          }
+          const pcy2 = flat
+            ? pcy
+            : py + O.priceRowH + O.priceGap + O.priceRowH / 2;
           ctx.fillStyle = "#333333";
           ctx.font = `600 ${O.saleSize}px Pretendard`;
-          trk(ctx, G0.saleLabel || "혜택가", ix, pcy2, -0.56, "left");
+          if (!flat) trk(ctx, G0.saleLabel || "혜택가", ix, pcy2, -0.56, "left");
           ctx.font = `700 ${O.saleSize}px Pretendard`;
           trk(ctx, won(r.sale), ix + O.optW, pcy2, -0.56, "right");
         } else {
           /* ── 02 · 03 (.fig 72:53) ── */
           const pcy = py + O.discD / 2;
-          ctx.fillStyle = th[CS.discBgKey] || th.colorBgLight || "#f0f3dd";
-          if (CS.discR) roundRect(ctx, ix, py, O.discD, O.discD, CS.discR), ctx.fill();
-          else ctx.fillRect(ix, py, O.discD, O.discD);
-          ctx.fillStyle = CS.discInk || th.discInk || th.accent;
-          ctx.font = `700 ${O.discSize}px GmarketSans, Pretendard`;
-          ctx.textAlign = "center";
-          trk(ctx, d != null ? d + "%" : "—", ix + O.discD / 2, pcy, -0.56, "center");
+          /* 할인이 없으면 칩을 안 그리고 가격을 왼쪽 끝부터 쓴다 (2026-09-04) */
+          if (!flat) {
+            ctx.fillStyle = th[CS.discBgKey] || th.colorBgLight || "#f0f3dd";
+            if (CS.discR) roundRect(ctx, ix, py, O.discD, O.discD, CS.discR), ctx.fill();
+            else ctx.fillRect(ix, py, O.discD, O.discD);
+            ctx.fillStyle = CS.discInk || th.discInk || th.accent;
+            ctx.font = `700 ${O.discSize}px GmarketSans, Pretendard`;
+            ctx.textAlign = "center";
+            trk(ctx, d != null ? d + "%" : "—", ix + O.discD / 2, pcy, -0.56, "center");
+          }
           ctx.textAlign = "left";
-          let px2 = ix + O.discD + O.priceGapX;
+          let px2 = flat ? ix : ix + O.discD + O.priceGapX;
           ctx.fillStyle = th[CS.saleInk] || CS.saleInk || "#333333";
           ctx.font = `700 ${O.saleSize}px Pretendard`;
           const saleTxt = won(r.sale);
           trk(ctx, saleTxt, px2, pcy, -0.56, "left");
-          px2 += trkWidth(ctx, saleTxt, -0.56) + O.priceNumGap;
-          ctx.fillStyle = CS.normalInk || "#666666";
-          ctx.font = `400 ${O.normalSize}px Pretendard`;
-          const npTxt = won(r.normal);
-          trk(ctx, npTxt, px2, pcy, -0.4, "left");
-          const npW = trkWidth(ctx, npTxt, -0.4);
-          ctx.strokeStyle = CS.normalInk || "#666666";
-          ctx.lineWidth = 1.5;
-          ctx.beginPath();
-          ctx.moveTo(px2, pcy);
-          ctx.lineTo(px2 + npW, pcy);
-          ctx.stroke();
+          if (!flat) {
+            px2 += trkWidth(ctx, saleTxt, -0.56) + O.priceNumGap;
+            ctx.fillStyle = CS.normalInk || "#666666";
+            ctx.font = `400 ${O.normalSize}px Pretendard`;
+            const npTxt = won(r.normal);
+            trk(ctx, npTxt, px2, pcy, -0.4, "left");
+            const npW = trkWidth(ctx, npTxt, -0.4);
+            ctx.strokeStyle = CS.normalInk || "#666666";
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(px2, pcy);
+            ctx.lineTo(px2 + npW, pcy);
+            ctx.stroke();
+          }
         }
         ctx.textBaseline = "alphabetic";
       }
@@ -1307,7 +1315,7 @@
           ctx.fillStyle = "#fff";
           ctx.textBaseline = "middle";
           ctx.font = `400 ${C.copySize}px Pretendard`;
-          const c1 = trkWidth(ctx, state.copy, -0.88);
+          const c1 = trkWidth(ctx, state.copy, -0.88) + copyGap(ctx);
           ctx.font = `700 ${C.copySize}px Pretendard`;
           const c2 = trkWidth(ctx, state.copyBold, -0.88);
           let bx = (W - (c1 + c2)) / 2, bcy = C.barY + C.barH / 2;
@@ -1494,50 +1502,59 @@
            [할인율 108×108 사각] gap24 [혜택가 Bold40 #333] gap20 [정상가 Regular28 #666 취소선]
            상세 카드와 같은 구조다. 예전엔 여기만 옛 방식(원 + 정상가/혜택가 라벨)이 남아 있었다. */
         const d = disc(r.normal, r.sale);
+        const flat = flatPrice(r); // 정상가 = 혜택가 → 한 줄만, 배지 없음
         const CS = nvCard5();
         const G0 = nvG();
         const py = top + (CSF.fPriceDY ?? (iy - top) + nameWrapH + O.optGap);
 
         if (CS.style === "labels") {
           /* ── 01 피드: 할인 원 오른쪽 위 + 정상가/혜택가 2줄 ── */
-          const dcx = ix + IW - O.discD / 2, dcy = btY + O.discD / 2;
-          ctx.fillStyle = th.accent;
-          ctx.beginPath(); ctx.arc(dcx, dcy, O.discD / 2, 0, 7); ctx.fill();
-          ctx.fillStyle = "#fff";
-          ctx.font = `700 ${O.discSize}px GmarketSans, Pretendard`;
-          ctx.textAlign = "center";
-          trk(ctx, d != null ? d + "%" : "—", dcx, dcy, -0.5, "center");
+          if (!flat) {
+            const dcx = ix + IW - O.discD / 2, dcy = btY + O.discD / 2;
+            ctx.fillStyle = th.accent;
+            ctx.beginPath(); ctx.arc(dcx, dcy, O.discD / 2, 0, 7); ctx.fill();
+            ctx.fillStyle = "#fff";
+            ctx.font = `700 ${O.discSize}px GmarketSans, Pretendard`;
+            ctx.textAlign = "center";
+            trk(ctx, d != null ? d + "%" : "—", dcx, dcy, -0.5, "center");
+          }
           const pcy = py + O.priceRowH / 2;
-          ctx.textAlign = "left"; ctx.fillStyle = "#666666";
-          ctx.font = `600 ${O.normalSize}px Pretendard`;
-          trk(ctx, G0.normalLabel || "정상가", ix, pcy, -0.56, "left");
-          ctx.font = `400 ${O.normalSize}px Pretendard`;
-          const npT = won(r.normal);
-          trk(ctx, npT, ix + IW, pcy, -0.56, "right");
-          const npW = trkWidth(ctx, npT, -0.56);
-          ctx.strokeStyle = "#666666"; ctx.lineWidth = 2;
-          ctx.beginPath(); ctx.moveTo(ix + IW - npW, pcy); ctx.lineTo(ix + IW, pcy); ctx.stroke();
-          const pcy2 = py + O.priceRowH + O.priceGap + O.priceRowH / 2;
+          ctx.textAlign = "left";
+          if (!flat) {
+            ctx.fillStyle = "#666666";
+            ctx.font = `600 ${O.normalSize}px Pretendard`;
+            trk(ctx, G0.normalLabel || "정상가", ix, pcy, -0.56, "left");
+            ctx.font = `400 ${O.normalSize}px Pretendard`;
+            const npT = won(r.normal);
+            trk(ctx, npT, ix + IW, pcy, -0.56, "right");
+            const npW = trkWidth(ctx, npT, -0.56);
+            ctx.strokeStyle = "#666666"; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(ix + IW - npW, pcy); ctx.lineTo(ix + IW, pcy); ctx.stroke();
+          }
+          const pcy2 = flat ? pcy : py + O.priceRowH + O.priceGap + O.priceRowH / 2;
           ctx.fillStyle = "#333333";
           ctx.font = `600 ${O.saleSize}px Pretendard`;
-          trk(ctx, G0.saleLabel || "혜택가", ix, pcy2, -0.8, "left");
+          if (!flat) trk(ctx, G0.saleLabel || "혜택가", ix, pcy2, -0.8, "left");
           ctx.font = `700 ${O.saleSize}px Pretendard`;
           trk(ctx, won(r.sale), ix + IW, pcy2, -0.8, "right");
         } else {
           /* ── 02 · 03 피드 (.fig 80:897) ── */
           const pcy = py + O.discD / 2;
-          ctx.fillStyle = th.colorBgLight || th.sectionBg || "#f0f3dd";
-          ctx.fillRect(ix, py, O.discD, O.discD);
-          ctx.fillStyle = th.discInk || th.accent;
-          ctx.font = `700 ${O.discSize}px GmarketSans, Pretendard`;
-          ctx.textAlign = "center";
-          trk(ctx, d != null ? d + "%" : "—", ix + O.discD / 2, pcy, -0.72, "center");
+          if (!flat) {
+            ctx.fillStyle = th.colorBgLight || th.sectionBg || "#f0f3dd";
+            ctx.fillRect(ix, py, O.discD, O.discD);
+            ctx.fillStyle = th.discInk || th.accent;
+            ctx.font = `700 ${O.discSize}px GmarketSans, Pretendard`;
+            ctx.textAlign = "center";
+            trk(ctx, d != null ? d + "%" : "—", ix + O.discD / 2, pcy, -0.72, "center");
+          }
           ctx.textAlign = "left";
-          let fx = ix + O.discD + O.priceGapX;
+          let fx = flat ? ix : ix + O.discD + O.priceGapX;
           ctx.fillStyle = "#333333";
           ctx.font = `700 ${O.saleSize}px Pretendard`;
           const slT = won(r.sale);
           trk(ctx, slT, fx, pcy, -0.8, "left");
+          if (flat) { ctx.textBaseline = "alphabetic"; return; }
           fx += trkWidth(ctx, slT, -0.8) + O.priceNumGap;
           ctx.fillStyle = "#666666";
           ctx.font = `400 ${O.normalSize}px Pretendard`;
