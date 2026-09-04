@@ -427,7 +427,11 @@
       function syncTplUI() {
         const has = !!state.tpl;
         $("#themeBlock").hidden = !has;
-        $("#copyBlock").hidden = nvIsOn() || state.tpl !== "02";
+        /* 하단 카피는 02 에서만 쓴다.
+           ⚠ nvIsOn() 을 붙여 신형(누볼라)에서는 아예 못 넣게 막고 있었다.
+             그런데 nvMain02 / nvfHero02 가 state.copy·copyBold 를 실제로 그린다
+             → 누볼라 02 도 입력이 필요하다(2026-09-04 신고). 패밀리 조건 제거. */
+        $("#copyBlock").hidden = state.tpl !== "02";
         $("#tplTag").textContent =
           G()[state.group].label +
           (has ? " · " + tplMeta(curFam(), state.tpl).label : "");
