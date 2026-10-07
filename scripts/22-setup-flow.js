@@ -755,6 +755,17 @@ selectGroup = function (key) {
     };
   const go = $("#suGo");
   if (go) go.onclick = startSession;
+
+  /* 헤더 로고 → 처음 화면 (행사 설정). 요청 2026-09-04
+     [행사 정보 수정] 과 같은 길이다 — 세션 값은 그대로 두고 설정만 다시 띄운다.
+     세션이 아직 없으면(첫 진입) 빈 화면으로 — openSetup(true). */
+  const home = $("#goHome");
+  if (home)
+    home.onclick = () => {
+      if (!$("#setup").hidden) return; // 이미 처음 화면
+      openSetup(!SESSION.started);
+    };
+
   const evAdd = $("#suEvAdd");
   if (evAdd) evAdd.onclick = setupEventAdd;
   const pnAdd = $("#pnEvAdd");

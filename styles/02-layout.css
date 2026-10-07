@@ -95,6 +95,21 @@
         font-size: 28px;
         letter-spacing: -0.01em;
         color: var(--accent);
+        /* button 으로 바뀌었다 — 기본 모양을 지운다 (요청 2026-09-04) */
+        appearance: none;
+        background: none;
+        border: 0;
+        padding: 0;
+        line-height: 1;
+        cursor: pointer;
+      }
+      header.top .logo:hover {
+        opacity: 0.72;
+      }
+      header.top .logo:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 3px;
+        border-radius: 4px;
       }
       header.top .logo b {
         font-weight: 800;
