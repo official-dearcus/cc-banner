@@ -240,7 +240,14 @@
         for (const kind of L.order) {
           if (kind === "cards") state.rows.forEach((r, i) => items.push({ kind: "card", r, idx: i, h: nvMeasureCard(r).cardH }));
           else if (kind === "notice" && state.notice) items.push({ kind: "notice", h: L.noticeH });
-          else if (kind === "size" && sImg) items.push({ kind: "size", img: sImg, h: L.sizeH });
+          /* 가로는 리스트 폭 고정, 세로는 사진 비율 (요청 2026-10-12).
+             L.sizeH 는 비율을 모를 때(아직 로딩 중)만 쓰는 예비값이 됐다. */
+          else if (kind === "size" && sImg)
+            items.push({
+              kind: "size",
+              img: sImg,
+              h: sizeInfoNatH(sImg, L.bodyW - L.pad * 2, L.sizeH),
+            });
         }
         return items;
       }
@@ -833,8 +840,12 @@
               ctx.fillStyle = th[CSD.frameKey];
               ctx.fillRect(itemX - fw, y - fw, itemW + fw * 2, it.h + fw * 2);
             }
+            /* 칸 높이가 이미 사진 비율이라 그대로 채우면 안 잘린다.
+               비율을 못 읽은 경우(예비값)만 안쪽에 맞춰 넣는다. */
             clipRect(ctx, itemX, y, itemW, it.h, () =>
-              cover(ctx, it.img, itemX, y, itemW, it.h),
+              drawRatioFit(ctx, it.img, itemX, y, itemW, it.h,
+                (it.img.naturalWidth || it.img.width) /
+                  (it.img.naturalHeight || it.img.height)),
             );
           }
           y += it.h + nvGapAfter(items, i, L);
@@ -1750,15 +1761,28 @@
         }
         // 사이즈 안내
         nvfHead(ctx, W, S.headY, "option", th);
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(S.boxX, S.boxY, S.boxW, S.boxH);
         const sImg = nvSizeInfoImg();
+        /* 피드는 캔버스 높이가 1350 으로 고정이라 상세처럼 무한정 늘릴 수 없다.
+           ① 사진이 S.imgH 보다 낮으면 → 그 높이만큼만 쓰고 흰 박스도 같이 줄인다
+           ② 더 높으면 → 들어갈 수 있는 만큼 안에 맞춰 넣는다 (가로가 좁아질 뿐 안 잘린다)
+           요청 2026-10-12. 예전엔 둘 다 cover 라서 위아래가 잘렸다. */
+        const gapBelow = S.ntY - (S.imgY + S.imgH); // 사진 ↔ 알림 바
+        const botPad = S.boxH - (S.ntY + S.ntH); // 알림 바 ↔ 박스 아래
+        const imgH = Math.min(S.imgH, sizeInfoNatH(sImg, S.boxW, S.imgH));
+        const ntY = state.notice ? S.imgY + imgH + gapBelow : 0;
+        const boxH = state.notice
+          ? ntY + S.ntH + botPad
+          : S.imgY + imgH + S.imgY;
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(S.boxX, S.boxY, S.boxW, boxH);
         if (sImg)
-          clipRect(ctx, S.boxX, S.boxY + S.imgY, S.boxW, S.imgH, () =>
-            cover(ctx, sImg, S.boxX, S.boxY + S.imgY, S.boxW, S.imgH),
+          clipRect(ctx, S.boxX, S.boxY + S.imgY, S.boxW, imgH, () =>
+            drawRatioFit(ctx, sImg, S.boxX, S.boxY + S.imgY, S.boxW, imgH,
+              (sImg.naturalWidth || sImg.width) /
+                (sImg.naturalHeight || sImg.height)),
           );
         if (state.notice) {
-          const nx = S.boxX + (S.boxW - S.ntW) / 2, ny = S.boxY + S.ntY;
+          const nx = S.boxX + (S.boxW - S.ntW) / 2, ny = S.boxY + ntY;
           ctx.fillStyle = nvNoticeBg(th);
           ctx.fillRect(nx, ny, S.ntW, S.ntH);
           ctx.fillStyle = th.accent;

@@ -113,6 +113,17 @@
         const u = nvSizeInfoUrl();
         return u ? SIZE_IMG[u] : null;
       }
+      /* 사이즈 안내 이미지의 "가로 w 에 맞췄을 때" 세로 (요청 2026-10-12).
+         예전엔 높이를 시트와 무관하게 고정해 두고 cover 로 꽉 채워서,
+         비율이 다른 사진은 위아래가 잘렸다. 이제 가로만 고정하고
+         세로는 사진 비율을 따라간다.
+         아직 안 불러온 사진은 비율을 모르므로 fallback(옛 고정값)을 쓴다. */
+      function sizeInfoNatH(img, w, fallback) {
+        const iw = img && (img.naturalWidth || img.width);
+        const ih = img && (img.naturalHeight || img.height);
+        if (!iw || !ih) return fallback;
+        return Math.round((w * ih) / iw);
+      }
 
       /* 누볼라 전용 편집 블록: 안내 문구 + 사이즈 안내 + 컬러 선택 */
       function renderNvBlocks() {
