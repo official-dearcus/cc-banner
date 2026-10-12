@@ -1732,9 +1732,14 @@
           if (nvCfg().optDark) {
             // 02·03: 진한 배경 위에 흰 컨테이너, 그 안에 카드
             const B = state.tpl === "03" ? NVF.optBox03 : NVF.optBox;
-            /* .fig 는 높이 고정. 카드 수로 계산하면 사이즈 슬라이드와 어긋난다.
+            /* 흰 컨테이너 높이는 카드 수를 따라간다 (요청 2026-10-12).
+               .fig 값(960)은 카드 2장 기준이라, 마지막 장에 카드가 하나만
+               남으면 아래쪽이 통째로 흰 여백으로 남았다.
+               2장일 때는 pad20 + 460 + gap20 + 460 = 960 으로 전과 같다.
                03 은 컨테이너가 투명이라 칠하지 않는다. */
-            if (B.bg !== null) { ctx.fillStyle = "#ffffff"; ctx.fillRect(B.x, B.y, B.w, B.h); }
+            const bh =
+              B.pad + p.rows.length * B.cardH + (p.rows.length - 1) * B.gap;
+            if (B.bg !== null) { ctx.fillStyle = "#ffffff"; ctx.fillRect(B.x, B.y, B.w, bh); }
             const CSD2 = nvCard5();
             let y = B.y + B.pad;
             p.rows.forEach((r, i) => {
