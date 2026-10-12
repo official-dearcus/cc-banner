@@ -1147,6 +1147,9 @@
                 pillH: 60, pillPadL: 24, pillGap: 20, sellerSize: 32, xSize: 44,
                 logoW: 136, logoH: 23,
                 size: 96, lineH: 104, titleGap: 8, dateSize: 40,
+                /* 첫 줄(t1)만 80% — 요청 2026-10-12. 둘째 줄은 96 그대로 */
+                size1: Math.round(96 * T1_SCALE_02_THUMB),
+                lineH1: Math.round(104 * T1_SCALE_02_THUMB),
                 barY: 980, barH: 100, copySize: 44 },
         /* .fig thumb 실측 — 배경은 사진(그라데이션 없음)
            2026-08-11: 썸네일만 날짜를 뺐다 (dateOff). 상세·피드는 날짜 그대로다.
@@ -1307,11 +1310,14 @@
         tg.addColorStop(1, th.accent);
         const L1 = String(state.t1 || "").split(/\r?\n/).filter(Boolean);
         const L2 = String(state.t2 || "").split(/\r?\n/).filter(Boolean);
+        /* 첫 줄은 size1/lineH1 이 있으면 그 값으로 (02 썸네일만 80%).
+           없으면 둘째 줄과 같다 — 피드는 예전 그대로다. */
+        const s1 = C.size1 || C.size, lh1 = C.lineH1 || C.lineH;
         L1.forEach((l, i) => {
-          ctx.fillStyle = tg; ctx.font = `400 ${C.size}px Pretendard`;
-          trk(ctx, l, C.titleX, y + C.lineH / 2 + i * C.lineH, -1.9, "left");
+          ctx.fillStyle = tg; ctx.font = `400 ${s1}px Pretendard`;
+          trk(ctx, l, C.titleX, y + lh1 / 2 + i * lh1, -1.9, "left");
         });
-        y += L1.length * C.lineH + (L1.length ? C.titleGap : 0);
+        y += L1.length * lh1 + (L1.length ? C.titleGap : 0);
         L2.forEach((l, i) => {
           ctx.fillStyle = tg; ctx.font = `700 ${C.size}px Pretendard`;
           trk(ctx, l, C.titleX, y + C.lineH / 2 + i * C.lineH, -1.9, "left");

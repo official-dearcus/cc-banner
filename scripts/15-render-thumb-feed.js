@@ -115,28 +115,37 @@
           x += xw + gap;
           drawLogo(ctx, x, cy, logoW, 22);
           // 타이틀 @(59, top+108) 96px lineH104
+          /* 첫 줄만 80% — 요청 2026-10-12. 신형 썸네일과 같은 값을 쓴다.
+             둘째 줄은 96/104 그대로이고, 줄 높이를 같이 줄였으므로
+             둘째 줄과 날짜가 줄어든 만큼(21px) 위로 올라온다. */
+          const s1 = Math.round(96 * T1_SCALE_02_THUMB);
+          const lh1 = Math.round(104 * T1_SCALE_02_THUMB);
           const ty = top + ph + 44;
           ctx.textAlign = "left";
+          let ly = ty;
           [
-            [state.t1, 400],
-            [state.t2, 700],
+            [state.t1, 400, s1, lh1],
+            [state.t2, 700, 96, 104],
           ]
             .filter((l) => l[0])
-            .forEach((l, i) => {
+            .forEach((l) => {
               const tg = ctx.createLinearGradient(left, 0, left + 800, 0);
               tg.addColorStop(0, th.titleFrom);
               tg.addColorStop(1, th.titleTo);
               ctx.fillStyle = tg;
-              ctx.font = `${l[1]} 96px Pretendard`;
-              trk(ctx, l[0], left, ty + i * 104 + 52, -1.9, "left");
+              ctx.font = `${l[1]} ${l[2]}px Pretendard`;
+              trk(ctx, l[0], left, ly + l[3] / 2, -1.9, "left");
+              ly += l[3];
             });
           ctx.fillStyle = th.dateText;
           ctx.font = `400 40px Pretendard`;
+          /* 날짜는 전처럼 "2줄이 있다고 치고" 자리를 잡는다.
+             한 줄만 넣어도 자리가 안 움직이던 동작을 그대로 둔다. */
           trk(
             ctx,
             range02(state.d1, state.d2),
             left,
-            ty + 2 * 104 + 40 + 20,
+            ty + lh1 + 104 + 40 + 20,
             -0.8,
             "left",
           );

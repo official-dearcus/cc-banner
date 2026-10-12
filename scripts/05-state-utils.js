@@ -181,3 +181,10 @@
       function anyTainted() {
         return !!(state.heroTainted || state.rows.some((r) => r.thumbTainted));
       }
+
+      /* 템플릿 02 썸네일 — 히어로 타이틀 첫 줄만 조금 작게 (요청 2026-10-12).
+         신형(nvfHero02 + NVF.th02)과 구형(drawThumb 02)이 같은 값을 쓰도록
+         여기 한 곳에 둔다. 글자 크기와 줄 높이에 같이 곱한다 —
+         글자만 줄이면 아랫줄과의 간격이 떠 보인다.
+         ⚠ 썸네일에만 적용한다. 인스타 피드 히어로는 그대로다. */
+      const T1_SCALE_02_THUMB = 0.8;
