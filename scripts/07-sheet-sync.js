@@ -237,6 +237,13 @@
         btn.disabled = true;
         btn.textContent = "불러오는 중…";
         SYNC_FRESH = !!fresh;
+        /* 시트뿐 아니라 사진도 새로 받는다 — 같은 주소에 파일만 새로 올린 경우
+           (요청 2026-10-22). /api/img 는 CDN 에 30일 저장돼서 주소가 같으면
+           한 달 내내 옛 사진이 나왔다. */
+        if (fresh) {
+          if (typeof setImgBust === "function") setImgBust(Date.now());
+          if (typeof dropImgCaches === "function") dropImgCaches();
+        }
         try {
           let pCsv,
             tCsv,

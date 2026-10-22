@@ -143,35 +143,51 @@
    이전에는 1순위가 (2)여서, CORS 를 안 여는 서버의 이미지는 매번
    "전부 받아서 버리는" 실패를 기다린 뒤에야 프록시로 넘어갔다. 그게 병목이었다. */
       const IMG_API = "/api/img?u=";
+      /* 같은 주소에 사진만 새로 올렸을 때 옛 사진이 계속 나오는 걸 푸는 열쇠
+         (요청 2026-10-22). /api/img 는 CDN 에 30일(s-maxage=2592000) 저장되고
+         브라우저도 1시간 들고 있어서, 파일명을 안 바꾸면 한참 안 바뀐다.
+         [시트 불러오기] 를 직접 누른 때만 시각을 넣어 주소를 다르게 만든다.
+         ⚠ 캐시 열쇠(IMG_CACHE)와 state.heroUrl 비교는 원래 주소 그대로 쓴다 —
+           주소를 바꿔 저장하면 "지금 고른 히어로" 판정이 어긋난다. */
+      let IMG_BUST = "";
+      function bustImg(url) {
+        if (!IMG_BUST) return url;
+        return url + (String(url).includes("?") ? "&" : "?") + "_v=" + IMG_BUST;
+      }
+      function setImgBust(v) {
+        IMG_BUST = v ? String(v) : "";
+        IMG_CACHE.clear();
+      }
       async function loadImgSmart(url) {
         if (!/^https?:/i.test(String(url || "")))
           return { img: await loadImg(url, true), tainted: false };
 
         if (IMG_CACHE.has(url)) return IMG_CACHE.get(url);
+        const net = bustImg(url); // 실제로 받아올 주소
 
         const p = (async () => {
           try {
-            const i = await loadImg(IMG_API + encodeURIComponent(url), true);
+            const i = await loadImg(IMG_API + encodeURIComponent(net), true);
             PROXY_ERR = null;
             return { img: i, tainted: false, viaProxy: true };
           } catch (e) {
             PROXY_ERR = `/api/img 실패 @ ${url}`;
           }
           try {
-            const i = await loadImg(url, false);
+            const i = await loadImg(net, false);
             PROXY_ERR = null;
             return { img: i, tainted: false };
           } catch (e) {}
           if (($("#proxyUrl")?.value || "").trim()) {
             try {
-              const i = await loadViaProxy(url);
+              const i = await loadViaProxy(net);
               PROXY_ERR = null;
               return { img: i, tainted: false, viaProxy: true };
             } catch (e) {
               PROXY_ERR = String(e.message || e);
             } // 사유 보존 → 경고 패널에 노출
           }
-          return { img: await loadImg(url, true), tainted: true };
+          return { img: await loadImg(net, true), tainted: true };
         })();
 
         IMG_CACHE.set(url, p);

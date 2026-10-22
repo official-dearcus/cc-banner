@@ -101,6 +101,16 @@
       }
       const SIZE_IMG = {}; // url → Image 캐시
       const GRID_IMG = {}; // 03 상단 4컷 이미지 캐시
+      /* [시트 불러오기] 를 직접 눌렀을 때 — 받아둔 사진을 전부 버린다.
+         주소가 그대로라 "이미 있으니 건너뛴다"로 걸러져 옛 사진이 남았다
+         (요청 2026-10-22). 다음 그리기에서 새로 받아온다. */
+      function dropImgCaches() {
+        for (const k of Object.keys(SIZE_IMG)) delete SIZE_IMG[k];
+        for (const k of Object.keys(GRID_IMG)) delete GRID_IMG[k];
+        (state.rows || []).forEach((r) => { r.thumb = null; });
+        for (const c of allColors()) c.img = null;
+        if (!state.heroUpload) state.hero = null;
+      }
       function nvGridUrls() {
         const g = G()[state.group];
         if (!g) return [];
@@ -265,7 +275,7 @@
             .map(
               (h, i) => `
     <div class="hero ${state.heroUrl === h.url ? "on" : ""}" data-h="${i}" title="${esc(h.label || h.url)}">
-      <img src="${esc(h.url)}" loading="lazy" onerror="this.classList.add('bad')"/>
+      <img src="${esc(bustImg(h.url))}" loading="lazy" onerror="this.classList.add('bad')"/>
       ${heroThemeTag(h)}
       <span>${esc(h.label || "이미지 " + (i + 1))}</span>
     </div>`,
