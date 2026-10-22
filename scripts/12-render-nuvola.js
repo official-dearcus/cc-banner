@@ -635,10 +635,11 @@
           drawThumbCover(ctx, r.thumb, imgLeft, imgTop, O.imgW, imgH0);
 
         const ix = cx0 + (CS0.optDX ?? O.optX);
-        /* .fig 는 카드 안에서 위(이름) / 아래(가격) 배치다. 높이는 내용이 정한다.
-           썸네일 최소 높이 때문에 카드가 늘어난 만큼(slack)은 반씩 나눠
-           글자 단을 가운데로 내린다 (요청 2026-10-22). */
-        const iy = top + (CS0.textDY ?? 0) + (m.slack || 0) / 2;
+        /* .fig 는 카드 안에서 위(이름) / 아래(가격) 배치다(justify-between).
+           배지·제품명은 항상 카드 맨 위에서 시작한다 — 글자 길이에 따라
+           위 여백이 달라지면 제품군마다 배지 높이가 어긋난다
+           (풋케어만 배지가 내려와 보인 원인, 2026-10-22). */
+        const iy = top + (CS0.textDY ?? 0);
 
         ctx.textAlign = "left"; ctx.textBaseline = "middle";
         let ny = iy;
@@ -700,8 +701,11 @@
         const d = disc(r.normal, r.sale);
         const flat = flatPrice(r); // 정상가 = 혜택가 → 한 줄만, 배지 없음
         const CS = nvCard5();
-        /* 가격은 name-wrap 바로 아래로 흐른다 (.fig hug). priceDY(고정)는 더 안 쓴다. */
-        const py = iy + nameWrapH + (CS0.cardGap ?? O.optGap);
+        /* 가격은 name-wrap 바로 아래로 흐른다 (.fig hug). priceDY(고정)는 더 안 쓴다.
+           썸네일 최소 높이 때문에 카드가 늘어난 만큼(slack)은 가격줄만 내린다 —
+           그러면 가격이 카드 아래쪽에 붙어 .fig 의 justify-between 과 같아지고,
+           위쪽(배지·제품명)은 제품군과 무관하게 같은 자리에서 시작한다. */
+        const py = iy + nameWrapH + (CS0.cardGap ?? O.optGap) + (m.slack || 0);
         const G0 = nvG();
 
         if (CS.style === "labels") {
