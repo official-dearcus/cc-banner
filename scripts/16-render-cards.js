@@ -162,15 +162,11 @@
         const T = SHARED.thumb;
         ctx.fillStyle = T.bg;
         ctx.fillRect(x, top + 10, T.w, CH - 20);
-        if (r.thumb)
-          drawThumbFit(
-            ctx,
-            r.thumb,
-            x + (T.w * T.imgLeft) / 100,
-            top + 10 + ((CH - 20) * T.imgTop) / 100,
-            (T.w * T.imgW) / 100,
-            ((CH - 20) * T.imgH) / 100,
-          );
+        /* 템플릿 03(신형)과 같은 규칙 — 상자를 꽉 채운다 (요청 2026-10-22).
+           예전엔 상자 안쪽으로 73.55%×79.07% 만큼 들여 넣고 fit 으로 그려서
+           사진이 1.36배 작게 나왔다. 카드가 360 일 때 상자는 320×340 이라
+           규격(960×1020)과 같은 비율이어서 잘리는 것도 없다. */
+        if (r.thumb) drawThumbCover(ctx, r.thumb, x, top + 10, T.w, CH - 20);
         else ph(ctx, x + T.w / 2, top + CH / 2);
 
         const ox = x + 356,
@@ -264,15 +260,8 @@
         const T = SHARED.thumb;
         ctx.fillStyle = "#fff";
         ctx.fillRect(x, top + 7, T.w, CH - 14);
-        if (r.thumb)
-          drawThumbFit(
-            ctx,
-            r.thumb,
-            x + (T.w * T.imgLeft) / 100,
-            top + 7 + ((CH - 14) * T.imgTop) / 100,
-            (T.w * T.imgW) / 100,
-            ((CH - 14) * T.imgH) / 100,
-          );
+        /* 01 과 같다 — 상자를 꽉 채운다 (요청 2026-10-22) */
+        if (r.thumb) drawThumbCover(ctx, r.thumb, x, top + 7, T.w, CH - 14);
         else ph(ctx, x + T.w / 2, top + CH / 2);
 
         const ox = x + T.w + 36,
