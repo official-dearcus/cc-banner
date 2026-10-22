@@ -586,7 +586,7 @@
         const nameWrapH =
           (badgeOn ? (CS0.badgeH || O.badgeH) + (CS0.badgeGap ?? O.nameGap) : 0) +
           boxTopH;
-        const cardH =
+        const textCardH =
           (CS0.textDY ?? 0) + nameWrapH + (CS0.cardGap ?? O.optGap) +
           CS0.priceH + (CS0.cardPadBot ?? 0);
         /* 이미지 높이도 여기서 정한다. 카드가 가변인데 이미지만 고정(340/320)이라
@@ -597,8 +597,22 @@
              03  위20 / 아래20 고정   → cardH - 40
            박스가 바뀌면 drawThumbCover 가 cover 를 다시 계산하므로 잘림도 따라 맞는다. */
         const imgDY = CS0.imgDY ?? O.imgY;
-        const imgH = Math.max(40, cardH - imgDY - (CS0.imgPadBot ?? 0));
-        return { lns, rowHs, attrs, rowH, lineH, txtOptH, boxTopH, nameWrapH, badgeOn, cardH, imgH };
+        const imgPadBot = CS0.imgPadBot ?? 0;
+        /* 카드 높이의 아래끝 — 썸네일이 세로로 안 잘리는 높이 (요청 2026-10-22).
+           썸네일은 폭 320 에 규격 비율(960/1020)로 그려지므로 세로 340 이 필요하다.
+           글자가 짧은 카드(옵션 줄이 비어 있는 제품군)는 사진칸이 그보다 낮아져
+           위아래가 잘렸다 — 풋케어는 252 라 88px 이 날아갔다.
+             01  340 + 10 + 10 = 360   (.fig 카드 높이와 같다)
+             02  340 +  0 + 20 = 360
+             03  340 + 20 + 20 = 380
+           글자가 길어서 이미 더 높은 카드는 그대로다. */
+        const minCardH = O.imgW / THUMB_RATIO + imgDY + imgPadBot;
+        const cardH = Math.max(textCardH, minCardH);
+        const imgH = Math.max(40, cardH - imgDY - imgPadBot);
+        /* 최소 높이 때문에 남은 자리. 글자 단을 그만큼 내려 사진과 가운데를 맞춘다 —
+           위에 붙여 두면 가격 밑이 뻥 뚫려 보인다. 내용이 긴 카드는 0 이라 그대로다. */
+        const slack = Math.max(0, cardH - textCardH);
+        return { lns, rowHs, attrs, rowH, lineH, txtOptH, boxTopH, nameWrapH, badgeOn, cardH, imgH, slack };
       }
 
       /* ── 옵션 카드 (내용에 맞춰 높이 가변) ── */
@@ -621,8 +635,10 @@
           drawThumbCover(ctx, r.thumb, imgLeft, imgTop, O.imgW, imgH0);
 
         const ix = cx0 + (CS0.optDX ?? O.optX);
-        /* .fig 는 카드 안에서 위(이름) / 아래(가격) 배치다. 높이는 내용이 정한다. */
-        const iy = top + (CS0.textDY ?? 0);
+        /* .fig 는 카드 안에서 위(이름) / 아래(가격) 배치다. 높이는 내용이 정한다.
+           썸네일 최소 높이 때문에 카드가 늘어난 만큼(slack)은 반씩 나눠
+           글자 단을 가운데로 내린다 (요청 2026-10-22). */
+        const iy = top + (CS0.textDY ?? 0) + (m.slack || 0) / 2;
 
         ctx.textAlign = "left"; ctx.textBaseline = "middle";
         let ny = iy;
