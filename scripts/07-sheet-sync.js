@@ -153,8 +153,19 @@
           );
         return r;
       }
+      /* [시트 불러오기] 를 직접 눌렀을 때만 켜진다 (요청 2026-10-22).
+         /api/sheet 는 CDN 에 60초 저장 + 300초 동안 옛 값을 내주며 뒤에서 갱신한다
+         (s-maxage=60, stale-while-revalidate=300). 그래서 시트에서 행을 지워도
+         최대 6분쯤 옛 목록이 그대로 보였다. 버튼을 누른 순간만 주소 뒤에
+         시각을 붙여 캐시를 비켜 간다 — 페이지를 열 때마다 비켜 가면
+         구글 시트를 매번 새로 읽어 느려진다. */
+      let SYNC_FRESH = false;
+      function freshUrl(url) {
+        if (!SYNC_FRESH) return url;
+        return url + (url.includes("?") ? "&" : "?") + "_fresh=" + Date.now();
+      }
       async function fetchCsv(url) {
-        const r = await safeFetch(url);
+        const r = await safeFetch(freshUrl(url));
         const t = await r.text();
         if (/^\s*<!DOCTYPE|<html/i.test(t))
           throw mkErr("E102", `HTML 반환 — 게시/공유 설정 확인 @ ${url}`);
@@ -221,10 +232,11 @@
         ].join("\n");
       }
 
-      async function syncSheet() {
+      async function syncSheet(fresh) {
         const btn = $("#syncBtn");
         btn.disabled = true;
         btn.textContent = "불러오는 중…";
+        SYNC_FRESH = !!fresh;
         try {
           let pCsv,
             tCsv,
@@ -395,6 +407,7 @@
         } finally {
           btn.disabled = false;
           btn.textContent = "시트 불러오기";
+          SYNC_FRESH = false;
         }
       }
 

@@ -149,7 +149,8 @@
           renderFmt();
         });
       })();
-      $("#syncBtn").onclick = syncSheet;
+      /* 버튼을 직접 누른 건 "지금 시트가 바뀌었다"는 뜻이다 → 캐시를 비켜 간다 */
+      $("#syncBtn").onclick = () => syncSheet(true);
       $("#cfgClear").onclick = () => {
         clearCfg();
         CFG_FIELDS.forEach((f) => {
