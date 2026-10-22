@@ -257,6 +257,19 @@
           .replace(/</g, "&lt;");
 
       /* --- 제품 선택 패널 (§2 제품 마스터에서 로드) --- */
+      /* [다른 제품군 추가] 를 펼쳤는지. 패널을 닫으면 다시 접는다. */
+      let PK_OTHERS = false;
+      /* 지금 제품군을 뺀 나머지 제품군의 제품 목록.
+         요청 2026-10-22 — 한 배너에 다른 라인 제품을 같이 올릴 때 쓴다.
+         시트에서 enabled=FALSE 인 행(offRows)은 옵션 카드로 파는 제품이
+         아니므로 여기에도 넣지 않는다. 지금 제품군 목록과 같은 기준이다. */
+      function otherCatalogs() {
+        const all = (typeof G === "function" && G()) || {};
+        return Object.keys(all)
+          .filter((k) => k !== state.group)
+          .map((k) => ({ key: k, label: (all[k] && all[k].label) || k, rows: (all[k] && all[k].rows) || [] }))
+          .filter((g) => g.rows.length);
+      }
       function renderPicker() {
         const box = $("#picker");
         if (box.hidden) return;
@@ -270,16 +283,48 @@
       <div class="pkmeta">${won(c.sale)} · ${d != null ? d + "%" : "—"}${added ? " · 이미 추가됨" : ""}</div></div>`;
           })
           .join("");
+        /* 다른 제품군 — 접었다 펴는 줄 + (펼쳤을 때) 제품군별 목록 */
+        const others = otherCatalogs();
+        const othersHead = others.length
+          ? `<div class="pk custom" data-c="others">
+       <div class="pkname">${PK_OTHERS ? "−" : "+"} 다른 제품군 추가</div>
+       <div class="pkmeta">${others.length}개 제품군${PK_OTHERS ? "" : " · 눌러서 펼치기"}</div></div>`
+          : "";
+        const othersList =
+          PK_OTHERS && others.length
+            ? others
+                .map(
+                  (g) =>
+                    `<div class="pkgroup">${esc(g.label)}</div>` +
+                    g.rows
+                      .map((c, i) => {
+                        const added = isAdded(c), d = disc(c.normal, c.sale);
+                        return `<div class="pk ${added ? "added" : ""}" data-x="${esc(g.key)}" data-i="${i}">
+      <div class="pkname">${esc(rowName(c))}</div>
+      <div class="pkmeta">${won(c.sale)} · ${d != null ? d + "%" : "—"}${added ? " · 이미 추가됨" : ""}</div></div>`;
+                      })
+                      .join(""),
+                )
+                .join("")
+            : "";
         box.innerHTML =
           (cat.length
             ? items
             : `<div class="empty">이 제품군의 제품 목록이 없습니다.</div>`) +
           `<div class="pk custom" data-c="new"><div class="pkname">+ 빈 카드로 추가</div>
-       <div class="pkmeta">직접 입력합니다</div></div>`;
+       <div class="pkmeta">직접 입력합니다</div></div>` +
+          othersHead +
+          othersList;
         box.querySelectorAll(".pk").forEach(
           (el) =>
             (el.onclick = () => {
               const v = el.dataset.c;
+              /* 펼치기/접기만 하고 패널은 열어 둔다 */
+              if (v === "others") {
+                PK_OTHERS = !PK_OTHERS;
+                renderPicker();
+                return;
+              }
               if (v === "new") {
                 state.rows.push(
                   mkRow({
@@ -291,10 +336,19 @@
                     thumbUrl: "",
                   }),
                 );
+              } else if (el.dataset.x) {
+                /* 다른 제품군의 제품. 시트 행을 그대로 복사해 온다 —
+                   값은 여기서 고칠 수 있고, 썸네일은 loadSheetImages 가
+                   state.rows 전체를 훑으므로 제품군과 무관하게 불러온다. */
+                const g = (G() || {})[el.dataset.x];
+                const c = g && (g.rows || [])[+el.dataset.i];
+                if (!c) return;
+                state.rows.push(mkRow(c));
               } else {
                 state.rows.push(mkRow(catalog()[+v]));
               }
               box.hidden = true;
+              PK_OTHERS = false;
               $("#addRow").textContent = "+ 제품 추가";
               renderRows();
               draw();
@@ -305,6 +359,7 @@
       $("#addRow").onclick = () => {
         const box = $("#picker");
         box.hidden = !box.hidden;
+        if (box.hidden) PK_OTHERS = false; // 닫으면 다른 제품군은 접어 둔다
         $("#addRow").textContent = box.hidden ? "+ 제품 추가" : "닫기";
         renderPicker();
       };

@@ -962,6 +962,18 @@
       .pk.custom {
         background: #faf9fc;
       }
+      /* 다른 제품군 목록의 제품군 이름 줄 (요청 2026-10-22) */
+      .pkgroup {
+        padding: 7px 11px;
+        background: var(--accent-weak);
+        border-bottom: 1px solid var(--line);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+        color: var(--ink-soft);
+        position: sticky;
+        top: 0;
+      }
       .pkname {
         font-size: 12.5px;
         font-weight: 500;
