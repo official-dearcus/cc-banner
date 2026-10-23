@@ -76,6 +76,34 @@
         const d = disc(r && r.normal, r && r.sale);
         return d === 0;
       };
+      /* 히어로 타이틀의 "00%" 를 지금 옵션들의 최대 할인율로 바꾼다 (요청 2026-10-23).
+         시트 TemplateMaster.heroTitle 에 "Up To 00% Open." 처럼 적어 두면
+         그릴 때마다 계산해서 넣는다 — 가격을 고치거나 옵션을 빼면 바로 따라간다.
+         00 은 실제로 쓸 일이 없는 숫자라 자리표시로 삼았다. {할인}·{disc} 도 받는다.
+         ⚠ 좌측 입력창에는 "00%" 가 그대로 남는다. 시트 원문을 지우면
+           나중에 가격이 바뀌어도 숫자가 안 따라오기 때문이다.
+         ⚠ 할인이 하나도 없으면(전부 정가) 자리표시를 그대로 둔다 —
+           "Up To 0% Open." 은 말이 안 된다. */
+      function maxDisc() {
+        let m = 0;
+        for (const r of state.rows || []) {
+          const d = disc(r && r.normal, r && r.sale);
+          if (d != null && d > m) m = d;
+        }
+        return m;
+      }
+      /* ⚠ {할인} 뒤의 %는 바로 붙어 있을 때만 먹는다. \s*%? 로 두면
+           "{할인} 할인" 의 공백까지 먹어 "60%할인" 으로 붙어 나왔다. */
+      const HERO_FILL_RE = /\{\s*(?:disc|할인)\s*\}%?|\b00\s*%/gi;
+      function heroFill(s) {
+        const t = String(s ?? "");
+        if (!/\{\s*(?:disc|할인)\s*\}|\b00\s*%/i.test(t)) return t;
+        const m = maxDisc();
+        if (!m) return t;
+        return t.replace(HERO_FILL_RE, m + "%");
+      }
+      const heroT1 = () => heroFill(state.t1);
+      const heroT2 = () => heroFill(state.t2);
       const TH = () =>
         state.tpl
           ? themeTable(curFam(), state.tpl)[state.theme] ||

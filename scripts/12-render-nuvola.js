@@ -404,7 +404,7 @@
         const ty = M.ty + M.subH + M.gap;
         ctx.textAlign = "center";
         ctx.font = `400 ${M.titleSize}px 'Playfair Display'`;
-        [state.t1, state.t2].filter(Boolean).forEach((l, i) =>
+        [heroT1(), heroT2()].filter(Boolean).forEach((l, i) =>
           trk(ctx, l, cx, ty + M.titleLineH / 2 + i * M.titleLineH, -1.6, "center"),
         );
         ctx.fillStyle = th.accent;
@@ -436,8 +436,8 @@
         const g = ctx.createLinearGradient(M.tx, 0, M.tx + M.tw, 0);
         g.addColorStop(0, th.titleColor || th.accent);
         g.addColorStop(1, th.accent);
-        const L1 = String(state.t1 || "").split(/\r?\n/).filter(Boolean);
-        const L2 = String(state.t2 || "").split(/\r?\n/).filter(Boolean);
+        const L1 = String(heroT1() || "").split(/\r?\n/).filter(Boolean);
+        const L2 = String(heroT2() || "").split(/\r?\n/).filter(Boolean);
         L1.forEach((l, i) => {
           ctx.fillStyle = g; ctx.font = `400 ${M.t02.size}px Pretendard`;
           trk(ctx, l, M.tx, y + M.t02.lineH / 2 + i * M.t02.lineH, -1.6, "left");
@@ -504,7 +504,7 @@
         );
 
         /* 2줄 — 대제목 (시트 heroTitle 의 둘째 줄) */
-        const big = String(state.t2 || state.t1 || "")
+        const big = String(heroT2() || heroT1() || "")
           .split(/\r?\n/)
           .filter(Boolean);
         ctx.font = `700 ${T.titleSize}px ${T.font}`;
@@ -1281,7 +1281,7 @@
         const ty = T.y + T.subH + T.gap;
         ctx.textAlign = "center";
         ctx.font = `400 ${T.size}px 'Playfair Display'`;
-        [state.t1, state.t2].filter(Boolean).forEach((l, i) =>
+        [heroT1(), heroT2()].filter(Boolean).forEach((l, i) =>
           trk(ctx, l, cx, ty + T.lineH / 2 + i * T.lineH, -1.9, "center"),
         );
         if (withBar) {
@@ -1328,8 +1328,8 @@
         const tg = ctx.createLinearGradient(C.titleX, 0, C.titleX + C.titleW, 0);
         tg.addColorStop(0, th.titleColor || th.accent);
         tg.addColorStop(1, th.accent);
-        const L1 = String(state.t1 || "").split(/\r?\n/).filter(Boolean);
-        const L2 = String(state.t2 || "").split(/\r?\n/).filter(Boolean);
+        const L1 = String(heroT1() || "").split(/\r?\n/).filter(Boolean);
+        const L2 = String(heroT2() || "").split(/\r?\n/).filter(Boolean);
         /* 첫 줄은 size1/lineH1 이 있으면 그 값으로 (02 썸네일만 80%).
            없으면 둘째 줄과 같다 — 피드는 예전 그대로다. */
         const s1 = C.size1 || C.size, lh1 = C.lineH1 || C.lineH;
@@ -1395,7 +1395,7 @@
         ctx.font = `400 ${C.sellerSize}px ${C.font}`;
         trk(ctx, `${state.seller || "Seller_name"} Pick!`, cx, C.sellerY + C.lineH / 2, C.track, "center");
 
-        const big = String(state.t2 || state.t1 || "").split(/\r?\n/).filter(Boolean);
+        const big = String(heroT2() || heroT1() || "").split(/\r?\n/).filter(Boolean);
         ctx.font = `700 ${C.titleSize}px ${C.font}`;
         big.forEach((l, i) =>
           trk(ctx, l, cx, C.titleY2 + C.lineH / 2 + i * C.lineH, C.track, "center"),

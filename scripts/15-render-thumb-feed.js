@@ -51,7 +51,7 @@
           const ty = top + subH + 10 + 90;
           ctx.textAlign = "center";
           ctx.font = `400 96px 'Playfair Display'`;
-          [state.t1, state.t2]
+          [heroT1(), heroT2()]
             .filter(Boolean)
             .forEach((l, i) => trk(ctx, l, cx, ty + i * 104, -1.9, "center"));
           ctx.textBaseline = "alphabetic";
@@ -124,8 +124,8 @@
           ctx.textAlign = "left";
           let ly = ty;
           [
-            [state.t1, 400, s1, lh1],
-            [state.t2, 700, 96, 104],
+            [heroT1(), 400, s1, lh1],
+            [heroT2(), 700, 96, 104],
           ]
             .filter((l) => l[0])
             .forEach((l) => {
@@ -508,7 +508,7 @@
           const ty = top + subH + 10 + 90;
           ctx.textAlign = "center";
           ctx.font = `400 96px 'Playfair Display'`;
-          [state.t1, state.t2]
+          [heroT1(), heroT2()]
             .filter(Boolean)
             .forEach((l, i) => trk(ctx, l, cx, ty + i * 104, -1.9, "center"));
           ctx.textBaseline = "alphabetic";
@@ -562,8 +562,8 @@
           const ty = top + ph + 44;
           ctx.textAlign = "left";
           [
-            [state.t1, 400],
-            [state.t2, 700],
+            [heroT1(), 400],
+            [heroT2(), 700],
           ]
             .filter((l) => l[0])
             .forEach((l, i) => {

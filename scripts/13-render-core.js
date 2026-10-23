@@ -18,7 +18,24 @@
       }
       /* 구형 상세에서 이벤트 섹션이 시작하는 y (옵션 카드 목록 끝) */
 
+      /* 히어로 타이틀의 "00%" 가 뭘로 바뀌는지 입력창 밑에 알려준다
+         (요청 2026-10-23). 자리표시가 없으면 아무것도 안 띄운다. */
+      function heroHint() {
+        const el = $("#t1Hint");
+        if (!el) return;
+        const raw = (state.t1 || "") + " " + (state.t2 || "");
+        if (!/\{\s*(?:disc|할인)\s*\}|\b00\s*%/i.test(raw)) {
+          el.hidden = true;
+          return;
+        }
+        const m = maxDisc();
+        el.hidden = false;
+        el.innerHTML = m
+          ? `<b>00%</b> → <b>${m}%</b> 로 자동 반영됩니다 (옵션 중 가장 큰 할인율).`
+          : `<b>00%</b> 는 할인이 있는 옵션이 생기면 그 최대 할인율로 바뀝니다.`;
+      }
       function draw() {
+        heroHint();
         const W = SHARED.W,
           S = SHARED.SCALE;
         const c = $("#preview");

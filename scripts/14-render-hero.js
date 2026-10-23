@@ -44,7 +44,7 @@
         ctx.textAlign = "center";
         ctx.fillStyle = "#fff";
         ctx.font = `400 80px 'Playfair Display'`;
-        [state.t1, state.t2].filter(Boolean).forEach((l, i) => {
+        [heroT1(), heroT2()].filter(Boolean).forEach((l, i) => {
           trk(ctx, l, W / 2, top + i * 100 + 50, -1.6, "center");
         });
         ctx.textBaseline = "alphabetic";
@@ -114,8 +114,8 @@
         const ht = py + ph + 40;
         ctx.textAlign = "left";
         const lines = [
-          [state.t1, 400],
-          [state.t2, 700],
+          [heroT1(), 400],
+          [heroT2(), 700],
         ].filter((l) => l[0]);
         lines.forEach((l, i) => {
           const y = ht + i * 88 + 40;
