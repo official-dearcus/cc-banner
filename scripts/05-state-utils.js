@@ -81,26 +81,44 @@
          그릴 때마다 계산해서 넣는다 — 가격을 고치거나 옵션을 빼면 바로 따라간다.
          00 은 실제로 쓸 일이 없는 숫자라 자리표시로 삼았다. {할인}·{disc} 도 받는다.
          ⚠ 좌측 입력창에는 "00%" 가 그대로 남는다. 시트 원문을 지우면
-           나중에 가격이 바뀌어도 숫자가 안 따라오기 때문이다.
-         ⚠ 할인이 하나도 없으면(전부 정가) 자리표시를 그대로 둔다 —
-           "Up To 0% Open." 은 말이 안 된다. */
+           나중에 가격이 바뀌어도 숫자가 안 따라오기 때문이다. */
+      /* 배너에 올린 옵션 카드 기준. 제목이 화면에 보이는 것과 달라지면 안 된다.
+         ⚠ 아직 카드를 하나도 안 올렸으면 "할인이 없다"가 아니라 "아직 안 골랐다"다.
+           그때만 시트의 그 제품군 목록으로 대신 본다 — 새 제품군을 만드는 중에
+           제목이 비어 보이지 않도록 (2026-10-23 신고). */
       function maxDisc() {
-        let m = 0;
-        for (const r of state.rows || []) {
-          const d = disc(r && r.normal, r && r.sale);
-          if (d != null && d > m) m = d;
-        }
-        return m;
+        const pick = (list) => {
+          let m = 0;
+          for (const r of list || []) {
+            const d = disc(r && r.normal, r && r.sale);
+            if (d != null && d > m) m = d;
+          }
+          return m;
+        };
+        if ((state.rows || []).length) return pick(state.rows);
+        const g = (typeof G === "function" && G()[state.group]) || {};
+        return pick(g.rows);
       }
       /* ⚠ {할인} 뒤의 %는 바로 붙어 있을 때만 먹는다. \s*%? 로 두면
            "{할인} 할인" 의 공백까지 먹어 "60%할인" 으로 붙어 나왔다. */
       const HERO_FILL_RE = /\{\s*(?:disc|할인)\s*\}%?|\b00\s*%/gi;
+      /* 할인이 하나도 없을 때 지울 덩어리 — 앞의 "Up To"·"~"·"최대" 까지 같이.
+         예전엔 자리표시를 그대로 뒀더니 배너에 "{disc}" 가 글자로 찍혔다
+         (2026-10-23 신고). 내보낸 이미지에 토큰이 남는 건 최악이라 지우는 쪽으로. */
+      const HERO_DROP_RE =
+        /(?:\bup\s*to\s*|~\s*|최대\s*)?(?:\{\s*(?:disc|할인)\s*\}%?|\b00\s*%)/gi;
       function heroFill(s) {
         const t = String(s ?? "");
         if (!/\{\s*(?:disc|할인)\s*\}|\b00\s*%/i.test(t)) return t;
         const m = maxDisc();
-        if (!m) return t;
-        return t.replace(HERO_FILL_RE, m + "%");
+        if (m) return t.replace(HERO_FILL_RE, m + "%");
+        return t
+          .replace(HERO_DROP_RE, "")
+          .split(/\r?\n/)
+          .map((l) => l.replace(/[ \t]{2,}/g, " ").trim())
+          .join("\n")
+          .replace(/\n{2,}/g, "\n")
+          .trim();
       }
       const heroT1 = () => heroFill(state.t1);
       const heroT2 = () => heroFill(state.t2);
