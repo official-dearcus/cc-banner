@@ -20,7 +20,25 @@
 
       /* 히어로 타이틀의 "00%" 가 뭘로 바뀌는지 입력창 밑에 알려준다
          (요청 2026-10-23). 자리표시가 없으면 아무것도 안 띄운다. */
+      /* 입력창에도 바뀐 숫자를 보여준다 (요청 2026-10-23).
+         state.t1/t2 에는 시트 원문("{disc}")을 그대로 들고 있고,
+         화면에 보이는 값만 바꿔 끼운다 — 가격이 바뀌면 입력창도 같이 따라간다.
+         ⚠ 지금 그 칸에 글자를 치고 있으면 건드리지 않는다.
+         ⚠ 자리표시가 없는(= 직접 쓴) 문구는 손대지 않는다.
+         사용자가 이 칸을 고치면 그 순간 state 가 고친 값으로 덮여
+         자리표시가 사라진다 — 그 뒤로는 자동으로 안 바뀐다(의도한 동작). */
+      function syncHeroInputs() {
+        if (typeof heroHasToken !== "function") return;
+        [["#t1", "t1", heroT1], ["#t2", "t2", heroT2]].forEach(([sel, key, fn]) => {
+          const el = $(sel);
+          if (!el || el === document.activeElement) return;
+          if (!heroHasToken(state[key])) return;
+          const v = fn();
+          if (el.value !== v) el.value = v;
+        });
+      }
       function heroHint() {
+        syncHeroInputs();
         const el = $("#t1Hint");
         if (!el) return;
         const raw = (state.t1 || "") + " " + (state.t2 || "");
@@ -31,7 +49,8 @@
         const m = maxDisc();
         el.hidden = false;
         el.innerHTML = m
-          ? `자리표시 → <b>${m}%</b> 로 자동 반영됩니다 (옵션 중 가장 큰 할인율).`
+          ? `시트의 자리표시를 <b>${m}%</b> 로 채웠습니다 (옵션 중 가장 큰 할인율). ` +
+            `가격을 고치면 같이 바뀝니다.`
           : `할인이 있는 옵션이 없어 <b>"Up To 00%" 부분이 통째로 빠집니다.</b> ` +
             `가격을 넣으면 바로 숫자가 들어갑니다.`;
       }

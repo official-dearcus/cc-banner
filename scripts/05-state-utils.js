@@ -107,9 +107,12 @@
          (2026-10-23 신고). 내보낸 이미지에 토큰이 남는 건 최악이라 지우는 쪽으로. */
       const HERO_DROP_RE =
         /(?:\bup\s*to\s*|~\s*|최대\s*)?(?:\{\s*(?:disc|할인)\s*\}%?|\b00\s*%)/gi;
+      /* 자리표시가 들어 있나 (g 플래그 없음 — test 를 반복해도 안 어긋난다) */
+      const HERO_HAS_RE = /\{\s*(?:disc|할인)\s*\}|\b00\s*%/i;
+      const heroHasToken = (s) => HERO_HAS_RE.test(String(s ?? ""));
       function heroFill(s) {
         const t = String(s ?? "");
-        if (!/\{\s*(?:disc|할인)\s*\}|\b00\s*%/i.test(t)) return t;
+        if (!heroHasToken(t)) return t;
         const m = maxDisc();
         if (m) return t.replace(HERO_FILL_RE, m + "%");
         return t

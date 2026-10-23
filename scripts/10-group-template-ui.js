@@ -263,8 +263,9 @@
           state.tpl === "02"
             ? g.optionTitleEn || g.series || ""
             : g.seriesTitle || g.series || "";
-        $("#t1").value = state.t1;
-        $("#t2").value = state.t2;
+        /* 자리표시는 숫자로 채워 보여준다 (state 는 시트 원문 그대로) */
+        $("#t1").value = heroT1();
+        $("#t2").value = heroT2();
         $("#series").value = state.series;
         const lab = $("#seriesLabel");
         if (lab)

@@ -65,8 +65,8 @@ function applySellerToTitles() {
   state.t2 = titleWithSeller(state.t2);
   const e1 = $("#t1"),
     e2 = $("#t2");
-  if (e1) e1.value = state.t1 || "";
-  if (e2) e2.value = state.t2 || "";
+  if (e1) e1.value = heroT1() || "";
+  if (e2) e2.value = heroT2() || "";
 }
 
 function syncSellerField() {
@@ -115,8 +115,8 @@ function slotApply(s) {
 function refreshPanels() {
   renderGroupButtons($("#groupSearch") ? $("#groupSearch").value : "");
   $("#seller").value = state.seller || "";
-  $("#t1").value = state.t1 || "";
-  $("#t2").value = state.t2 || "";
+  $("#t1").value = heroT1() || "";
+  $("#t2").value = heroT2() || "";
   $("#d1").value = state.d1 || "";
   $("#d2").value = state.d2 || "";
   $("#copy").value = state.copy || "";
