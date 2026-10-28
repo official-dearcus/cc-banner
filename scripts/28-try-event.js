@@ -89,8 +89,12 @@
         }
         return [...by.values()];
       }
-      /* 드롭다운에서 "다른 제품군"을 펼쳐 두었나. 목록을 닫으면 다시 접는다. */
+      /* 목록에서 "다른 제품군"을 펼쳐 두었나. 목록을 닫으면 다시 접는다. */
       let TRY_OTHERS = false;
+      /* 지금 경품 목록이 열려 있는 행 번호. -1 이면 전부 닫힘.
+         기본 <select> 는 한 칸 고르면 창이 닫혀서 "펼치기"를 누르는 순간
+         목록이 사라졌다 (2026-10-28 신고). 직접 만든 패널이라 열어 둘 수 있다. */
+      let TRY_OPEN = -1;
 
       /* 드롭다운에는 안 뜨지만, 예전에 gift 로 저장된 값을 읽으려면 필요하다 */
       function tryGifts() {
@@ -236,6 +240,15 @@
             ? "인스타 피드에만 들어갑니다. 옵션 외 단품은 <b>ProductMaster</b> 에 <b>enabled=FALSE</b> 로 넣어두면 여기에 뜹니다."
             : "경품은 이 제품군의 제품 중에서 고릅니다. 없으면 직접 입력하세요. 인스타 피드 전용입니다.";
 
+        /* 가격카드 추가와 같은 생김새. 보조 줄은 안 넣는다 — 이름만 (요청 2026-10-28) */
+        const pk = (list, cur) =>
+          list
+            .map((p) => {
+              const k = tryPickKey(p);
+              return `<div class="pk${k === cur ? " on" : ""}" data-v="${esc(k)}">
+                <div class="pkname">${esc(p.name)}</div></div>`;
+            })
+            .join("");
         const opt = (list, cur) =>
           list
             .map((p) => {
@@ -253,21 +266,31 @@
       <div class="evnum"><input type="number" min="1" max="9999" data-f="num" data-i="${i}" value="${e.num}" /><span>명</span></div>
       <div class="evnum evqty"><input type="number" min="1" max="20" data-f="qty" data-i="${i}" value="${e.qty || 1}" /><span>개</span></div>
       <button class="evdel" data-i="${i}" title="삭제">×</button>
-      <select class="evgift" data-i="${i}">
-        ${rows.length ? `<optgroup label="제품군 제품">${opt(rows, cur)}</optgroup>` : ""}
-        ${offs.length ? `<optgroup label="옵션 외 단품">${opt(offs, cur)}</optgroup>` : ""}
-        <option value="custom"${custom ? " selected" : ""}>직접 입력…</option>
-        ${
-          others.length
-            ? TRY_OTHERS
-              ? `<option value="__less">− 다른 제품군 접기</option>` +
-                others
-                  .map((o) => `<optgroup label="${esc(o.label)}">${opt(o.list, cur)}</optgroup>`)
-                  .join("")
-              : `<option value="__more">＋ 다른 제품군 추가 (눌러서 펼치기)</option>`
-            : ""
-        }
-      </select>
+      <button type="button" class="evgift trygiftbtn" data-i="${i}">
+        <span>${esc(custom ? p.name || "직접 입력…" : tryProduct(e).name || "경품 선택")}</span>
+        <span class="cv">${TRY_OPEN === i ? "닫기" : "변경"}</span>
+      </button>
+      ${
+        TRY_OPEN === i
+          ? `<div class="picker trypick">` +
+            (rows.length ? `<div class="pkgroup">제품군 제품</div>${pk(rows, cur)}` : "") +
+            (offs.length ? `<div class="pkgroup">옵션 외 단품</div>${pk(offs, cur)}` : "") +
+            `<div class="pk custom${custom ? " on" : ""}" data-v="custom" data-i="${i}">
+               <div class="pkname">+ 직접 입력</div>
+               <div class="pkmeta">이름과 사진 주소를 넣습니다</div></div>` +
+            (others.length
+              ? `<div class="pk custom" data-v="${TRY_OTHERS ? "__less" : "__more"}" data-i="${i}">
+                   <div class="pkname">${TRY_OTHERS ? "−" : "+"} 다른 제품군 추가</div>
+                   <div class="pkmeta">${others.length}개 제품군${TRY_OTHERS ? "" : " · 눌러서 펼치기"}</div></div>` +
+                (TRY_OTHERS
+                  ? others
+                      .map((o) => `<div class="pkgroup">${esc(o.label)}</div>${pk(o.list, cur)}`)
+                      .join("")
+                  : "")
+              : "") +
+            `</div>`
+          : ""
+      }
       ${
         custom
           ? `<input class="trycus" data-f="cname" data-i="${i}" value="${esc(p.name || "")}" placeholder="경품 이름" />
@@ -292,21 +315,31 @@
             after();
           }),
         );
-        box.querySelectorAll(".evgift").forEach((s) => (s.onchange = () => {
-          const e2 = LIST[+s.dataset.i];
-          const v = s.value;
-          /* 펼치기·접기는 경품을 고른 게 아니다 — 고른 값은 그대로 두고 다시 그린다 */
+        /* 목록 열기·닫기 */
+        box.querySelectorAll(".trygiftbtn").forEach((b) => (b.onclick = () => {
+          const i2 = +b.dataset.i;
+          TRY_OPEN = TRY_OPEN === i2 ? -1 : i2;
+          if (TRY_OPEN === -1) TRY_OTHERS = false; // 닫으면 다른 제품군도 접는다
+          after();
+        }));
+        /* 목록에서 고르기 */
+        box.querySelectorAll(".trypick .pk").forEach((el) => (el.onclick = () => {
+          const v = el.dataset.v;
+          /* 펼치기·접기는 경품을 고른 게 아니다 — 목록은 열어 둔 채 다시 그린다 */
           if (v === "__more" || v === "__less") {
             TRY_OTHERS = v === "__more";
             after();
             return;
           }
+          const e2 = LIST[+(el.closest(".evrow").dataset.i)];
           if (v === "custom") e2.pick = { kind: "custom", name: "", url: "" };
           else {
             const hit = tryCandidates().find((p) => tryPickKey(p) === v);
             if (hit) e2.pick = { ...hit };
           }
           delete e2.rowIdx;
+          TRY_OPEN = -1;
+          TRY_OTHERS = false;
           after();
         }));
         box.querySelectorAll(".trycus").forEach((inp) => (inp.oninput = () => {

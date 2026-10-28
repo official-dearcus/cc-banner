@@ -503,6 +503,48 @@
         border-color: #d94b4b;
         color: #d94b4b;
       }
+      /* 경품 고르기 — 가격카드 추가와 같은 패널 (요청 2026-10-28).
+         기본 <select> 는 열린 목록을 브라우저가 그려서 색·글꼴을 못 맞추고,
+         한 칸 고르면 창이 닫혀 "펼치기"가 제자리에서 안 됐다. */
+      #tryEvents .trygiftbtn {
+        grid-column: 1 / -1;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        width: 100%;
+        padding: 6px 8px;
+        font: inherit;
+        font-size: 11.5px;
+        text-align: left;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: #fff;
+        cursor: pointer;
+      }
+      #tryEvents .trygiftbtn > span:first-child {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      #tryEvents .trygiftbtn .cv {
+        flex: none;
+        font-size: 10.5px;
+        color: var(--ink-soft);
+      }
+      #tryEvents .trygiftbtn:hover {
+        border-color: var(--accent);
+      }
+      #tryEvents .trypick {
+        grid-column: 1 / -1;
+        margin-top: 0;
+      }
+      /* 지금 고른 항목 */
+      #tryEvents .trypick .pk.on .pkname {
+        color: var(--accent);
+        font-weight: 700;
+      }
       /* 직접 입력 칸 */
       #tryEvents .trycus {
         grid-column: 1 / -1;
