@@ -38,6 +38,7 @@
       /* 경품 후보 (2026-09-01 확장)
            row     이 제품군의 옵션 제품
            off     같은 제품군의 enabled=FALSE 행 (옵션엔 안 나오는 단품)
+           xrow    다른 제품군의 옵션 제품 (요청 2026-10-28)
            custom  직접 입력 — 이름과 사진 주소를 그 자리에서 넣는다
          ⚠ GiftMaster 선물 목록은 드롭다운에 안 띄운다 (요청 2026-09-03).
            써볼래요 경품은 "그 제품군의 제품" 이라 이벤트 사은품과 섞이면 안 된다.
@@ -59,6 +60,38 @@
         }));
         return on.concat(off);
       }
+      /* 다른 제품군의 제품 — 가격카드 추가와 같은 생각 (요청 2026-10-28).
+         제품군키(g)를 같이 들고 있어야 나중에 어느 시트 행인지 찾을 수 있다.
+         enabled=FALSE 단품은 넣지 않는다 — 제 제품군에서도 옵션 목록엔 안 뜨는 행이라
+         남의 제품군 것까지 섞으면 목록이 걷잡을 수 없이 길어진다. */
+      function tryOtherProducts() {
+        const all = (typeof G === "function" && G()) || {};
+        const nm = (r) => (typeof rowName === "function" ? rowName(r) : r.name || "");
+        const out = [];
+        for (const k of Object.keys(all)) {
+          if (k === state.group) continue;
+          const g = all[k] || {};
+          (g.rows || []).forEach((r, i) =>
+            out.push({
+              kind: "xrow", g: k, gl: g.label || k, i, name: nm(r),
+              url: r.thumbUrl || "", feedUrl: r.feedThumbUrl || "",
+            }),
+          );
+        }
+        return out;
+      }
+      /* 제품군별로 묶어서 돌려준다 — 드롭다운 optgroup 하나가 제품군 하나 */
+      function tryOtherGrouped() {
+        const by = new Map();
+        for (const p of tryOtherProducts()) {
+          if (!by.has(p.g)) by.set(p.g, { label: p.gl, list: [] });
+          by.get(p.g).list.push(p);
+        }
+        return [...by.values()];
+      }
+      /* 드롭다운에서 "다른 제품군"을 펼쳐 두었나. 목록을 닫으면 다시 접는다. */
+      let TRY_OTHERS = false;
+
       /* 드롭다운에는 안 뜨지만, 예전에 gift 로 저장된 값을 읽으려면 필요하다 */
       function tryGifts() {
         const list = typeof evGifts === "function" ? evGifts() : [];
@@ -70,9 +103,11 @@
           feedUrl: x.feedUrl || "",
         }));
       }
-      /* 드롭다운에 뜨는 전체 후보 — 선물 목록은 뺀다 (요청 2026-09-03) */
+      /* 고른 값을 되찾을 때 쓰는 전체 후보 — 선물 목록은 뺀다 (요청 2026-09-03).
+         ⚠ 화면에 "접혀" 있어도 여기엔 다른 제품군을 넣어 둔다.
+           접힌 상태에서 저장된 값을 못 찾으면 경품이 빈칸이 된다. */
       function tryCandidates() {
-        return tryProducts();
+        return tryProducts().concat(tryOtherProducts());
       }
       /* 저장값 → {kind,…} 로 정규화 (구형 rowIdx 호환) */
       function tryPick(e) {
@@ -82,6 +117,7 @@
       function tryPickKey(p) {
         if (p.kind === "gift") return `gift:${p.key}`;
         if (p.kind === "custom") return "custom";
+        if (p.kind === "xrow") return `xrow:${p.g}:${p.i}`;
         if (p.kind === "off") return `off:${p.i}`;
         return `row:${p.i}`;
       }
@@ -93,6 +129,18 @@
         if (p.kind === "gift") {
           const hit = tryGifts().find((x) => x.key === p.key);
           return hit || { name: p.name || "", url: p.url || "", feedUrl: p.feedUrl || "" };
+        }
+        /* 다른 제품군 제품 — 저장된 제품군키로 시트를 다시 본다.
+           이름·가격이 시트에서 바뀌면 배너도 따라간다. 행이 사라졌으면 저장값으로 버틴다. */
+        if (p.kind === "xrow") {
+          const g2 = (typeof G === "function" && G()[p.g]) || {};
+          const r = (g2.rows || [])[p.i | 0];
+          if (r)
+            return {
+              name: typeof rowName === "function" ? rowName(r) : r.name || "",
+              url: r.thumbUrl || "", feedUrl: r.feedThumbUrl || "",
+            };
+          return { name: p.name || "", url: p.url || "", feedUrl: p.feedUrl || "" };
         }
         const list = tryProducts().filter((x) => x.kind === (p.kind === "off" ? "off" : "row"));
         return list[Math.max(0, Math.min(list.length - 1, p.i | 0))] || { name: "", url: "" };
@@ -159,7 +207,7 @@
         return state.tryEvents || (state.tryEvents = []);
       }
       function tryAdd() {
-        const ps = tryCandidates();
+        const ps = tryProducts(); // 처음 값은 늘 제 제품군 것으로
         /* 후보가 하나도 없어도 직접 입력으로 시작할 수 있다 */
         tryTarget().push({
           num: 10,
@@ -176,6 +224,7 @@
         const all = tryProducts();
         const rows = all.filter((p) => p.kind === "row");
         const offs = all.filter((p) => p.kind === "off");
+        const others = tryOtherGrouped();
 
         const hint = document.getElementById("tryHint");
         const add = document.getElementById("tryAdd");
@@ -208,6 +257,16 @@
         ${rows.length ? `<optgroup label="제품군 제품">${opt(rows, cur)}</optgroup>` : ""}
         ${offs.length ? `<optgroup label="옵션 외 단품">${opt(offs, cur)}</optgroup>` : ""}
         <option value="custom"${custom ? " selected" : ""}>직접 입력…</option>
+        ${
+          others.length
+            ? TRY_OTHERS
+              ? `<option value="__less">− 다른 제품군 접기</option>` +
+                others
+                  .map((o) => `<optgroup label="${esc(o.label)}">${opt(o.list, cur)}</optgroup>`)
+                  .join("")
+              : `<option value="__more">＋ 다른 제품군 추가 (눌러서 펼치기)</option>`
+            : ""
+        }
       </select>
       ${
         custom
@@ -236,6 +295,12 @@
         box.querySelectorAll(".evgift").forEach((s) => (s.onchange = () => {
           const e2 = LIST[+s.dataset.i];
           const v = s.value;
+          /* 펼치기·접기는 경품을 고른 게 아니다 — 고른 값은 그대로 두고 다시 그린다 */
+          if (v === "__more" || v === "__less") {
+            TRY_OTHERS = v === "__more";
+            after();
+            return;
+          }
           if (v === "custom") e2.pick = { kind: "custom", name: "", url: "" };
           else {
             const hit = tryCandidates().find((p) => tryPickKey(p) === v);
