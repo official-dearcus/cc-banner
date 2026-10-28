@@ -540,6 +540,15 @@
         grid-column: 1 / -1;
         margin-top: 0;
       }
+      /* 안 고른 항목은 연하게 — 가격카드 목록의 .pk.added 와 같은 0.5
+         (신고 2026-10-28: 까맣게 나왔다). 직접 입력·다른 제품군은 제외 —
+         그 둘은 강조해 두는 줄이다. */
+      #tryEvents .trypick .pk:not(.on):not(.custom) {
+        opacity: 0.5;
+      }
+      #tryEvents .trypick .pk:not(.on):not(.custom):hover {
+        opacity: 1;
+      }
       /* 지금 고른 항목 */
       #tryEvents .trypick .pk.on .pkname {
         color: var(--accent);
