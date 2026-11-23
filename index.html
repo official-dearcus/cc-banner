@@ -298,7 +298,10 @@
           </div>
         </div>
 
-        <div class="block" data-nav="data">
+        <!-- 셀러명은 처음 화면(행사 설정)에서만 입력한다 — 요청 2026-11-23.
+             ⚠ 블록을 지우지 않고 숨기기만 한다. #seller · #sellerHint 를
+               여러 스크립트가 id 로 읽고 쓴다(18-validate, 21-bindings, 22-setup-flow). -->
+        <div class="block" data-nav="data" hidden>
           <label class="h"><span class="num">2</span> 셀러명</label>
           <input type="text" id="seller" maxlength="24" />
           <div class="hint" id="sellerHint"></div>
@@ -320,7 +323,9 @@
           <div class="hint" id="t1Hint" hidden></div>
         </div>
 
-        <div class="block" data-nav="data">
+        <!-- 공구 기간도 처음 화면(행사 설정 3번 달력)에서만 정한다 — 요청 2026-11-23.
+             ⚠ 셀러명과 같은 이유로 숨기기만 한다. #d1 · #d2 · #dateHint 는 id 로 쓰인다. -->
+        <div class="block" data-nav="data" hidden>
           <label class="h"><span class="num">4</span> 공구 기간</label>
           <div class="row">
             <input type="date" id="d1" /><input type="date" id="d2" />
