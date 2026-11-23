@@ -708,7 +708,9 @@ function updateSetupBar() {
   if (go) go.disabled = probs.length > 0;
 }
 
-/* 테스트 주소에서만 셀러명을 미리 채운다 (요청 2026-11-23).
+/* ▼▼▼ TEST-ONLY — main 에 올리기 전에 이 블록과 호출 두 곳(fillTestSeller ·
+   fillTestDates)을 지운다 (요청 2026-11-23: "메인에 적용할 때는 지우고 적용"). ▼▼▼ */
+/* 테스트 주소에서만 셀러명·공구 기간을 미리 채운다 (요청 2026-11-23).
    브랜치 미리보기는 올릴 때마다 주소가 바뀌어 저장된 값이 없다 → 매번 다시 쳐야 했다.
    ⚠ 운영 주소(cc-banner.vercel.app)에서는 절대 안 채운다. 이 코드가 main 에
      합쳐져도 운영 화면은 그대로다. 운영 주소가 바뀌면 PROD_HOST 를 고친다. */
@@ -726,6 +728,14 @@ function fillTestSeller() {
   ko.value = TEST_SELLER.ko;
   en.value = TEST_SELLER.en;
 }
+/* 공구 기간 기본값 — 오늘부터 7일(오늘 포함). 달력이 비어 있을 때만. */
+function fillTestDates() {
+  if (!isTestHost() || CAL.d1 || CAL.d2) return;
+  const t = new Date();
+  const e = new Date(t.getFullYear(), t.getMonth(), t.getDate() + 6);
+  calSet(ymd(t), ymd(e)); // ymd 는 로컬 날짜 — toISOString 은 오전에 하루 밀린다
+}
+/* ▲▲▲ TEST-ONLY 끝 ▲▲▲ */
 
 function openSetup(reset) {
   if (reset) {
@@ -744,7 +754,8 @@ function openSetup(reset) {
     reset ? "" : SESSION.d2 || state.d2 || "",
   );
   SETUP_EVENTS = reset ? [] : (SESSION.events || []).map((e) => ({ ...e }));
-  fillTestSeller();
+  fillTestSeller(); // TEST-ONLY
+  fillTestDates(); // TEST-ONLY
   renderSellerList();
   renderSetupGroups();
   renderSetupTpls();
