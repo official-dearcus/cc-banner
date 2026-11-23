@@ -148,6 +148,9 @@
                 /* 이미지 상/좌/하 여백 10 고정 → 높이는 카드에서 계산한다 (imgH 는 .fig 참고값) */
                 cardDX: 0, cardW: 740, imgDX: 10, imgDY: 10, imgH: 340, imgPadBot: 10, optDX: 366,
                 textDY: 29, priceDY: 249,
+                /* 옵션 줄이 없는 카드의 추가 위 여백 — 01 만 (요청 2026-11-23).
+                   02·03 에도 넣었다가 같은 날 되돌렸다. 다른 템플릿에 주려면 여기처럼 값을 적는다. */
+                noOptTop: 50,
                 /* .fig feed(01): 카드 960×468, img card+10,+10 416×448, 텍스트 card+474 */
                 fTextDY: 46, fPriceDY: 316, fImgDX: 10, fImgDY: 10,
                 fImgW: 416, fImgH: 448, fOptDX: 474, fOptW: 448,
@@ -560,7 +563,6 @@
          nvListItems(높이 배분)와 nvCard(그리기)가 반드시 같은 값을 써야
          카드가 겹치거나 뜨지 않는다.
          cardH = 위여백(textDY) + name-wrap + gap(cardGap) + 가격(priceH) + 아래여백(cardPadBot) */
-      const NV_NOOPT_TOP = 50; // 옵션 줄이 없는 카드의 추가 위 여백 (상세 860 기준 px)
       function nvMeasureCard(r) {
         const O = NV.opt, CS0 = nvCard5();
         const badgeOn = CS0.badgeText ? true : r.badge !== "none";
@@ -593,7 +595,7 @@
            ⚠ 높이 계산에도 넣는다 — 그래야 배지까지 있는 긴 카드에서
              제품명이 가격줄을 밀어내지 않고 카드가 그만큼 늘어난다.
              보통은 최소 높이(360/380) 안에서 남는 자리(slack)를 쓰므로 카드 높이는 그대로다. */
-        const topExtra = attrs.length ? 0 : NV_NOOPT_TOP;
+        const topExtra = attrs.length ? 0 : CS0.noOptTop || 0; // 01 만 50 (NV_CARD)
         const textCardH =
           (CS0.textDY ?? 0) + topExtra + nameWrapH + (CS0.cardGap ?? O.optGap) +
           CS0.priceH + (CS0.cardPadBot ?? 0);
@@ -649,9 +651,8 @@
            (풋케어만 배지가 내려와 보인 원인, 2026-10-22). */
         const iy = top + (CS0.textDY ?? 0);
         /* 옵션 줄이 없는 카드의 추가 위 여백 (nvMeasureCard 참고).
-           01·02  배지·제품명·할인원이 통째로 내려간다
-           03     "OPTION 1." 배지는 카드 위 테두리에 붙은 딱지라 그대로 두고
-                  그 아래 제품명부터 내려간다 */
+           지금은 01 만 값이 있다(NV_CARD["01"].noOptTop) — 배지·제품명·할인원이 통째로 내려간다.
+           03 에 값을 주면 "OPTION 1." 배지는 그대로 두고 제품명부터 내려가게 돼 있다. */
         const topExtra = m.topExtra || 0;
 
         ctx.textAlign = "left"; ctx.textBaseline = "middle";
