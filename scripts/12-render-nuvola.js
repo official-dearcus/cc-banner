@@ -152,10 +152,9 @@
                 /* 01 의 할인율 원 크기 (요청 2026-11-23): 지름 80 → 96, 글자 28 → 38.
                    공용값(NV.opt.discD 80 · discSize 28)은 02·03 이 쓰므로 안 건드린다.
                    피드는 같은 배율(×1.3 = 416/320)로: 지름 125 · 글자 49 (전 108 · 36). */
-                /* 글자 38 → 36 (같은 날 재요청 — 38 은 너무 컸다). 피드 49 → 47 (= 36 × 1.3) */
-                discD: 96, discSize: 36, fDiscD: 125, fDiscSize: 47,
-                /* 굵기 700 → 500 (GmarketSans Medium). 02·03 은 값이 없어 700 그대로다 */
-                discWeight: 500,
+                /* 글자 38 → 36 → 34 (같은 날 재요청). 피드 49 → 47 → 44 (= 34 × 1.3).
+                   굵기는 700(Bold) — 500(Medium)으로 내려 봤다가 되돌렸다. */
+                discD: 96, discSize: 34, fDiscD: 125, fDiscSize: 44,
                 /* .fig 2026-08: value_list 22px · 라벨56 · 카드 hug */
                 vlLabelW: 56, vlValW: 278, cardGap: 24, cardPadBot: 30, fTxtW: 448,
                 /* 01 은 카드에 선이 없다 (.fig) */
@@ -747,7 +746,7 @@
             ctx.arc(dx + dD / 2, dy + dD / 2, dD / 2, 0, 7);
             ctx.fill();
             ctx.fillStyle = "#fff";
-            ctx.font = `${CS.discWeight || 700} ${CS.discSize || O.discSize}px GmarketSans, Pretendard`;
+            ctx.font = `700 ${CS.discSize || O.discSize}px GmarketSans, Pretendard`;
             ctx.textAlign = "center";
             trk(ctx, d != null ? d + "%" : "—", dx + dD / 2, dy + dD / 2, -0.5, "center");
           }
@@ -1584,7 +1583,7 @@
             ctx.fillStyle = th.accent;
             ctx.beginPath(); ctx.arc(dcx, dcy, fD / 2, 0, 7); ctx.fill();
             ctx.fillStyle = "#fff";
-            ctx.font = `${CS.discWeight || 700} ${(DI && CS.fDiscSize) || O.discSize}px GmarketSans, Pretendard`;
+            ctx.font = `700 ${(DI && CS.fDiscSize) || O.discSize}px GmarketSans, Pretendard`;
             ctx.textAlign = "center";
             trk(ctx, d != null ? d + "%" : "—", dcx, dcy, -0.5, "center");
           }
