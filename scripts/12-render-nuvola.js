@@ -495,8 +495,47 @@
              Rectangle 2  흰 판 + DROP_SHADOW blur6.5 (테마색 gridShadow)
              셀 345×260 을 (85,417)/(440,417)/(85,687)/(440,687)
          예전 코드는 02 구조(사진 배경 + 알약 + 좌측정렬 Pretendard)를 쓰고 있었다. */
+      /* 템플릿 03 대제목 — 사진 상자 폭을 넘으면 "OPEN" 앞에서 줄을 바꾼다
+         (요청 2026-11-23).   "DODAMDODAM OPEN!"  →  "DODAMDODAM" / "OPEN!"
+         · 넘치지 않는 제목은 그대로 한 줄이다.
+         · OPEN 으로 시작하는 낱말이 없으면 마지막 낱말 앞에서 나눈다.
+         · 시트에서 이미 줄을 나눠 둔 제목은 그 줄마다 따로 본다.
+         · 낱말이 하나뿐이면 나눌 데가 없어 그대로 둔다(넘칠 수 있다).
+         호출 전에 ctx.font 를 제목 글꼴로 맞춰 둬야 한다. */
+      function t03TitleLines(ctx, text, maxW, track) {
+        const out = [];
+        for (const raw of String(text || "").split(/\r?\n/)) {
+          const line = raw.trim();
+          if (!line) continue;
+          const words = line.split(/\s+/);
+          if (words.length < 2 || trkWidth(ctx, line, track) <= maxW) {
+            out.push(line);
+            continue;
+          }
+          let at = -1;
+          for (let i = words.length - 1; i >= 1; i--)
+            if (/^open/i.test(words[i])) { at = i; break; }
+          if (at < 0) at = words.length - 1;
+          out.push(words.slice(0, at).join(" "), words.slice(at).join(" "));
+        }
+        return out;
+      }
+      /* 제목이 n 줄이 되면 아래(날짜·사진 상자)를 그만큼 내린다.
+         ⚠ 캔버스 높이는 고정이다(상세 히어로 1080 · 피드 1350 · 썸네일 1080).
+           그래서 사진 상자는 "아래 끝을 그대로 두고 위만 내린다" — 상자 높이와
+           사진 칸 높이가 줄어든다(사진은 cover 라 위아래가 조금 더 잘릴 뿐 안 찌그러진다).
+           아래 섹션은 1px 도 안 움직인다.
+         ⚠ 예전에는 시트에서 제목을 두 줄로 적어도 날짜·상자가 안 내려가 겹쳤다. */
+      function t03Shift(lines, titleSize, lineH) {
+        const step = Math.max(lineH, Math.round(titleSize)); // 줄 간격 (피드는 글자 120 · 줄상자 80)
+        return { step, extra: Math.max(0, lines - 1) * step };
+      }
+      function t03Grid(G, extra) {
+        if (!extra) return G;
+        return { ...G, y: G.y + extra, h: G.h - extra, ch: G.ch - extra / 2 };
+      }
       function nvMain03(ctx, W, H, th) {
-        const M = NVM, G = NVM.grid, T = NVM.t03;
+        const M = NVM, G0 = NVM.grid, T = NVM.t03;
         /* 배경은 시트에서 고른 히어로 이미지를 그대로 화면 전체에 채운다.
            (패턴을 코드에 내장하지 않는다 — 히어로는 데이터다) */
         ctx.fillStyle = th.mainBg || "#f8fbe1";
@@ -519,19 +558,19 @@
           "center",
         );
 
-        /* 2줄 — 대제목 (시트 heroTitle 의 둘째 줄) */
-        const big = String(heroT2() || heroT1() || "")
-          .split(/\r?\n/)
-          .filter(Boolean);
+        /* 2줄 — 대제목 (시트 heroTitle 의 둘째 줄). 사진 상자 폭을 넘으면 OPEN 앞에서 나눈다 */
         ctx.font = `700 ${T.titleSize}px ${T.font}`;
+        const big = t03TitleLines(ctx, heroT2() || heroT1() || "", G0.w, T.track);
+        const SH = t03Shift(big.length, T.titleSize, T.lineH);
+        const G = t03Grid(G0, SH.extra);
         big.forEach((l, i) =>
-          trk(ctx, l, cx, T.titleY + T.lineH / 2 + i * T.lineH, T.track, "center"),
+          trk(ctx, l, cx, T.titleY + T.lineH / 2 + i * SH.step, T.track, "center"),
         );
 
         /* 날짜 */
         ctx.fillStyle = th.t03Date || th.pillBg || th.accent;
         ctx.font = `400 ${T.dateSize}px ${T.font}`;
-        trk(ctx, range03(state.d1, state.d2), cx, T.dateY + T.dateH / 2, T.track, "center");
+        trk(ctx, range03(state.d1, state.d2), cx, T.dateY + SH.extra + T.dateH / 2, T.track, "center");
         ctx.textBaseline = "alphabetic";
 
         /* 이미지 4컷 그리드 — 흰 판에 테마색 글로우 */
@@ -1427,20 +1466,22 @@
         ctx.font = `400 ${C.sellerSize}px ${C.font}`;
         trk(ctx, `${state.seller || "Seller_name"} Pick!`, cx, C.sellerY + C.lineH / 2, C.track, "center");
 
-        const big = String(heroT2() || heroT1() || "").split(/\r?\n/).filter(Boolean);
+        /* 상세(nvMain03)와 같은 규칙 — 사진 상자 폭을 넘으면 OPEN 앞에서 나눈다 */
         ctx.font = `700 ${C.titleSize}px ${C.font}`;
+        const big = t03TitleLines(ctx, heroT2() || heroT1() || "", C.grid.w, C.track);
+        const SH = t03Shift(big.length, C.titleSize, C.lineH);
         big.forEach((l, i) =>
-          trk(ctx, l, cx, C.titleY2 + C.lineH / 2 + i * C.lineH, C.track, "center"),
+          trk(ctx, l, cx, C.titleY2 + C.lineH / 2 + i * SH.step, C.track, "center"),
         );
 
         /* 썸네일(th03)만 날짜를 안 그린다. 피드(t03)·상세(nvMain03)는 그대로 */
         if (!C.dateOff) {
           ctx.fillStyle = th.t03Date || th.pillBg || th.accent;
           ctx.font = `400 ${C.dateSize}px ${C.font}`;
-          trk(ctx, range03(state.d1, state.d2), cx, C.dateY + C.dateH / 2, C.track, "center");
+          trk(ctx, range03(state.d1, state.d2), cx, C.dateY + SH.extra + C.dateH / 2, C.track, "center");
         }
         ctx.textBaseline = "alphabetic";
-        nvfGrid(ctx, C.grid, th);
+        nvfGrid(ctx, t03Grid(C.grid, SH.extra), th);
       }
 
       /* 섹션 헤딩 (option info. / color info.) */
