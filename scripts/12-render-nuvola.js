@@ -149,6 +149,10 @@
            피드는 같은 배치를 피드 배율로: txt 448(= fOptW) · 값 380 · 여백 21(= 16 × 416/320) */
         "01": { style: "labels", txtOptW: 342, discGap: 12, priceH: 82,
                 discOnImg: { dx: 16, dy: 16, fdx: 21, fdy: 21 },
+                /* 01 의 할인율 원 크기 (요청 2026-11-23): 지름 80 → 96, 글자 28 → 38.
+                   공용값(NV.opt.discD 80 · discSize 28)은 02·03 이 쓰므로 안 건드린다.
+                   피드는 같은 배율(×1.3 = 416/320)로: 지름 125 · 글자 49 (전 108 · 36). */
+                discD: 96, discSize: 38, fDiscD: 125, fDiscSize: 49,
                 /* .fig 2026-08: value_list 22px · 라벨56 · 카드 hug */
                 vlLabelW: 56, vlValW: 278, cardGap: 24, cardPadBot: 30, fTxtW: 448,
                 /* 01 은 카드에 선이 없다 (.fig) */
@@ -732,16 +736,17 @@
             /* discOnImg 가 있으면 이미지 칸 좌·상 여백 위치에 얹는다.
                썸네일을 먼저 그렸으므로 원이 사진 위에 온다. */
             const DI = CS.discOnImg;
+            const dD = CS.discD || O.discD; // 01 은 96
             const dx = DI ? imgLeft + DI.dx : ix + CS.txtOptW + CS.discGap;
             const dy = DI ? imgTop + DI.dy : btY;
             ctx.fillStyle = th.accent;
             ctx.beginPath();
-            ctx.arc(dx + O.discD / 2, dy + O.discD / 2, O.discD / 2, 0, 7);
+            ctx.arc(dx + dD / 2, dy + dD / 2, dD / 2, 0, 7);
             ctx.fill();
             ctx.fillStyle = "#fff";
-            ctx.font = `700 ${O.discSize}px GmarketSans, Pretendard`;
+            ctx.font = `700 ${CS.discSize || O.discSize}px GmarketSans, Pretendard`;
             ctx.textAlign = "center";
-            trk(ctx, d != null ? d + "%" : "—", dx + O.discD / 2, dy + O.discD / 2, -0.5, "center");
+            trk(ctx, d != null ? d + "%" : "—", dx + dD / 2, dy + dD / 2, -0.5, "center");
           }
           // 가격: 라벨 왼쪽 / 값 오른쪽 정렬, 2줄
           //  할인이 없으면 "정상가" 줄과 취소선을 지우고 값 한 줄만 남긴다
@@ -1570,12 +1575,13 @@
           if (!flat) {
             /* 상세와 같다 — discOnImg 면 이미지 칸 좌·상에 얹는다 (2026-11-23) */
             const DI = CS.discOnImg;
-            const dcx = DI ? fImgX + DI.fdx + O.discD / 2 : ix + IW - O.discD / 2;
-            const dcy = DI ? fImgY + DI.fdy + O.discD / 2 : btY + O.discD / 2;
+            const fD = (DI && CS.fDiscD) || O.discD; // 01 은 125
+            const dcx = DI ? fImgX + DI.fdx + fD / 2 : ix + IW - fD / 2;
+            const dcy = DI ? fImgY + DI.fdy + fD / 2 : btY + fD / 2;
             ctx.fillStyle = th.accent;
-            ctx.beginPath(); ctx.arc(dcx, dcy, O.discD / 2, 0, 7); ctx.fill();
+            ctx.beginPath(); ctx.arc(dcx, dcy, fD / 2, 0, 7); ctx.fill();
             ctx.fillStyle = "#fff";
-            ctx.font = `700 ${O.discSize}px GmarketSans, Pretendard`;
+            ctx.font = `700 ${(DI && CS.fDiscSize) || O.discSize}px GmarketSans, Pretendard`;
             ctx.textAlign = "center";
             trk(ctx, d != null ? d + "%" : "—", dcx, dcy, -0.5, "center");
           }
