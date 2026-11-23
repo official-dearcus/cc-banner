@@ -62,7 +62,24 @@
         ["none", "없음"],
         ["renewal", "리뉴얼"],
         ["new", "NEW"],
+        ["custom", "직접 입력"],
       ];
+      /* 직접 입력 배지 — 5글자까지 (요청 2026-11-23). 배지 알약이 그 이상은 못 버틴다. */
+      const BADGE_MAX = 5;
+      function clipBadge(s) {
+        return Array.from(String(s || "")).slice(0, BADGE_MAX).join("");
+      }
+      /* 배너에 찍힐 배지 글자. 빈 문자열이면 배지가 없다.
+         렌더러(12-render-nuvola 의 상세·피드 카드)가 이 함수 하나만 본다.
+         ⚠ "직접 입력"을 골랐는데 아직 글자가 없으면 배지를 안 그린다 —
+           빈 알약이 배너에 찍히면 안 된다. */
+      function badgeLabel(r) {
+        const b = (r && r.badge) || "none";
+        if (b === "renewal") return "RENEWAL!";
+        if (b === "new") return "NEW!";
+        if (b === "custom") return clipBadge(r.badgeText).trim();
+        return "";
+      }
       function badgePickHTML(r, i) {
         const cur = r.badge || "none";
         const sheet = r._badge0 ?? cur;
@@ -78,6 +95,9 @@
             ([k, lb]) =>
               `<button type="button" data-b="${k}" class="${k === cur ? "on" : ""}">${lb}</button>`,
           ).join("") +
+          (cur === "custom"
+            ? `<input class="robadgetxt" data-bt="${i}" maxlength="${BADGE_MAX}" value="${esc(clipBadge(r.badgeText))}" placeholder="5글자까지" />`
+            : "") +
           (note ? `<span class="nt">${note}</span>` : "") +
           `</div>`
         );
@@ -292,8 +312,27 @@
               r.badge = b.dataset.b;
               renderRows();
               draw();
+              /* 직접 입력을 고르면 바로 칠 수 있게 칸에 커서를 둔다 */
+              if (r.badge === "custom") {
+                const inp = box.querySelector(
+                  `.robadgetxt[data-bt="${b.parentElement.dataset.bi}"]`,
+                );
+                if (inp) inp.focus();
+              }
             }),
         );
+        /* 한글은 조합 중에 maxlength 를 넘길 수 있다 → 조합이 끝나면 한 번 더 자른다 */
+        box.querySelectorAll(".robadgetxt").forEach((inp) => {
+          const apply = (cut) => {
+            const r = state.rows[+inp.dataset.bt];
+            if (cut) inp.value = clipBadge(inp.value);
+            r.badgeText = clipBadge(inp.value);
+            draw();
+          };
+          inp.oninput = (e) => apply(!e.isComposing);
+          inp.addEventListener("compositionend", () => apply(true));
+          inp.onblur = () => apply(true);
+        });
         box.querySelectorAll("[data-nrev]").forEach(
           (b) =>
             (b.onclick = () => {

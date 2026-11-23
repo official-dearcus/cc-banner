@@ -20,6 +20,7 @@
           normal: r.normal,
           sale: r.sale,
           badge: r.badge,
+          badgeText: r.badgeText || "", // 직접 입력 배지 (2026-11-23)
           thumbUrl: r.thumbUrl || "",
         })),
         at: new Date().toLocaleString("ko-KR"),

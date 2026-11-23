@@ -578,7 +578,7 @@
          cardH = 위여백(textDY) + name-wrap + gap(cardGap) + 가격(priceH) + 아래여백(cardPadBot) */
       function nvMeasureCard(r) {
         const O = NV.opt, CS0 = nvCard5();
-        const badgeOn = CS0.badgeText ? true : r.badge !== "none";
+        const badgeOn = CS0.badgeText ? true : !!badgeLabel(r);
         _mc.font = `600 ${O.nameSize}px Pretendard`;
         const lns = [];
         for (const para of String(rowName(r)).split(/\r?\n/)) {
@@ -676,7 +676,7 @@
             trk(ctx, bt, ix + CS0.badgeW / 2, ny + CS0.badgeH / 2, -2, "center");
             ny += CS0.badgeH + (CS0.badgeGap ?? O.nameGap);
           } else {
-            const bt = r.badge === "renewal" ? "RENEWAL!" : "NEW!";
+            const bt = badgeLabel(r);
             ctx.font = `600 ${O.badgeSize}px Pretendard`;
             const bw = Math.max(O.badgeW, trkWidth(ctx, bt, -0.4) + 36);
             ctx.strokeStyle = th.badgeBorder || th.accent;
@@ -1485,7 +1485,7 @@
 
         const ix = x + (CSF.fOptDX ?? O.optX);
         const IW = CSF.fOptW || CW - O.optX - 38;
-        const badgeOn = CSF.badgeText ? true : r.badge !== "none";
+        const badgeOn = CSF.badgeText ? true : !!badgeLabel(r);
         // 내용 측정
         _mc.font = `600 ${O.nameSize}px Pretendard`;
         const lns = [];
@@ -1526,7 +1526,7 @@
             trk(ctx, bt, ix + CSF.fBadgeW / 2, ny + CSF.fBadgeH / 2, -2, "center");
             ny += CSF.fBadgeH + (CSF.fBadgeGap ?? O.nameGap);
           } else {
-            const bt = r.badge === "renewal" ? "RENEWAL!" : "NEW!";
+            const bt = badgeLabel(r);
             ctx.font = `600 ${O.badgeSize}px Pretendard`;
             const bw = Math.max(188, trkWidth(ctx, bt, -0.4) + 32);
             ctx.strokeStyle = th.badgeBorder || th.accent;

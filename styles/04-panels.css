@@ -966,6 +966,21 @@
         color: var(--accent);
         font-weight: 700;
       }
+      .robadgetxt {
+        width: 84px;
+        padding: 3px 8px;
+        border: 1px solid var(--accent);
+        border-radius: 999px;
+        font: inherit;
+        font-size: 10.5px;
+        line-height: 1.4;
+        color: var(--ink);
+        background: #fff;
+      }
+      .robadgetxt:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px var(--accent-weak);
+      }
       .robadgepick .nt {
         font-size: 10px;
         color: var(--ink-soft);
