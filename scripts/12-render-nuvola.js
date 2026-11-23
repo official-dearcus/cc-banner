@@ -148,6 +148,9 @@
                 /* 이미지 상/좌/하 여백 10 고정 → 높이는 카드에서 계산한다 (imgH 는 .fig 참고값) */
                 cardDX: 0, cardW: 740, imgDX: 10, imgDY: 10, imgH: 340, imgPadBot: 10, optDX: 366,
                 textDY: 29, priceDY: 249,
+                /* 제품명(product_name) 위 여백 — 01 만 (요청 2026-11-23).
+                   옵션 줄이 있든 없든 똑같이 10 내려간다. 배지·할인원은 그대로다. */
+                nameTop: 10,
                 /* .fig feed(01): 카드 960×468, img card+10,+10 416×448, 텍스트 card+474 */
                 fTextDY: 46, fPriceDY: 316, fImgDX: 10, fImgDY: 10,
                 fImgW: 416, fImgH: 448, fOptDX: 474, fOptW: 448,
@@ -582,7 +585,11 @@
           ? rowHs.reduce((a, b) => a + b, 0) + (rowHs.length - 1) * O.vlRowGap
           : 0;
         const txtOptH = lns.length * O.nameLineH + (vlH ? O.txtOptGap + vlH : 0);
-        const boxTopH = Math.max(txtOptH, O.discD);
+        /* nameTop 은 "가운데 맞춘 뒤" 더한다. txtOptH 에 넣으면 제품명이 한 줄일 때
+           할인원(80)과 가운데를 맞추느라 절반(5)만 내려간다. 높이에는 넣는다 —
+           그래야 옵션 줄이 긴 카드에서 가격줄과 안 겹치고 카드가 10 늘어난다. */
+        const nameTop = CS0.nameTop || 0;
+        const boxTopH = Math.max(txtOptH, O.discD) + nameTop;
         const nameWrapH =
           (badgeOn ? (CS0.badgeH || O.badgeH) + (CS0.badgeGap ?? O.nameGap) : 0) +
           boxTopH;
@@ -612,7 +619,7 @@
         /* 최소 높이 때문에 남은 자리. 글자 단을 그만큼 내려 사진과 가운데를 맞춘다 —
            위에 붙여 두면 가격 밑이 뻥 뚫려 보인다. 내용이 긴 카드는 0 이라 그대로다. */
         const slack = Math.max(0, cardH - textCardH);
-        return { lns, rowHs, attrs, rowH, lineH, txtOptH, boxTopH, nameWrapH, badgeOn, cardH, imgH, slack };
+        return { lns, rowHs, attrs, rowH, lineH, txtOptH, boxTopH, nameWrapH, badgeOn, cardH, imgH, slack, nameTop };
       }
 
       /* ── 옵션 카드 (내용에 맞춰 높이 가변) ── */
@@ -669,7 +676,9 @@
         }
         // box-top: [txt_option 250] gap12 [discount 80] — 둘 다 세로 중앙
         const btY = ny;
-        const tY = btY + (boxTopH - txtOptH) / 2;
+        /* 제품명 위 여백(m.nameTop, 01 만 10)은 가운데 맞춤과 별개로 그대로 더한다 */
+        const nameTop = m.nameTop || 0;
+        const tY = btY + (boxTopH - nameTop - txtOptH) / 2 + nameTop;
         ctx.fillStyle = "#333333";
         ctx.font = `600 ${O.nameSize}px Pretendard`;
         ctx.textAlign = "left";
