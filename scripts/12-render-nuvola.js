@@ -1777,6 +1777,30 @@
       }
       function nvFeedCount() { return nvFeedPlan().length; }
 
+      /* 피드 옵션면에서 카드(또는 그 테두리·흰 상자)가 시작하는 y.
+         사이즈 안내면이 같은 높이에서 시작하도록 여기서 한 번만 정한다.
+           01  O.listY 309          카드가 바로 놓인다
+           02  optBox.y 330         흰 컨테이너
+           03  optBox03.y − 테두리  카드 둘레의 띠(fFrameW 24)까지 포함 → 296 */
+      function nvfOptTop(th) {
+        if (!nvCfg().optDark) return NVF.opt.listY;
+        const B = state.tpl === "03" ? NVF.optBox03 : NVF.optBox;
+        if (B.bg !== null) return B.y;
+        const CS = nvCard5();
+        const fw = CS.frameKey && th[CS.frameKey] ? CS.fFrameW || CS.frameW || 0 : 0;
+        return B.y + B.pad - fw;
+      }
+      /* 같은 이유로 좌우도 맞춘다. 01·02 는 60~1020 으로 원래 같았고,
+         03 만 카드 둘레 띠가 56~1024 라 사이즈 상자(60~1020)보다 4 씩 넓었다. */
+      function nvfOptSpan(th) {
+        const S = NVF.size;
+        if (!nvCfg().optDark) return { x: NVF.opt.listX, w: NVF.opt.listW };
+        const B = state.tpl === "03" ? NVF.optBox03 : NVF.optBox;
+        if (B.bg !== null) return { x: B.x, w: B.w };
+        const CS = nvCard5();
+        const fw = CS.frameKey && th[CS.frameKey] ? CS.fFrameW || CS.frameW || 0 : 0;
+        return { x: B.x + B.pad - fw, w: B.cardW + fw * 2 };
+      }
       function nvFeedSlide(ctx, idx, th) {
         const W = 1080, H = NVF.feedH;
         const p = nvFeedPlan()[idx];
@@ -1844,7 +1868,16 @@
           return;
         }
         // 사이즈 안내
-        nvfHead(ctx, W, S.headY, "option", th);
+        /* 제목과 흰 상자의 시작 높이를 옵션면과 똑같이 맞춘다 (신고 2026-11-23).
+           옵션면 다음 장이 사이즈 안내라 넘겨 볼 때 두 장이 어긋나 보였다.
+                 제목 y          상자(카드) 위
+             01  118 = 118       309 ≠ 330   ← 21 낮았다
+             02  118 = 118       330 = 330
+             03  100 ≠ 118       296 ≠ 330   ← 제목 18 · 상자 34 낮았다
+           S.headY · boxY(.fig Frame6 @330)는 더 안 쓴다 — 옵션면 값에서 가져온다. */
+        nvfHead(ctx, W, state.tpl === "03" ? O.head03.headY : O.headY, "option", th);
+        const boxY = nvfOptTop(th);
+        const { x: boxX, w: boxW } = nvfOptSpan(th);
         const sImg = nvSizeInfoImg();
         /* 피드는 캔버스 높이가 1350 으로 고정이라 상세처럼 무한정 늘릴 수 없다.
            ① 사진이 S.imgH 보다 낮으면 → 그 높이만큼만 쓰고 흰 박스도 같이 줄인다
@@ -1852,21 +1885,21 @@
            요청 2026-10-12. 예전엔 둘 다 cover 라서 위아래가 잘렸다. */
         const gapBelow = S.ntY - (S.imgY + S.imgH); // 사진 ↔ 알림 바
         const botPad = S.boxH - (S.ntY + S.ntH); // 알림 바 ↔ 박스 아래
-        const imgH = Math.min(S.imgH, sizeInfoNatH(sImg, S.boxW, S.imgH));
+        const imgH = Math.min(S.imgH, sizeInfoNatH(sImg, boxW, S.imgH));
         const ntY = state.notice ? S.imgY + imgH + gapBelow : 0;
         const boxH = state.notice
           ? ntY + S.ntH + botPad
           : S.imgY + imgH + S.imgY;
         ctx.fillStyle = "#ffffff";
-        ctx.fillRect(S.boxX, S.boxY, S.boxW, boxH);
+        ctx.fillRect(boxX, boxY, boxW, boxH);
         if (sImg)
-          clipRect(ctx, S.boxX, S.boxY + S.imgY, S.boxW, imgH, () =>
-            drawRatioFit(ctx, sImg, S.boxX, S.boxY + S.imgY, S.boxW, imgH,
+          clipRect(ctx, boxX, boxY + S.imgY, boxW, imgH, () =>
+            drawRatioFit(ctx, sImg, boxX, boxY + S.imgY, boxW, imgH,
               (sImg.naturalWidth || sImg.width) /
                 (sImg.naturalHeight || sImg.height)),
           );
         if (state.notice) {
-          const nx = S.boxX + (S.boxW - S.ntW) / 2, ny = S.boxY + ntY;
+          const nx = boxX + (boxW - S.ntW) / 2, ny = boxY + ntY;
           ctx.fillStyle = nvNoticeBg(th);
           ctx.fillRect(nx, ny, S.ntW, S.ntH);
           ctx.fillStyle = th.accent;
