@@ -13,7 +13,11 @@
    번호는 renumberBlocks() 가 "보이는 것만" 세므로 탭마다 1부터 다시 매겨진다. */
 
       const NAV_TABS = [
-        { key: "group", label: "제품군" },
+        /* 첫 칸은 탭이 아니라 "처음 화면(행사 설정)으로" 버튼이다 (요청 2026-11-23).
+           제품군 고르기는 데이터 탭 1번으로 옮겨 갔고(C), 여기 남아 있던
+           제품군 목록·[행사 정보 수정] 은 처음 화면과 하는 일이 겹쳤다.
+           key 는 "group" 그대로 둔다 — #gnav 등 기존 코드가 이 값을 본다. */
+        { key: "group", label: "행사정보", setup: true },
         { key: "data", label: "데이터" },
         { key: "tpl", label: "템플릿" },
         { key: "order", label: "순서" },
@@ -24,9 +28,22 @@
         const s = localStorage.getItem(NAV_KEY);
         if (s && NAV_TABS.some((t) => t.key === s)) NAV_CUR = s;
       } catch (e) {}
+      /* 예전에 "제품군" 탭을 보다가 나간 브라우저 — 그 탭은 이제 없다 */
+      if (NAV_CUR === "group") NAV_CUR = "data";
+
+      /* 처음 화면(행사 설정)을 연다. 로고·[행사 정보 수정] 과 같은 길 —
+         입력한 값은 그대로 남아 있다. */
+      function navGoSetup() {
+        const su = document.getElementById("setup");
+        if (su && !su.hidden) return;
+        if (typeof openSetup === "function")
+          openSetup(!(typeof SESSION !== "undefined" && SESSION && SESSION.started));
+      }
 
       function navSet(key) {
-        if (!NAV_TABS.some((t) => t.key === key)) return;
+        const tab = NAV_TABS.find((t) => t.key === key);
+        if (!tab) return;
+        if (tab.setup) return navGoSetup(); // 탭을 옮기지 않는다
         NAV_CUR = key;
         try {
           localStorage.setItem(NAV_KEY, key);
