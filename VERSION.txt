@@ -1,3 +1,10 @@
+cc-banner  build 2026-11-23-S
+템플릿 01 — 할인율 원 글자 38 → 36 (요청 2026-11-23 "너무 큼")
+  지름 96 은 그대로. 신형·구형(뱀부) 둘 다 고쳤다.
+    상세  12-render-nuvola NV_CARD["01"].discSize · 16-render-cards L01.discSize
+    피드  49 → 47 (= 36 × 1.3)  NV_CARD["01"].fDiscSize · 15-render-thumb-feed
+
+이전:
 cc-banner  build 2026-11-23-R
 뱀부500 템플릿 01 에도 같은 배치 (신고 2026-11-23 "뱀부는 적용이 안 됐다")
   M·N·Q 는 신형 렌더러(12-render-nuvola)만 고쳤다. 뱀부500 의 01·02 는

@@ -6,7 +6,7 @@
          신형 렌더러(12-render-nuvola 의 NV_CARD["01"])와 같은 값이어야 한다. */
       const NAME_W = { "01": 342, "02": 342 };
       /* 템플릿 01 의 제품명 위 여백 · 이미지 위 할인원 (신형 NV_CARD["01"] 과 같은 값) */
-      const L01 = { nameTop: 10, discD: 96, discSize: 38, discDX: 16, discDY: 16 };
+      const L01 = { nameTop: 10, discD: 96, discSize: 36, discDX: 16, discDY: 16 };
       const ATTR_LH = 30,
         ATTR_GAP = 10; // ⚠️ 라벨 있는 블록의 행높이/간격 — 피그마 미확인(추정)
 

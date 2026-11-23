@@ -393,7 +393,7 @@
         // 할인율 원 (실측 discount_rate 104×104, 01은 원형 초록)
         /* 할인이 없으면 원 배지를 안 그린다 (2026-09-04) */
         if (!flatPrice(r)) {
-        /* 이미지 칸 좌·상 21 · 지름 125 · 글자 49 — 신형 피드(NV_CARD["01"])와 같은 값 */
+        /* 이미지 칸 좌·상 21 · 지름 125 · 글자 47 — 신형 피드(NV_CARD["01"])와 같은 값 */
         const _dr = 62.5,
           _dcx = x + 10 + 21 + _dr,
           _dcy = top + imgY + 21 + _dr;
@@ -402,7 +402,7 @@
         ctx.arc(_dcx, _dcy, _dr, 0, 7);
         ctx.fill();
         ctx.fillStyle = "#fff";
-        ctx.font = `700 49px GmarketSans, Pretendard`;
+        ctx.font = `700 47px GmarketSans, Pretendard`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         trk(ctx, d != null ? d + "%" : "—", _dcx, _dcy + 1, -0.6, "center");

@@ -152,7 +152,8 @@
                 /* 01 의 할인율 원 크기 (요청 2026-11-23): 지름 80 → 96, 글자 28 → 38.
                    공용값(NV.opt.discD 80 · discSize 28)은 02·03 이 쓰므로 안 건드린다.
                    피드는 같은 배율(×1.3 = 416/320)로: 지름 125 · 글자 49 (전 108 · 36). */
-                discD: 96, discSize: 38, fDiscD: 125, fDiscSize: 49,
+                /* 글자 38 → 36 (같은 날 재요청 — 38 은 너무 컸다). 피드 49 → 47 (= 36 × 1.3) */
+                discD: 96, discSize: 36, fDiscD: 125, fDiscSize: 47,
                 /* .fig 2026-08: value_list 22px · 라벨56 · 카드 hug */
                 vlLabelW: 56, vlValW: 278, cardGap: 24, cardPadBot: 30, fTxtW: 448,
                 /* 01 은 카드에 선이 없다 (.fig) */
