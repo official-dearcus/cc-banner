@@ -29,6 +29,10 @@
         for (const tk of tokens) {
           if (/^\s+$/.test(tk)) {
             if (units.length) units[units.length - 1] += tk;
+          } else if (/^·+$/.test(tk) && units.length) {
+            /* 가운뎃점은 앞 낱말에 붙인다 — "화이트 ·" 까지가 한 덩어리.
+               따로 두면 줄이 "· 베이지" 로 시작하는 일이 생긴다 (2026-11-23). */
+            units[units.length - 1] += tk;
           } else units.push(tk);
         }
         const lines = [];

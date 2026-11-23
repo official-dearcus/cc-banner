@@ -79,7 +79,21 @@
          colorLine 이 지정된 행은 Color 줄을 "현재 선택한 색상"으로 자동 생성한다.
          (시트 optionInfo 에 Color 줄이 남아 있어도 중복되지 않게 걸러낸다) */
       const COLOR_LABEL_RE = /^(color|colour|컬러|색상)$/i;
+      /* 옵션 값의 구분 표기 — 시트에는 쉼표로 적고 배너에는 " · " 로 찍는다
+         (요청 2026-11-23).   "화이트, 베이지" → "화이트 · 베이지"
+         ⚠ 숫자 사이의 쉼표는 천 단위라 건드리지 않는다: "1개당 3,300원" 그대로.
+           쉼표 뒤에 공백이 있거나, 쉼표 뒤가 숫자가 아니면 구분 쉼표로 본다.
+         시트·편집기의 값은 쉼표 그대로다 — 그릴 때만 바꾼다. */
+      function dotSep(s) {
+        return String(s ?? "")
+          .replace(/\s*[,、](?:\s+|(?!\d))\s*/g, " · ")
+          .replace(/\s*·\s*$/, ""); // 끝에 남은 쉼표는 버린다
+      }
+      /* 배너 카드에 그릴 옵션 줄 (상세·피드 공통). 값은 " · " 표기로 바뀐 것. */
       function cardAttrs(r) {
+        return cardAttrsRaw(r).map((a) => ({ ...a, value: dotSep(a.value) }));
+      }
+      function cardAttrsRaw(r) {
         const base = rowAttrs(r);
         const line = (r.colorLine || "").trim();
         if (!line) return base;

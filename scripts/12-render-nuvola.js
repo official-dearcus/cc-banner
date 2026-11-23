@@ -1094,7 +1094,7 @@
         // 줄별 색상명
         let ly = top + K.txtY + M.headH + K.txtGap;
         for (const r of M.rows) {
-          const names = r.list.map((c) => c.label).join(", ");
+          const names = r.list.map((c) => c.label).join(" · "); // 옵션 카드와 같은 표기 (2026-11-23)
           ctx.font = `700 ${K.listSize}px Pretendard`;
           const lw = r.label ? ctx.measureText(r.label).width : 0;
           ctx.font = `400 ${K.listSize}px Pretendard`;
@@ -1657,7 +1657,7 @@
         let ly = K.txtY + K.eyebrowLH + K.headGap + K.headingLH + K.txtGap;
         ctx.textBaseline = "middle";
         for (const r of rows) {
-          const names = r.list.map((c) => c.label).join(", ");
+          const names = r.list.map((c) => c.label).join(" · "); // 옵션 카드와 같은 표기 (2026-11-23)
           ctx.font = `700 ${K.listSize}px Pretendard`;
           const lw = r.label ? ctx.measureText(r.label).width : 0;
           ctx.font = `400 ${K.listSize}px Pretendard`;
