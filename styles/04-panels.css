@@ -330,6 +330,7 @@
         font-weight: 600;
         line-height: 1.45;
         color: var(--ink);
+        white-space: pre-line; /* 제품명의 줄바꿈을 목록에서도 그대로 보여준다 */
       }
       .roattr {
         font-size: 11px;
@@ -839,6 +840,27 @@
         border: 1px solid var(--accent-weak);
         border-radius: 7px;
         background: #fff;
+      }
+      /* 여러 줄 입력 (2026-11-23) — 높이는 내용에 맞춰 스크립트가 늘린다 */
+      textarea.ronameedit {
+        display: block;
+        resize: none;
+        overflow: hidden;
+        line-height: 1.45;
+        margin-bottom: 4px;
+      }
+      .ronamehint {
+        font-size: 10.5px;
+        line-height: 1.4;
+        color: var(--ink-soft);
+        margin: 0 0 6px;
+      }
+      .ronamehint b {
+        color: #b45309;
+        font-weight: 600;
+      }
+      .ronamerev {
+        margin: 0 0 6px;
       }
       .ronameedit:focus {
         border-color: var(--accent);

@@ -15,7 +15,33 @@
           thumbSrc: c.thumbSrc || "",
           _normal0: c._normal0 ?? c.normal,
           _sale0: c._sale0 ?? c.sale,
+          /* 시트(또는 처음 넣은) 제품명 — 줄바꿈을 고치다 되돌릴 기준 (2026-11-23) */
+          _name0: c._name0 ?? (c.name || [c.n1, c.n2].filter(Boolean).join(" ")),
         };
+      }
+      /* 제품명이 배너(상세)에서 실제로 몇 줄로 그려지는지.
+         사용자가 넣은 줄바꿈은 그대로 지키고, 한 줄이 폭을 넘으면 더 접힌다. */
+      function bannerNameLineCount(r) {
+        try {
+          if (typeof nvIsOn === "function" && nvIsOn())
+            return nvMeasureCard(r).lns.length;
+          return nameLines(r).filter(Boolean).length;
+        } catch (e) {
+          return 0;
+        }
+      }
+      function nameHintText(r) {
+        const typed = String(rowName(r) || "")
+          .split(/\r?\n/)
+          .filter((s) => s.trim()).length;
+        const drawn = bannerNameLineCount(r);
+        /* 줄을 직접 나눴는데도 더 접히면 의도와 다른 것 → 눈에 띄게.
+           한 줄로 둔 채 자동으로 접히는 건 정상이라 담담하게 알린다. */
+        if (typed > 1 && drawn > typed)
+          return `<b>폭을 넘는 줄이 있어 배너에서는 ${drawn}줄로 접힙니다.</b> 긴 줄을 한 번 더 나눠 보세요.`;
+        if (drawn > 1 && typed <= 1)
+          return `배너에서 ${drawn}줄로 자동 줄바꿈됩니다. 원하는 자리에서 Enter 를 치면 거기서 나뉩니다.`;
+        return `Enter 로 줄을 나눕니다. 지금 배너에서 ${drawn || typed}줄.`;
       }
       function rowKey(r) {
         return `${rowName(r)}|${r.normal}|${r.sale}`;
@@ -88,7 +114,11 @@
         <div class="roinfo">
           ${
             r._edit
-              ? `<input class="ronameedit" data-ni="${i}" value="${esc(rowName(r))}" placeholder="제품명" />`
+              ? `<textarea class="ronameedit" data-ni="${i}" rows="1" placeholder="제품명" spellcheck="false">${esc(rowName(r))}</textarea>` +
+                `<div class="ronamehint" data-nh="${i}">${nameHintText(r)}</div>` +
+                (rowName(r) !== (r._name0 ?? rowName(r))
+                  ? `<button class="revert ronamerev" data-nrev="${i}">제품명을 시트 값으로</button>`
+                  : "")
               : `<div class="roname">${esc(rowName(r))}</div>`
           }
           ${
@@ -199,7 +229,16 @@
            ⚠ 빈 카드를 추가하면 "신규 제품" 이 글자로만 찍혀 바꿀 방법이 없었다
              (2026-09-02 신고). name1/name2 로 들어온 구형 행도 여기서 name 으로
              합쳐지므로 rowName() 과 결과가 어긋나지 않는다. */
-        box.querySelectorAll("input[data-ni]").forEach((inp) => {
+        /* (2026-11-23) 한 줄 input → 여러 줄 textarea.
+           Enter 를 친 자리에서 배너의 제품명도 줄이 나뉜다. 렌더러는 원래부터
+           제품명 안의 줄바꿈을 지켰다(시트의 Alt+Enter) — 편집기가 못 넣었을 뿐이다.
+           예전 input 은 시트에서 온 줄바꿈까지 지워 버렸다. */
+        box.querySelectorAll("textarea[data-ni]").forEach((inp) => {
+          const grow = () => {
+            inp.style.height = "auto";
+            inp.style.height = inp.scrollHeight + 2 + "px";
+          };
+          grow();
           inp.oninput = () => {
             const r = state.rows[+inp.dataset.ni];
             /* rowName() 은 name → [n1,n2] 순으로 본다(16-render-cards).
@@ -207,9 +246,26 @@
             r.name = inp.value;
             delete r.n1;
             delete r.n2;
+            grow();
+            /* 입력 중에는 목록을 다시 그리지 않는다(커서가 튄다) — 안내 글만 바꾼다 */
+            const h = box.querySelector(`[data-nh="${inp.dataset.ni}"]`);
+            if (h) h.innerHTML = nameHintText(r);
             draw();
           };
+          inp.onchange = () => renderRows(); // 되돌리기 버튼 노출 갱신
         });
+        box.querySelectorAll("[data-nrev]").forEach(
+          (b) =>
+            (b.onclick = () => {
+              const r = state.rows[+b.dataset.nrev];
+              r.name = r._name0;
+              delete r.n1;
+              delete r.n2;
+              renderRows();
+              draw();
+              status("제품명을 시트 값으로 되돌렸습니다.");
+            }),
+        );
         /* 입력 중에는 다시 그리지 않는다 — 커서가 튀기 때문에 캔버스만 갱신 */
         box.querySelectorAll("input[data-af]").forEach((inp) => {
           inp.oninput = () => {
