@@ -349,7 +349,9 @@
         const priceH = 106;
         const _lines = [];
         _mc.font = `600 40px Pretendard`;
-        const _nameW = IW - 104 - 20;
+        /* 2026-11-23: 할인원이 이미지 칸 위로 갔다 → 제품명이 폭 448 을 다 쓴다
+           (전에는 원 104 + 간격 20 을 뺀 324). 상세 card01 · 신형 nvfCard 와 같은 배치. */
+        const _nameW = IW;
         for (const para of String(rowName(r)).split(/\r?\n/)) {
           const t = para.trim();
           if (t) _lines.push(...wrapText(_mc, t, _nameW, -0.8));
@@ -361,10 +363,7 @@
             ? 32
             : _attrs.length * 32
           : 0;
-        const boxTopH = Math.max(
-          _lines.length * 52 + (_attrH ? 13 + _attrH : 0),
-          104,
-        );
+        const boxTopH = _lines.length * 52 + (_attrH ? 13 + _attrH : 0);
         const nameH = (r.badge !== "none" ? 49 + 20 : 0) + boxTopH;
         // name-wrap 과 price-wrap 사이는 고정 47(.fig gap). 전체를 세로 중앙에 둔다.
         // SPACE_EVENLY 로 나누면 이름이 3줄일 때 간격이 저절로 좁아지므로 고정으로 둔다.
@@ -394,22 +393,19 @@
         // 할인율 원 (실측 discount_rate 104×104, 01은 원형 초록)
         /* 할인이 없으면 원 배지를 안 그린다 (2026-09-04) */
         if (!flatPrice(r)) {
+        /* 이미지 칸 좌·상 21 · 지름 125 · 글자 49 — 신형 피드(NV_CARD["01"])와 같은 값 */
+        const _dr = 62.5,
+          _dcx = x + 10 + 21 + _dr,
+          _dcy = top + imgY + 21 + _dr;
         ctx.fillStyle = th.circleBg || th.accent;
         ctx.beginPath();
-        ctx.arc(ix + IW - 52, boxTopY + 52, 52, 0, 7);
+        ctx.arc(_dcx, _dcy, _dr, 0, 7);
         ctx.fill();
         ctx.fillStyle = "#fff";
-        ctx.font = `700 36px GmarketSans, Pretendard`;
+        ctx.font = `700 49px GmarketSans, Pretendard`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        trk(
-          ctx,
-          d != null ? d + "%" : "—",
-          ix + IW - 52,
-          boxTopY + 53,
-          -0.6,
-          "center",
-        );
+        trk(ctx, d != null ? d + "%" : "—", _dcx, _dcy + 1, -0.6, "center");
         }
         // 제품명 40px lineH52 + 단위 24px (왼쪽, 할인원과 안 겹치게 폭 제한)
         ctx.textAlign = "left";

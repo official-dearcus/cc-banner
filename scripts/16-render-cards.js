@@ -1,6 +1,12 @@
 /* CC 배너 제너레이터 — 16-render-cards
    원본 index.html 에서 기능별로 분리. 로드 순서가 곧 실행 순서다. */
-      const NAME_W = { "01": 250, "02": 342 }; // 피그마 txt_option 폭
+      /* 피그마 txt_option 폭.
+         01 은 250 이었다(할인원 80 이 오른쪽에 있어서). 2026-11-23 요청으로 할인원을
+         이미지 칸 위로 옮기면서 가격줄(option_price-wrap)과 같은 342 가 됐다.
+         신형 렌더러(12-render-nuvola 의 NV_CARD["01"])와 같은 값이어야 한다. */
+      const NAME_W = { "01": 342, "02": 342 };
+      /* 템플릿 01 의 제품명 위 여백 · 이미지 위 할인원 (신형 NV_CARD["01"] 과 같은 값) */
+      const L01 = { nameTop: 10, discD: 96, discSize: 38, discDX: 16, discDY: 16 };
       const ATTR_LH = 30,
         ATTR_GAP = 10; // ⚠️ 라벨 있는 블록의 행높이/간격 — 피그마 미확인(추정)
 
@@ -88,7 +94,10 @@
         const attrs = rowAttrs(r);
         const aH = attrsHeight(attrs);
         const txtH = lines * SHARED.name.lineH + (aH ? 10 + aH : 0);
-        const boxTopH = Math.max(txtH, 80);
+        /* 01 은 할인원이 이미지 위로 가서 제품명 줄이 원 높이(80)에 안 묶인다.
+           대신 제품명 위 여백(10)이 붙는다. 02 는 전과 같다. */
+        const boxTopH =
+          state.tpl === "01" ? txtH + L01.nameTop : Math.max(txtH, 80);
         const nameWrapH = (r.badge !== "none" ? 36 + 16 : 0) + boxTopH;
         const contentH = nameWrapH + 36 + priceH;
         // 피그마: 카드 1~4=360(콘텐츠 최대 296), 배지+3줄인 카드5는 428로 키움.
@@ -189,27 +198,27 @@
         ctx.textBaseline = "middle";
         ctx.fillStyle = SHARED.textStrong;
         ctx.font = `600 32px Pretendard`;
+        const nameY = boxTop + L01.nameTop; // 제품명 위 여백 10 (2026-11-23)
         m.lns.forEach((l, i) =>
-          trk(ctx, l, ox, boxTop + i * 40 + 20, -0.64, "left"),
+          trk(ctx, l, ox, nameY + i * 40 + 20, -0.64, "left"),
         );
-        if (m.aH) drawAttrs(ctx, m.attrs, ox, boxTop + m.lines * 40 + 10);
+        if (m.aH) drawAttrs(ctx, m.attrs, ox, nameY + m.lines * 40 + 10);
         // 할인 원 — 할인이 없으면 안 그린다 (2026-09-04)
+        /* 이미지 칸(box-img) 좌·상 16 에 얹는다 — 지름 96 · 글자 38 (2026-11-23).
+           전에는 제품명 오른쪽(ox+302)에 지름 80 으로 있었다. 썸네일 뒤에 그리므로 사진 위에 온다. */
         const d = disc(r.normal, r.sale);
         if (!flatPrice(r)) {
+          const dr = L01.discD / 2;
+          const dcx = x + L01.discDX + dr,
+            dcy = top + 10 + L01.discDY + dr;
           ctx.fillStyle = th.circleBg;
           ctx.beginPath();
-          ctx.arc(ox + 302, boxTop + 40, 40, 0, 7);
+          ctx.arc(dcx, dcy, dr, 0, 7);
           ctx.fill();
           ctx.fillStyle = "#fff";
-          ctx.font = `700 28px GmarketSans, Pretendard`;
-          trk(
-            ctx,
-            d != null ? d + "%" : "—",
-            ox + 302,
-            boxTop + 41,
-            -0.56,
-            "center",
-          );
+          ctx.font = `700 ${L01.discSize}px GmarketSans, Pretendard`;
+          trk(ctx, d != null ? d + "%" : "—", dcx, dcy + 1, -0.56, "center");
+          ctx.fillStyle = SHARED.textStrong;
         }
 
         // 가격 2줄
