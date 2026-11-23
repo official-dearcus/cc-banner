@@ -174,7 +174,7 @@
       }
       function themesForKey(gk, tpl) {
         const g = G()[gk],
-          all = themeTable((g && g.family) || "bamboo", tpl);
+          all = themeTable((g && g.family) || "nuvola", tpl);
         const f = g && g.themeFilter && g.themeFilter[tpl];
         if (!f || !f.length) return all;
         const out = {};

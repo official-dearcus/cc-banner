@@ -1820,6 +1820,23 @@
               y += O.cardH + O.listGap;
             });
           }
+          /* 카드가 한 장뿐인 옵션면은 아래가 반쯤 빈다 → 맨 아래에 로고를 넣는다
+             (요청 2026-11-23). 구형(뱀부) 피드에만 있던 처리를 전 제품군으로 옮겼다.
+               01      히어로의 날짜 바와 같은 accent 띠(0,1250,W×100) + 흰 로고
+               02·03   진한 배경 위에 로고만 (y 1270). 03 핑크처럼 배경이 밝은
+                       테마는 섹션 제목과 같은 잉크색을 쓴다.
+             위치·크기는 구형 값 그대로다 (폭 200 · 높이 32). */
+          if (p.rows.length === 1) {
+            if (nvCfg().optDark) {
+              const C = nvCfg();
+              const ink = (C.optInkKey && th[C.optInkKey]) || "#ffffff";
+              drawLogo(ctx, W / 2 - 100, 1270, 200, 32, ink);
+            } else {
+              ctx.fillStyle = th.accent;
+              ctx.fillRect(0, 1250, W, 100);
+              drawLogo(ctx, W / 2 - 100, 1300, 200, 32);
+            }
+          }
           return;
         }
         // 사이즈 안내

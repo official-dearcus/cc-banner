@@ -29,7 +29,7 @@
             .filter((t) => Object.keys(themeTable(t.fam, t.key)).length);
           out[g.key] = {
             label: g.label,
-            family: (tpls[0] && tpls[0].fam) || "bamboo",
+            family: (tpls[0] && tpls[0].fam) || "nuvola",
             templates: tpls.map((t) => t.key),
             themeFilter: Object.fromEntries(tpls.map((t) => [t.key, t.themes])),
             labelOverride: Object.fromEntries(

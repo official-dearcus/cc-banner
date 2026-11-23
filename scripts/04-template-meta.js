@@ -61,10 +61,19 @@
          전부 신형이다. 그래야 새 라인이 템플릿 3개를 그대로 받는다.
          (예전 규칙은 "nuvola* 만 신형, 나머지 구형" 이었는데, 그러면 새 라인이
           03 없는 구형으로 떨어졌다. bamboo500 은 아래 규칙에서도 그대로 구형이다.) */
-      const LEGACY_FAM_RE = /^bamboo/i;
+      /* (2026-11-23) 구형 렌더러를 껐다 — 뱀부500 도 신형으로 그린다.
+         템플릿 01 카드를 고칠 때마다 두 렌더러를 따로 고쳐야 했고, 실제로
+         뱀부만 빠지는 일이 났다(같은 날 R). 넘침 경고·자동 글자 크기 같은
+         다음 과제를 두 번 만들지 않으려고 하나로 합쳤다.
+         ⚠ 구형 코드(13·14·15·16 의 hero01/hero02/card01/card02/feedCard…)는
+           지우지 않고 남겨 뒀다. 이 정규식을 /^bamboo/i 로 되돌리고 아래
+           세 군데의 기본값("nuvola")을 "bamboo" 로 바꾸면 예전으로 돌아간다.
+           (여기 tplParts · curFam · 07-sheet-sync 의 family · 10-group-template-ui 의 themesForKey)
+         뱀부500 에서 달라진 것은 VERSION.txt 의 2026-11-23-W 에 적었다. */
+      const LEGACY_FAM_RE = /(?!)/; // 아무것도 안 걸린다
       function tplParts(id) {
         const m = String(id || "").match(/^(.*)_(\d+)$/);
-        if (!m) return { fam: "bamboo", key: "01" };
+        if (!m) return { fam: "nuvola", key: "01" };
         return { fam: LEGACY_FAM_RE.test(m[1]) ? "bamboo" : "nuvola", key: m[2] };
       }
       function tplIdToFam(id) { return tplParts(id).fam; }
@@ -79,7 +88,7 @@
       /* 현재 제품군의 패밀리 */
       function curFam() {
         const g = G()[state.group];
-        return (g && g.family) || "bamboo";
+        return (g && g.family) || "nuvola";
       }
       const TPL_META_NUVOLA = {
         "01": { label: "01 · 사진형", desc: "배경 사진 + 중앙 타이틀 + 날짜 바" },
