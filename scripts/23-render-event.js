@@ -132,6 +132,40 @@
                 padT: 10, padB: 10, padL: 20, padR: 20, imgRight: true },
       };
       function evCfg() { return EV_TPL[state.tpl] || EV_TPL["01"]; }
+      /* 상세페이지에서 이벤트 섹션 바로 위가 컬러 안내 섹션이면, 01·02 는 두 섹션의
+         배경색이 같아서 경계가 안 보인다 (신고 2026-11-23).
+             01  컬러 colorBg(중간톤)       · 이벤트 colorBg       ← 같다
+             02  컬러 colorBgLight(연한톤)  · 이벤트 colorBgLight  ← 같다
+         그럴 때만 가격 옵션 섹션의 색 조합을 빌려 쓴다.
+             01  배경 colorBgLight · 제목 accent      (옵션 섹션: 연한 배경 + accent 제목)
+             02  배경 colorBg      · 제목·셀러 흰색   (옵션 섹션: 중간톤 배경 + 흰 제목)
+         ⚠ "바로 위"는 실제로 그려지는 섹션 기준이다 — 색이 없는 제품군은 컬러 섹션
+           높이가 0 이라 위가 옵션 섹션이 되고, 그때는 원래 색 그대로다.
+           섹션 순서를 드래그로 바꿔도 같은 규칙으로 따라간다.
+         ⚠ 03 은 이벤트 배경이 accent(진한톤)라 겹칠 일이 없다 → 대상이 아니다.
+         ⚠ 인스타 피드는 섹션마다 따로 한 장이라 이 문제가 없다 → 피드는 원래 색(evCfg). */
+      const EV_ALT = {
+        "01": { bgKey: "colorBgLight", titleInkKey: "accent" },
+        "02": { bgKey: "colorBg", titleInk: "#ffffff", subInk: "#ffffff" },
+      };
+      function evAboveKey() {
+        try {
+          if (typeof nvSecOrder !== "function" || typeof NV_SECTIONS === "undefined")
+            return null;
+          let prev = null;
+          for (const k of nvSecOrder()) {
+            if (k === "event") return prev;
+            const S = NV_SECTIONS[k];
+            if (S && !S.feedOnly && (S.h() || 0) > 0) prev = k;
+          }
+        } catch (e) {}
+        return null;
+      }
+      function evDetailCfg() {
+        const base = evCfg();
+        const alt = EV_ALT[state.tpl];
+        return alt && evAboveKey() === "color" ? { ...base, ...alt } : base;
+      }
       /* 이벤트 배너의 색.
          ⚠ event_comp 는 패밀리가 없는 단일 디자인이다. 그런데 구형(뱀부) 테마엔
            colorBg / colorBgLight 키가 아예 없어서(accent·circleBg·badgeBorder·
@@ -444,7 +478,7 @@
       /* 상세 마지막 섹션 */
       function evSection(ctx, W, oy, th) {
         if (!evOn()) return;
-        const S = evCfg();
+        const S = evDetailCfg(); // 위가 컬러 섹션이면 옵션 섹션 색을 빌린다
         const H = evSectionH();
         ctx.fillStyle = evColor(th, S.bgKey);
         ctx.fillRect(0, oy, W, H);
