@@ -933,6 +933,44 @@
       .ronote b {
         color: var(--accent);
       }
+      /* 배지 고르기 (2026-11-23) — 작은 알약 세 개 */
+      .robadgepick {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-top: 7px;
+      }
+      .robadgepick .lb {
+        font-size: 10.5px;
+        color: var(--ink-soft);
+        margin-right: 2px;
+      }
+      .robadgepick button {
+        padding: 3px 8px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: #fff;
+        font: inherit;
+        font-size: 10.5px;
+        line-height: 1.4;
+        color: var(--ink-soft);
+        cursor: pointer;
+      }
+      .robadgepick button:hover {
+        border-color: var(--accent);
+      }
+      .robadgepick button.on {
+        border-color: var(--accent);
+        background: var(--accent-weak);
+        color: var(--accent);
+        font-weight: 700;
+      }
+      .robadgepick .nt {
+        font-size: 10px;
+        color: var(--ink-soft);
+        margin-left: 4px;
+      }
       .robadge {
         display: inline-block;
         margin-top: 5px;

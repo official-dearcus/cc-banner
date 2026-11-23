@@ -15,6 +15,8 @@
           thumbSrc: c.thumbSrc || "",
           _normal0: c._normal0 ?? c.normal,
           _sale0: c._sale0 ?? c.sale,
+          /* 시트의 배지 값 — 편집기에서 껐다 켤 때 "시트 값" 표시에 쓴다 (2026-11-23) */
+          _badge0: c._badge0 ?? (c.badge || "none"),
           /* 시트(또는 처음 넣은) 제품명 — 줄바꿈을 고치다 되돌릴 기준 (2026-11-23) */
           _name0: c._name0 ?? (c.name || [c.n1, c.n2].filter(Boolean).join(" ")),
         };
@@ -52,6 +54,34 @@
 
       let dragFrom = null;
       const BADGE_LABEL = { none: "", renewal: "리뉴얼", new: "NEW" };
+      /* 배지 고르기 (요청 2026-11-23) — 카드마다 없음 / 리뉴얼 / NEW.
+         시트에 적힌 배지는 처음부터 켜져 있고 여기서 끌 수 있다.
+         시트가 빈칸인 제품도 여기서 붙일 수 있다. 시트 원본은 안 바뀐다.
+         ⚠ 템플릿 03 은 이 배지 대신 "OPTION n." 번호 딱지를 쓴다 — 골라도 03 에는 안 나온다. */
+      const BADGE_OPTS = [
+        ["none", "없음"],
+        ["renewal", "리뉴얼"],
+        ["new", "NEW"],
+      ];
+      function badgePickHTML(r, i) {
+        const cur = r.badge || "none";
+        const sheet = r._badge0 ?? cur;
+        const note =
+          state.tpl === "03"
+            ? `템플릿 03 은 OPTION 번호를 씁니다`
+            : cur !== sheet
+              ? `시트 값: ${BADGE_OPTS.find((o) => o[0] === sheet)?.[1] || "없음"}`
+              : "";
+        return (
+          `<div class="robadgepick" data-bi="${i}"><span class="lb">배지</span>` +
+          BADGE_OPTS.map(
+            ([k, lb]) =>
+              `<button type="button" data-b="${k}" class="${k === cur ? "on" : ""}">${lb}</button>`,
+          ).join("") +
+          (note ? `<span class="nt">${note}</span>` : "") +
+          `</div>`
+        );
+      }
 
       /* ---------- 옵션 줄 직접 수정 (전 제품군 공통) ----------
          평소에는 읽기 전용으로 보여주고, [옵션 수정] 을 누른 카드만
@@ -129,7 +159,7 @@
                 : `<div class="roattr roempty">옵션 줄 없음</div>`
           }
           <button class="mini roedit-btn${r._edit ? " on" : ""}" data-edit="${i}">${r._edit ? "수정 완료" : "옵션 수정"}</button>
-          ${r.badge !== "none" ? `<span class="robadge">${BADGE_LABEL[r.badge]}</span>` : ""}
+          ${badgePickHTML(r, i)}
         </div>
       </div>
       <div class="prices">
@@ -254,6 +284,16 @@
           };
           inp.onchange = () => renderRows(); // 되돌리기 버튼 노출 갱신
         });
+        /* 배지 켜고 끄기 */
+        box.querySelectorAll(".robadgepick button").forEach(
+          (b) =>
+            (b.onclick = () => {
+              const r = state.rows[+b.parentElement.dataset.bi];
+              r.badge = b.dataset.b;
+              renderRows();
+              draw();
+            }),
+        );
         box.querySelectorAll("[data-nrev]").forEach(
           (b) =>
             (b.onclick = () => {

@@ -324,6 +324,8 @@
         renderTplList();
         renderThemes();
         syncTplUI();
+        /* 가격 카드 목록에 템플릿마다 다른 안내(배지 · 줄 수)가 있어 다시 그린다 */
+        if (typeof renderRows === "function") renderRows();
         /* 템플릿을 바꾸면 히어로를 비우기만 하고 끝나서 매번 다시 골라야 했다.
            테마에 매핑된 히어로가 있으면 그걸, 없으면 해당 템플릿에서 랜덤으로. */
         if (state.tpl !== prev) {
