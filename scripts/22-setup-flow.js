@@ -778,6 +778,10 @@ function startSession() {
   });
 
   $("#setup").hidden = true;
+  /* [옵션 편집으로] 를 누르면 항상 데이터 탭에서 시작한다 (요청 2026-11-23).
+     전에는 마지막에 보던 탭(localStorage)이 그대로 떠서, 순서 탭 같은 데서
+     시작하면 어디서부터 채워야 할지 헷갈렸다. */
+  if (typeof navSet === "function") navSet("data");
   const first = SESSION.groups[0];
   state.group = null; // gotoGroup 이 이전 슬롯을 저장하지 않도록
   gotoGroup(first);
