@@ -93,10 +93,12 @@
       }
       /* #nvBlocks 는 템플릿을 바꿀 때마다 새로 그려진다 → 다시 붙인다 */
       function watchPanelBlocks() {
-        const host = document.getElementById("nvBlocks");
-        if (!host || typeof MutationObserver === "undefined") return;
-        new MutationObserver(() => bindCollapse(host)).observe(host, {
-          childList: true,
+        ["nvBlocks", "nvBlocksAfter"].forEach((id) => {
+          const host = document.getElementById(id);
+          if (!host || typeof MutationObserver === "undefined") return;
+          new MutationObserver(() => bindCollapse(host)).observe(host, {
+            childList: true,
+          });
         });
       }
       (function initCollapse() {

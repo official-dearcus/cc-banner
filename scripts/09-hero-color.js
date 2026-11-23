@@ -139,13 +139,25 @@
       function renderNvBlocks() {
         const wrap = $("#nvBlocks");
         if (!wrap) return;
-        if (!nvIsOn()) { wrap.innerHTML = ""; renumberBlocks(); return; }
+        /* 안내 문구는 가격 카드 "아래"에 둔다 (요청 2026-11-23) — 배너에서도
+           옵션 카드 밑에 붙는 띠라 편집 순서를 맞췄다. 가격 카드 블록은
+           index.html 에 고정돼 있어서, 그 뒤에 둔 두 번째 자리(#nvBlocksAfter)에 그린다.
+           ⚠ 자리가 둘이 됐다 — 탭 숨김(30-nav)·접기(24-panel-collapse)도 둘 다 본다. */
+        const after = $("#nvBlocksAfter");
+        if (!nvIsOn()) {
+          wrap.innerHTML = "";
+          if (after) after.innerHTML = "";
+          renumberBlocks();
+          return;
+        }
         let html = "";
         // 안내 문구 (비우면 배너에서 제거됨)
-        html +=
+        const noticeHtml =
           `<div class="block"><label class="h"><span class="num"></span> 안내 문구</label>` +
           `<input type="text" id="nvNotice" maxlength="60" value="${(state.notice || "").replace(/"/g, "&quot;")}" />` +
           `<div class="hint">옵션 카드 아래 띠. <b>비우면 배너에서 빠집니다.</b></div></div>`;
+        if (after) after.innerHTML = noticeHtml;
+        else html += noticeHtml;
         // 사이즈 안내 이미지 on/off
         if (nvSizeInfoUrl()) {
           html +=

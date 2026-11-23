@@ -72,14 +72,15 @@
         /* 누볼라 추가 블록(#nvBlocks) — 안내 문구·사이즈 안내는 "내용"이라 데이터 탭.
            ⚠ 안쪽 .block 에도 표시해야 한다. 안 하면 다른 탭에서 번호만 먹고
              화면엔 안 보여서 번호가 건너뛴다(7번 실종, 2026-09-03 신고). */
-        const nb = document.getElementById("nvBlocks");
-        if (nb) {
+        ["nvBlocks", "nvBlocksAfter"].forEach((id) => {
+          const nb = document.getElementById(id);
+          if (!nb) return;
           const off = NAV_CUR !== "data";
           nb.classList.toggle("navoff", off);
           nb.querySelectorAll(".block").forEach((b) =>
             b.classList.toggle("navoff", off),
           );
-        }
+        });
         if (typeof renumberBlocks === "function") renumberBlocks();
         /* 탭 제목 (.fig 화면구성) — 데이터·템플릿 탭은 제목이 없다 */
         const ti = document.getElementById("navTitle");
@@ -112,11 +113,13 @@
               if (e.target.closest(".gt")) navSet("data");
             });
           /* 다른 코드가 블록을 새로 그리면(템플릿 전환 등) 다시 맞춘다 */
-          const host = document.getElementById("nvBlocks");
-          if (host && typeof MutationObserver !== "undefined")
-            new MutationObserver(() => navApply()).observe(host, {
-              childList: true,
-            });
+          ["nvBlocks", "nvBlocksAfter"].forEach((id) => {
+            const host = document.getElementById(id);
+            if (host && typeof MutationObserver !== "undefined")
+              new MutationObserver(() => navApply()).observe(host, {
+                childList: true,
+              });
+          });
         };
         if (document.readyState === "loading")
           document.addEventListener("DOMContentLoaded", start);
