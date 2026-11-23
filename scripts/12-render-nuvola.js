@@ -141,9 +141,16 @@
              value 값 열   194 폭
              price-wrap    카드 +(366,249) 342×82 → 249+82=331, 카드360 → 하단 29
            ⚠ 324 로 넓혔더니 이름이 할인 원(+262~342)을 덮어 되돌림 */
-        "01": { style: "labels", txtOptW: 250, discGap: 12, priceH: 82,
-                /* .fig 2026-08: value_list 22px · fr 1.2:4 (라벨56 값186) · 카드 hug */
-                vlLabelW: 56, vlValW: 186, cardGap: 24, cardPadBot: 30, fTxtW: 324,
+        /* (2026-11-23 요청) 할인율 원을 제품명 옆에서 떼어 이미지 칸(box-img) 위로 옮겼다.
+             전  [txt_option 250] gap12 [discount 80]   ← 한 줄(flex)로 묶여 있었다
+             후  discount 는 box-img 의 좌·상 16 에 얹힌다(position)
+                 txt_option 은 option_price-wrap 과 같은 폭 342 를 다 쓴다
+           값 열도 같이 넓어진다: 342 − 라벨 56 − 간격 8 = 278
+           피드는 같은 배치를 피드 배율로: txt 448(= fOptW) · 값 380 · 여백 21(= 16 × 416/320) */
+        "01": { style: "labels", txtOptW: 342, discGap: 12, priceH: 82,
+                discOnImg: { dx: 16, dy: 16, fdx: 21, fdy: 21 },
+                /* .fig 2026-08: value_list 22px · 라벨56 · 카드 hug */
+                vlLabelW: 56, vlValW: 278, cardGap: 24, cardPadBot: 30, fTxtW: 448,
                 /* 01 은 카드에 선이 없다 (.fig) */
                 /* 이미지 상/좌/하 여백 10 고정 → 높이는 카드에서 계산한다 (imgH 는 .fig 참고값) */
                 cardDX: 0, cardW: 740, imgDX: 10, imgDY: 10, imgH: 340, imgPadBot: 10, optDX: 366,
@@ -155,7 +162,7 @@
                 fTextDY: 46, fPriceDY: 316, fImgDX: 10, fImgDY: 10,
                 fImgW: 416, fImgH: 448, fOptDX: 474, fOptW: 448,
                 /* .fig feed_02: txt_option 324 · 라벨 60 · 값 256 (68 부터) */
-                fVlLabelW: 60, fVlColGap: 8, fVlValW: 256 },
+                fVlLabelW: 60, fVlColGap: 8, fVlValW: 380 },
         "02": { style: "inline", txtOptW: 342, priceH: 80,
                 /* .fig 2026-08: value_list 22px · fr 1:4 (라벨67 값267) · 카드 hug */
                 vlLabelW: 67, vlValW: 267, cardGap: 36, cardPadBot: 52, fTxtW: 456,
@@ -589,7 +596,8 @@
            할인원(80)과 가운데를 맞추느라 절반(5)만 내려간다. 높이에는 넣는다 —
            그래야 옵션 줄이 긴 카드에서 가격줄과 안 겹치고 카드가 10 늘어난다. */
         const nameTop = CS0.nameTop || 0;
-        const boxTopH = Math.max(txtOptH, O.discD) + nameTop;
+        /* 할인원이 이미지 위로 간 템플릿(01)은 제품명 줄이 원 높이(80)에 안 묶인다 */
+        const boxTopH = (CS0.discOnImg ? txtOptH : Math.max(txtOptH, O.discD)) + nameTop;
         const nameWrapH =
           (badgeOn ? (CS0.badgeH || O.badgeH) + (CS0.badgeGap ?? O.nameGap) : 0) +
           boxTopH;
@@ -721,15 +729,19 @@
           /* ── 01 (.fig 58:586 / 58:588) ── */
           /* 할인율: 이름 오른쪽 위, 원. 할인이 없으면 배지를 안 그린다 (2026-09-04) */
           if (!flat) {
-            const dx = ix + CS.txtOptW + CS.discGap;
+            /* discOnImg 가 있으면 이미지 칸 좌·상 여백 위치에 얹는다.
+               썸네일을 먼저 그렸으므로 원이 사진 위에 온다. */
+            const DI = CS.discOnImg;
+            const dx = DI ? imgLeft + DI.dx : ix + CS.txtOptW + CS.discGap;
+            const dy = DI ? imgTop + DI.dy : btY;
             ctx.fillStyle = th.accent;
             ctx.beginPath();
-            ctx.arc(dx + O.discD / 2, btY + O.discD / 2, O.discD / 2, 0, 7);
+            ctx.arc(dx + O.discD / 2, dy + O.discD / 2, O.discD / 2, 0, 7);
             ctx.fill();
             ctx.fillStyle = "#fff";
             ctx.font = `700 ${O.discSize}px GmarketSans, Pretendard`;
             ctx.textAlign = "center";
-            trk(ctx, d != null ? d + "%" : "—", dx + O.discD / 2, btY + O.discD / 2, -0.5, "center");
+            trk(ctx, d != null ? d + "%" : "—", dx + O.discD / 2, dy + O.discD / 2, -0.5, "center");
           }
           // 가격: 라벨 왼쪽 / 값 오른쪽 정렬, 2줄
           //  할인이 없으면 "정상가" 줄과 취소선을 지우고 값 한 줄만 남긴다
@@ -1487,7 +1499,7 @@
           ? rowHs.reduce((a, b) => a + b, 0) + (rowHs.length - 1) * O.vlRowGap
           : 0;
         const txtH = lns.length * O.nameLineH + (vlH ? O.txtGap + vlH : 0);
-        const boxTopH = Math.max(txtH, O.discD);
+        const boxTopH = CSF.discOnImg ? txtH : Math.max(txtH, O.discD);
         const nameWrapH = (badgeOn ? O.badgeH + O.nameGap : 0) + boxTopH;
         const priceH = O.priceRowH * 2 + O.priceGap;
         const infoH = nameWrapH + O.optGap + priceH;
@@ -1556,7 +1568,10 @@
         if (CS.style === "labels") {
           /* ── 01 피드: 할인 원 오른쪽 위 + 정상가/혜택가 2줄 ── */
           if (!flat) {
-            const dcx = ix + IW - O.discD / 2, dcy = btY + O.discD / 2;
+            /* 상세와 같다 — discOnImg 면 이미지 칸 좌·상에 얹는다 (2026-11-23) */
+            const DI = CS.discOnImg;
+            const dcx = DI ? fImgX + DI.fdx + O.discD / 2 : ix + IW - O.discD / 2;
+            const dcy = DI ? fImgY + DI.fdy + O.discD / 2 : btY + O.discD / 2;
             ctx.fillStyle = th.accent;
             ctx.beginPath(); ctx.arc(dcx, dcy, O.discD / 2, 0, 7); ctx.fill();
             ctx.fillStyle = "#fff";
