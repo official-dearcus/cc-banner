@@ -560,6 +560,7 @@
          nvListItems(높이 배분)와 nvCard(그리기)가 반드시 같은 값을 써야
          카드가 겹치거나 뜨지 않는다.
          cardH = 위여백(textDY) + name-wrap + gap(cardGap) + 가격(priceH) + 아래여백(cardPadBot) */
+      const NV_NOOPT_TOP = 50; // 옵션 줄이 없는 카드의 추가 위 여백 (상세 860 기준 px)
       function nvMeasureCard(r) {
         const O = NV.opt, CS0 = nvCard5();
         const badgeOn = CS0.badgeText ? true : r.badge !== "none";
@@ -586,8 +587,15 @@
         const nameWrapH =
           (badgeOn ? (CS0.badgeH || O.badgeH) + (CS0.badgeGap ?? O.nameGap) : 0) +
           boxTopH;
+        /* 옵션 줄(Size·Color·단가…)이 하나도 없는 카드는 위 여백을 50 더 준다
+           (요청 2026-11-23). 제품명 한두 줄만 카드 맨 위에 붙어 있고 가격은
+           맨 아래라, 가운데가 비어 제품명이 위로 쏠려 보였다.
+           ⚠ 높이 계산에도 넣는다 — 그래야 배지까지 있는 긴 카드에서
+             제품명이 가격줄을 밀어내지 않고 카드가 그만큼 늘어난다.
+             보통은 최소 높이(360/380) 안에서 남는 자리(slack)를 쓰므로 카드 높이는 그대로다. */
+        const topExtra = attrs.length ? 0 : NV_NOOPT_TOP;
         const textCardH =
-          (CS0.textDY ?? 0) + nameWrapH + (CS0.cardGap ?? O.optGap) +
+          (CS0.textDY ?? 0) + topExtra + nameWrapH + (CS0.cardGap ?? O.optGap) +
           CS0.priceH + (CS0.cardPadBot ?? 0);
         /* 이미지 높이도 여기서 정한다. 카드가 가변인데 이미지만 고정(340/320)이라
            옵션 줄이 늘면 카드 아래에 이미지가 못 따라와 빈 칸이 생기고,
@@ -612,7 +620,7 @@
         /* 최소 높이 때문에 남은 자리. 글자 단을 그만큼 내려 사진과 가운데를 맞춘다 —
            위에 붙여 두면 가격 밑이 뻥 뚫려 보인다. 내용이 긴 카드는 0 이라 그대로다. */
         const slack = Math.max(0, cardH - textCardH);
-        return { lns, rowHs, attrs, rowH, lineH, txtOptH, boxTopH, nameWrapH, badgeOn, cardH, imgH, slack };
+        return { lns, rowHs, attrs, rowH, lineH, txtOptH, boxTopH, nameWrapH, badgeOn, cardH, imgH, slack, topExtra };
       }
 
       /* ── 옵션 카드 (내용에 맞춰 높이 가변) ── */
@@ -640,9 +648,14 @@
            위 여백이 달라지면 제품군마다 배지 높이가 어긋난다
            (풋케어만 배지가 내려와 보인 원인, 2026-10-22). */
         const iy = top + (CS0.textDY ?? 0);
+        /* 옵션 줄이 없는 카드의 추가 위 여백 (nvMeasureCard 참고).
+           01·02  배지·제품명·할인원이 통째로 내려간다
+           03     "OPTION 1." 배지는 카드 위 테두리에 붙은 딱지라 그대로 두고
+                  그 아래 제품명부터 내려간다 */
+        const topExtra = m.topExtra || 0;
 
         ctx.textAlign = "left"; ctx.textBaseline = "middle";
-        let ny = iy;
+        let ny = iy + (CS0.badgeText ? 0 : topExtra);
         if (badgeOn) {
           if (CS0.badgeText) {
             /* .fig 03: 160×52 각진 사각형, 테마색 배경 + 흰 글자
@@ -653,7 +666,7 @@
             ctx.fillStyle = "#ffffff";
             ctx.font = `600 ${CS0.badgeSize}px 'Afacad Flux', Pretendard`;
             trk(ctx, bt, ix + CS0.badgeW / 2, ny + CS0.badgeH / 2, -2, "center");
-            ny += CS0.badgeH + (CS0.badgeGap ?? O.nameGap);
+            ny += CS0.badgeH + (CS0.badgeGap ?? O.nameGap) + topExtra;
           } else {
             const bt = r.badge === "renewal" ? "RENEWAL!" : "NEW!";
             ctx.font = `600 ${O.badgeSize}px Pretendard`;
@@ -705,7 +718,7 @@
            썸네일 최소 높이 때문에 카드가 늘어난 만큼(slack)은 가격줄만 내린다 —
            그러면 가격이 카드 아래쪽에 붙어 .fig 의 justify-between 과 같아지고,
            위쪽(배지·제품명)은 제품군과 무관하게 같은 자리에서 시작한다. */
-        const py = iy + nameWrapH + (CS0.cardGap ?? O.optGap) + (m.slack || 0);
+        const py = iy + topExtra + nameWrapH + (CS0.cardGap ?? O.optGap) + (m.slack || 0);
         const G0 = nvG();
 
         if (CS.style === "labels") {
