@@ -109,6 +109,12 @@
           $("#urlT").value = PRESET.csv.TemplateMaster || "";
           $("#urlH").value = PRESET.csv.HeroMaster || "";
           $("#urlC").value = PRESET.csv.ColorMaster || "";
+          /* ⚠ 이 두 줄이 빠져 있어서, 저장된 설정이 없는 브라우저(처음 여는 PC ·
+             미리보기 주소)에서는 EventMaster · GiftMaster 를 아예 안 불렀다.
+             → "시트에서 EventMaster · GiftMaster 를 못 읽었습니다" (신고 2026-11-23)
+             loadCfg() 의 fill 에는 들어 있어서 설정이 한 번 저장된 뒤로는 멀쩡했다. */
+          if ($("#urlE")) $("#urlE").value = PRESET.csv.EventMaster || "";
+          if ($("#urlG")) $("#urlG").value = PRESET.csv.GiftMaster || "";
           $("#proxyUrl").value = PRESET.proxy || "";
           cfg = {
             mode: "csv",
