@@ -15,7 +15,8 @@
    ============================================================ */
 const SESSION = {
   groups: [], // 선택한 제품군 키 목록
-  theme: "", // 공통 테마 (탭에서 개별 변경 가능)
+  theme: "", // 공통 테마 컬러 (탭에서 개별 변경 가능)
+  tpl: "", // 공통 테마 종류 = 템플릿 키 "01"·"02"·"03" (탭에서 개별 변경 가능)
   events: [], // 이벤트 배너 — 행사 단위. 제품군과 무관하게 전부 같이 나간다
   sellerKo: "",
   sellerEn: "",
@@ -145,6 +146,18 @@ function gotoGroup(key) {
   if (prev) {
     slotApply(prev);
     refreshPanels();
+    /* 행사 설정에서 테마 종류를 바꿨으면 이 제품군을 여는 순간 적용한다.
+       슬롯은 state 로 올라와 있어야 템플릿을 바꿀 수 있어서 여기서 한다. */
+    if (prev._tplTo) {
+      const to = prev._tplTo;
+      delete prev._tplTo;
+      const g = G()[key];
+      if (g && (g.templates || []).includes(to) && state.tpl !== to) {
+        switchTpl(to);
+        syncSellerField();
+        SESSION.slots[key] = slotSnap();
+      }
+    }
   } else {
     /* 행사 테마를 먼저 넘긴다 — selectGroup 안에서 히어로를 고르기 때문에,
        나중에 덮으면 히어로가 엉뚱한 테마 기준으로 정해진다 */
@@ -348,19 +361,97 @@ function calSet(d1, d2) {
    ============================================================ */
 let SETUP_PICK = [];
 let SETUP_THEME = "";
+let SETUP_TPL = "";
+const RAND_T = "__rand"; // 실제 테마·템플릿 키와 겹치지 않는 값
+
+/* 테마 종류 — 고른 제품군들이 가진 템플릿 키의 합집합.
+   한 제품군에만 있는 종류도 고를 수 있고, 없는 제품군은 자기 템플릿 중에서 고른다. */
+/* img — 버튼 썸네일 (860×1080 히어로 시안을 480 폭으로 줄인 것).
+   ⚠ /assets 는 1년 immutable 캐시다. 그림을 바꿀 때는 덮어쓰지 말고
+     파일명을 -v2 로 올리고 여기 경로도 같이 고친다. */
+const SETUP_TPL_INFO = {
+  "01": { name: "사진형", desc: "연출컷이 화면을 꽉 채웁니다", img: "assets/tpl/tpl-01-v1.jpg" },
+  "02": { name: "누끼형", desc: "배경 없는 제품 사진을 얹습니다", img: "assets/tpl/tpl-02-v1.jpg" },
+  "03": { name: "갤러리형", desc: "제품 사진 4컷을 나란히 놓습니다", img: "assets/tpl/tpl-03-v1.jpg" },
+};
+function setupPool() {
+  const gs = G();
+  return SETUP_PICK.length ? SETUP_PICK : Object.keys(gs);
+}
+function allTplKeys() {
+  const gs = G();
+  const set = new Set();
+  setupPool().forEach((k) =>
+    ((gs[k] && gs[k].templates) || []).forEach((t) => set.add(t)),
+  );
+  return Array.from(set).sort();
+}
+/* 고른 종류가 없는 제품군 이름 목록 (안내용) */
+function groupsWithoutTpl(t) {
+  const gs = G();
+  return SETUP_PICK.filter((k) => {
+    const ts = (gs[k] && gs[k].templates) || [];
+    return ts.length && !ts.includes(t);
+  }).map((k) => (gs[k] && gs[k].label) || k);
+}
+function renderSetupTpls() {
+  const el = $("#suTpls");
+  if (!el) return;
+  const keys = allTplKeys();
+  if (!keys.includes(SETUP_TPL)) SETUP_TPL = keys[0] || "";
+  el.innerHTML = keys
+    .map((k) => {
+      const info = SETUP_TPL_INFO[k] || { name: "템플릿 " + k, desc: "" };
+      return (
+        `<button class="${k === SETUP_TPL ? "on" : ""}" data-t="${k}">` +
+        (info.img
+          ? `<img class="th" src="${info.img}" alt="" loading="lazy" />`
+          : `<span class="th"></span>`) +
+        `<span class="no">${k}</span><span class="nm">${info.name}</span>` +
+        `<span class="sub">${info.desc}</span></button>`
+      );
+    })
+    .join("")
+    + (keys.length > 1
+      ? `<button class="rand" data-t="${RAND_T}" title="종류 중 하나를 무작위로 고릅니다"><span class="th dice">🎲</span><span class="nm">랜덤</span><span class="sub">하나를 무작위로 고릅니다</span></button>`
+      : "");
+  el.querySelectorAll("button").forEach(
+    (b) =>
+      (b.onclick = () => {
+        if (b.dataset.t === RAND_T) {
+          const pool = keys.filter((k) => k !== SETUP_TPL);
+          SETUP_TPL = pool[Math.floor(Math.random() * pool.length)] || keys[0];
+        } else {
+          SETUP_TPL = b.dataset.t;
+        }
+        renderSetupTpls();
+        renderSetupThemes(); // 종류마다 쓸 수 있는 컬러가 다르다 (03 은 세 색)
+      }),
+  );
+  const hint = $("#suTplHint");
+  if (hint) {
+    const miss = SETUP_TPL ? groupsWithoutTpl(SETUP_TPL) : [];
+    hint.textContent = miss.length
+      ? `${miss.join(", ")} 에는 ${SETUP_TPL} 종류가 없어 그 제품군만 다른 종류로 시작합니다.`
+      : "히어로 이미지는 다음 화면의 템플릿 탭에서 고릅니다.";
+  }
+}
 
 function allThemeKeys() {
-  /* 패밀리가 섞여도 여섯 색 키는 공통이다. 교집합을 쓴다. */
+  /* 패밀리가 섞여도 여섯 색 키는 공통이다. 교집합을 쓴다.
+     (2026-11-23) 고른 테마 종류 기준으로 본다 — 예전에는 제품군의 첫 템플릿만 봐서
+     03(세 색)을 쓸 때도 여섯 색이 다 나왔다. */
   const gs = G();
   let keys = null;
-  for (const k of SETUP_PICK.length ? SETUP_PICK : Object.keys(gs)) {
+  for (const k of setupPool()) {
     const g = gs[k];
-    const tpl = (g && g.templates && g.templates[0]) || null;
-    const id = tpl ? tpl.templateId || tpl.id || tpl : null;
+    const ts = (g && g.templates) || [];
+    const id = ts.includes(SETUP_TPL) ? SETUP_TPL : ts[0] || null;
     let t = {};
     try {
       t = themesForKey(k, id) || {};
     } catch (e) {}
+    if (!id) continue;
     const ks = Object.keys(t);
     if (!ks.length) continue;
     keys = keys === null ? ks : keys.filter((x) => ks.includes(x));
@@ -399,6 +490,7 @@ function renderSetupGroups() {
           prefetchGroup(k); // 체크하는 순간 이미지를 미리 받아둔다
         }
         renderSetupGroups();
+        renderSetupTpls();
         renderSetupThemes();
         updateSetupBar();
       }),
@@ -553,7 +645,6 @@ function eventAdd(where) {
 }
 function setupEventAdd() { eventAdd("setup"); }
 
-const RAND_T = "__rand"; // 실제 테마 키와 겹치지 않는 값
 function renderSetupThemes() {
   const el = $("#suThemes");
   if (!el) return;
@@ -621,9 +712,11 @@ function openSetup(reset) {
   if (reset) {
     SETUP_PICK = [];
     SETUP_THEME = "";
+    SETUP_TPL = "";
   } else {
     SETUP_PICK = SESSION.groups.slice();
     SETUP_THEME = SESSION.theme;
+    SETUP_TPL = SESSION.tpl || "";
     $("#suSellerKo").value = SESSION.sellerKo || "";
     $("#suSellerEn").value = SESSION.sellerEn || "";
   }
@@ -634,6 +727,7 @@ function openSetup(reset) {
   SETUP_EVENTS = reset ? [] : (SESSION.events || []).map((e) => ({ ...e }));
   renderSellerList();
   renderSetupGroups();
+  renderSetupTpls();
   renderSetupThemes();
   renderSetupEvents();
   updateSetupBar();
@@ -642,8 +736,14 @@ function openSetup(reset) {
 
 function startSession() {
   const keep = SESSION.slots;
+  /* 지금 열려 있는 제품군은 마지막 저장 뒤에 고친 것(템플릿·테마·타이틀)이
+     state 에만 있다. 설정 화면을 다녀오면 옛 슬롯으로 되돌아가던 것을 막는다. */
+  if (SESSION.started && state.group && keep[state.group])
+    keep[state.group] = slotSnap();
   SESSION.groups = SETUP_PICK.slice();
   SESSION.theme = SETUP_THEME;
+  const tplChanged = SESSION.started && SETUP_TPL !== SESSION.tpl;
+  SESSION.tpl = SETUP_TPL;
   SESSION.events = SETUP_EVENTS.map((e) => ({ ...e }));
   if (typeof renderPanelEvents === "function") renderPanelEvents();
   SESSION.sellerKo = $("#suSellerKo").value.trim();
@@ -656,6 +756,14 @@ function startSession() {
   SESSION.groups.forEach((k) => {
     if (keep[k]) SESSION.slots[k] = keep[k];
   });
+  /* 테마 종류를 바꿔서 돌아왔으면 이미 열어본 제품군에도 적용한다.
+     안 바꿨으면 손대지 않는다 — 제품군별로 따로 고른 템플릿이 날아가면 안 된다.
+     실제 전환은 그 제품군을 여는 순간(gotoGroup)에 한다. */
+  if (tplChanged && SESSION.tpl)
+    Object.values(SESSION.slots).forEach((s) => {
+      if (s.tpl !== SESSION.tpl) s._tplTo = SESSION.tpl;
+      else delete s._tplTo; // 아직 안 열어본 예전 예약이 남아 있으면 지운다
+    });
 
   state.d1 = SESSION.d1;
   state.d2 = SESSION.d2;
@@ -686,6 +794,7 @@ function saveSession() {
       JSON.stringify({
         groups: SESSION.groups,
         theme: SESSION.theme,
+        tpl: SESSION.tpl,
         events: SESSION.events,
         sellerKo: SESSION.sellerKo,
         sellerEn: SESSION.sellerEn,
@@ -787,6 +896,7 @@ selectGroup = function (key) {
     if (typeof renderPanelEvents === "function") renderPanelEvents();
     if (!$("#setup").hidden) {
       renderSetupGroups();
+      renderSetupTpls();
       renderSetupThemes();
       updateSetupBar();
     }
@@ -799,6 +909,7 @@ selectGroup = function (key) {
     SESSION.sellerKo = last.sellerKo || "";
     SESSION.sellerEn = last.sellerEn || "";
     SESSION.theme = last.theme || "";
+    SESSION.tpl = last.tpl || "";
     SESSION.events = Array.isArray(last.events) ? last.events : [];
     SESSION.d1 = last.d1 || "";
     SESSION.d2 = last.d2 || "";

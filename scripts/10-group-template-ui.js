@@ -34,8 +34,15 @@
         state.heroTainted = false;
       }
       /* 처음 진입 시 템플릿을 랜덤으로 고른다 — 선택 고민을 줄이되, 이후 수정 가능 */
+      /* 행사 설정에서 테마 종류(01·02·03)를 정했으면 그게 랜덤보다 우선한다.
+         (2026-11-23) 그 제품군에 없는 종류면 전처럼 랜덤으로 떨어진다. */
       function pickInitialTpl(g) {
         if (!g.templates || !g.templates.length) return null;
+        try {
+          if (typeof SESSION !== "undefined" && SESSION && SESSION.started &&
+              SESSION.tpl && g.templates.includes(SESSION.tpl))
+            return SESSION.tpl;
+        } catch (e) {}
         return g.templates[Math.floor(Math.random() * g.templates.length)];
       }
       /* 처음 진입 시 컬러도 랜덤 (템플릿 허용 컬러 중, 수정 가능) */
@@ -279,6 +286,31 @@
         }
         renderNvBlocks();
       }
+      /* 지금 제품군의 템플릿을 바꾼다. 템플릿 카드 클릭과
+         행사 설정의 "테마 종류" 변경(22-setup-flow)이 같은 길을 탄다. */
+      function switchTpl(t) {
+        const prev = state.tpl;
+        state.tpl = t;
+        if (state.tpl !== prev) clearHero(); // 템플릿마다 히어로 성격이 다르므로 초기화
+        if (!themesForKey(state.group, state.tpl)[state.theme])
+          state.theme =
+            sessionTheme(state.group, state.tpl) ||
+            Object.keys(themesForKey(state.group, state.tpl))[0];
+        applyTplDefaults();
+        renderTplList();
+        renderThemes();
+        syncTplUI();
+        /* 템플릿을 바꾸면 히어로를 비우기만 하고 끝나서 매번 다시 골라야 했다.
+           테마에 매핑된 히어로가 있으면 그걸, 없으면 해당 템플릿에서 랜덤으로. */
+        if (state.tpl !== prev) {
+          const mapped =
+            typeof heroForTheme === "function" ? heroForTheme() : null;
+          if (mapped) pickHero(mapped.url);
+          else applyRandomHero();
+        }
+        renderHeroList();
+        draw();
+      }
       /* 템플릿 목록 — 프리뷰 카드 (§2.1.2) */
       function renderTplList() {
         const g = G()[state.group],
@@ -301,29 +333,7 @@
           .join("");
         box.querySelectorAll(".tplcard").forEach(
           (el) =>
-            (el.onclick = () => {
-              const prev = state.tpl;
-              state.tpl = el.dataset.t;
-              if (state.tpl !== prev) clearHero(); // 템플릿마다 히어로 성격이 다르므로 초기화
-              if (!themesForKey(state.group, state.tpl)[state.theme])
-                state.theme = Object.keys(
-                  themesForKey(state.group, state.tpl),
-                )[0];
-              applyTplDefaults();
-              renderTplList();
-              renderThemes();
-              syncTplUI();
-              /* 템플릿을 바꾸면 히어로를 비우기만 하고 끝나서 매번 다시 골라야 했다.
-                 테마에 매핑된 히어로가 있으면 그걸, 없으면 해당 템플릿에서 랜덤으로. */
-              if (state.tpl !== prev) {
-                const mapped =
-                  typeof heroForTheme === "function" ? heroForTheme() : null;
-                if (mapped) pickHero(mapped.url);
-                else applyRandomHero();
-              }
-              renderHeroList();
-              draw();
-            }),
+            (el.onclick = () => switchTpl(el.dataset.t)),
         );
         /* ⚠ 여기서 캔버스가 새로 만들어져 내용이 비어 있다.
            서명 캐시를 반드시 지워야 한다. 안 그러면 "변화 없음"으로 건너뛰어
