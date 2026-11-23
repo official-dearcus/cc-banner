@@ -971,15 +971,19 @@
         const g = nvG();
         const forced = String((g && g.colorGrid) || "").trim().toLowerCase();
         if (forced === "shared" || forced === "lines") return forced;
+        /* ⚠ 판별은 "지금 고른 색"(src)이 아니라 시트에 등록된 전체 색으로 한다.
+           고른 색으로 보면, 겹치는 색을 하나씩 끄다가 겹침이 사라지는 순간
+           공통 → 줄별로 뒤집혀 흰 상자가 없어지고 배치가 통째로 바뀌었다
+           (신고 2026-11-23, 처마 — 그란데는 화이트만·스탠다드는 그레이·딥그레이만 켰을 때).
+           배치 방식은 제품군의 성질이지 그날 고른 색의 성질이 아니다. */
         const seen = new Set();
         let dup = 0, total = 0;
-        for (const r of src)
-          for (const c of r.list) {
-            total++;
-            const k = c.url || c.colorKey;
-            if (seen.has(k)) dup++;
-            else seen.add(k);
-          }
+        for (const c of allColors()) {
+          total++;
+          const k = c.url || c.colorKey;
+          if (seen.has(k)) dup++;
+          else seen.add(k);
+        }
         return dup > 0 && total > 0 ? "shared" : "lines";
       }
       /* 공통 모드의 칩 한 벌 — 사진 주소로 중복 제거.
