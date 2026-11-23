@@ -708,6 +708,25 @@ function updateSetupBar() {
   if (go) go.disabled = probs.length > 0;
 }
 
+/* 테스트 주소에서만 셀러명을 미리 채운다 (요청 2026-11-23).
+   브랜치 미리보기는 올릴 때마다 주소가 바뀌어 저장된 값이 없다 → 매번 다시 쳐야 했다.
+   ⚠ 운영 주소(cc-banner.vercel.app)에서는 절대 안 채운다. 이 코드가 main 에
+     합쳐져도 운영 화면은 그대로다. 운영 주소가 바뀌면 PROD_HOST 를 고친다. */
+const PROD_HOST = "cc-banner.vercel.app";
+const TEST_SELLER = { ko: "이나라", en: "naralee" };
+function isTestHost() {
+  const h = location.hostname;
+  if (h === PROD_HOST) return false;
+  return /\.vercel\.app$/.test(h) || h === "localhost" || h === "127.0.0.1";
+}
+function fillTestSeller() {
+  if (!isTestHost()) return;
+  const ko = $("#suSellerKo"), en = $("#suSellerEn");
+  if (!ko || !en || ko.value.trim() || en.value.trim()) return; // 이미 값이 있으면 둔다
+  ko.value = TEST_SELLER.ko;
+  en.value = TEST_SELLER.en;
+}
+
 function openSetup(reset) {
   if (reset) {
     SETUP_PICK = [];
@@ -725,6 +744,7 @@ function openSetup(reset) {
     reset ? "" : SESSION.d2 || state.d2 || "",
   );
   SETUP_EVENTS = reset ? [] : (SESSION.events || []).map((e) => ({ ...e }));
+  fillTestSeller();
   renderSellerList();
   renderSetupGroups();
   renderSetupTpls();
