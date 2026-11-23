@@ -4,18 +4,42 @@
       function renderGroupButtons(filter) {
         const q = (filter || "").trim().toLowerCase();
         const box = $("#group");
-        const entries = Object.entries(G()).filter(
-          ([k, g]) => !q || g.label.toLowerCase().includes(q),
-        );
+        /* 행사가 시작됐으면 처음 화면에서 고른 제품군만, 고른 순서대로 보여준다
+           (요청 2026-11-23). 다른 제품군은 [행사 정보 수정] 에서 추가한다. */
+        const ses =
+          typeof SESSION !== "undefined" && SESSION && SESSION.started
+            ? SESSION.groups
+            : null;
+        const all = G();
+        const entries = (
+          ses
+            ? ses.filter((k) => all[k]).map((k) => [k, all[k]])
+            : Object.entries(all)
+        ).filter(([k, g]) => !q || g.label.toLowerCase().includes(q));
         box.innerHTML = entries
           .map(
             ([k, g]) =>
               `<button class="groupbtn ${k === state.group ? "on" : ""}" data-g="${k}"${g.templates.length ? "" : ' data-empty="1"'}>${g.label}${g.templates.length ? "" : " · 템플릿없음"}</button>`,
           )
           .join("");
+        /* ⚠ 행사 중에는 selectGroup 이 아니라 gotoGroup 으로 옮긴다.
+           selectGroup 은 템플릿·컬러·가격카드를 시트 값으로 새로 깔기 때문에
+           다른 제품군을 눌렀다 돌아오면 편집하던 게 다 날아갔다.
+           gotoGroup 은 제품군별 작업 상태(슬롯)를 저장하고 되살린다. */
         box.querySelectorAll(".groupbtn").forEach(
-          (b) => (b.onclick = () => selectGroup(b.dataset.g)),
+          (b) =>
+            (b.onclick = () => {
+              const k = b.dataset.g;
+              if (ses && typeof gotoGroup === "function") {
+                if (k !== state.group) gotoGroup(k);
+              } else selectGroup(k);
+            }),
         );
+        const hint = $("#groupHint");
+        if (hint)
+          hint.textContent = ses
+            ? "처음 화면에서 고른 제품군입니다. 옮겨 다녀도 편집한 내용은 그대로 남습니다."
+            : "제품군을 바꾸면 템플릿·컬러·제품 옵션이 초기화됩니다.";
       }
       /* select=false 면 버튼만 다시 그린다. 호출부에서 selectGroup 을 따로 부르는 경우
          제품군 선택이 두 번 실행돼 랜덤(템플릿·컬러·히어로)이 두 번 돌던 문제를 막는다. */
