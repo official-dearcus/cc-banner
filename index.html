@@ -168,7 +168,9 @@
         <nav class="gnav" id="gnav" hidden></nav>
         <div class="block" data-nav="data">
           <label class="h"><span class="num">1</span> 제품군</label>
-          <input type="text" id="groupSearch" class="groupsearch" placeholder="제품명 검색" />
+          <!-- 검색바는 숨긴다 (요청 2026-11-23) — 이제 고른 제품군만 떠서 찾을 게 없다.
+               ⚠ 지우지 않는다. #groupSearch 의 값을 여러 곳에서 읽는다(항상 빈 값). -->
+          <input type="text" id="groupSearch" class="groupsearch" placeholder="제품명 검색" hidden />
           <div id="group" class="groupgrid"></div>
           <div class="hint" id="groupHint">
             제품군을 바꾸면 템플릿·컬러·제품 옵션이 초기화됩니다.
