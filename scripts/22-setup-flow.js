@@ -547,7 +547,7 @@ function renderEventEditor(where) {
     const synced = typeof src !== "undefined" && src && src.syncedAt;
     if (hint)
       hint.innerHTML = !synced
-        ? `시트를 아직 안 불러왔습니다. 좌측 <b>데이터 소스</b>에서 동기화하면 이벤트 목록이 채워집니다.`
+        ? `시트를 아직 안 불러왔습니다. 우측 <b>데이터 소스</b>에서 동기화하면 이벤트 목록이 채워집니다.`
         : !types.length && !gifts.length
           ? `시트에서 <b>EventMaster</b> · <b>GiftMaster</b> 를 못 읽었습니다. 탭 이름과 열 이름(<b>typeKey/titleLabel</b>, <b>giftKey/label</b>)을 확인하세요. 이벤트 없이도 배너는 그대로 만들어집니다.`
           : !types.length

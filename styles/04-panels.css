@@ -739,6 +739,7 @@
       }
       /* 오른쪽 부가정보(개수·상태)는 화살표 앞에 */
       .col.left .block > label.h .cnt,
+      .col.right .block > label.h .cnt,
       .col.left .block > label.h .opt {
         margin-left: auto;
         font-size: 10px;

@@ -383,7 +383,18 @@
           saveCfg();
           cfgHint();
           srcState();
-          const first = Object.keys(SHEET_GROUPS)[0];
+          /* 행사 중에 다시 불러오면 지금 보던 제품군에 그대로 머문다.
+             ⚠ 예전에는 무조건 시트의 첫 제품군(뱀부500)을 골랐다. 그러면
+               ① 보던 제품군에서 튕겨 나가고
+               ② 행사에 안 넣은 뱀부500 이 제품군 목록에 끼어들었다
+                  (22-setup-flow 의 selectGroup 래퍼가 세션 밖 제품군을 편입한다).
+             (2026-11-23 — 데이터 소스를 우측으로 옮기며 확인) */
+          let first = Object.keys(SHEET_GROUPS)[0];
+          if (typeof SESSION !== "undefined" && SESSION && SESSION.started) {
+            const alive = SESSION.groups.filter((k) => SHEET_GROUPS[k]);
+            if (alive.includes(state.group)) first = state.group;
+            else if (alive.length) first = alive[0];
+          }
           initGroups(false);
           selectGroup(first);
           const hard = errs.filter((e) => e.code !== "E301");
