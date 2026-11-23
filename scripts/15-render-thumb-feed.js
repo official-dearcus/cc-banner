@@ -402,7 +402,7 @@
         ctx.arc(_dcx, _dcy, _dr, 0, 7);
         ctx.fill();
         ctx.fillStyle = "#fff";
-        ctx.font = `700 47px GmarketSans, Pretendard`;
+        ctx.font = `${L01.discWeight} 47px GmarketSans, Pretendard`; // 500 — 16-render-cards 의 L01
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         trk(ctx, d != null ? d + "%" : "—", _dcx, _dcy + 1, -0.6, "center");

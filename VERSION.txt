@@ -1,3 +1,12 @@
+cc-banner  build 2026-11-23-T
+템플릿 01 — 할인율 원 글자 굵기 700 → 500 (요청 2026-11-23 "너무 두껍다")
+  GmarketSans Medium 을 새로 불러온다 (01-tokens.css @font-face 500,
+  21-bindings-boot 에서 미리 받기). 전에는 Bold 한 벌만 있었다.
+  신형 NV_CARD["01"].discWeight · 구형(뱀부) L01.discWeight — 상세·피드 모두.
+  02·03 의 할인율은 700 그대로다.
+  ⚠ Medium 파일이 안 받아지면 Bold 가 아니라 Pretendard 500 으로 대체돼 보인다.
+
+이전:
 cc-banner  build 2026-11-23-S
 템플릿 01 — 할인율 원 글자 38 → 36 (요청 2026-11-23 "너무 큼")
   지름 96 은 그대로. 신형·구형(뱀부) 둘 다 고쳤다.

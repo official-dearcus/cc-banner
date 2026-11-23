@@ -7,6 +7,15 @@
         font-weight: 400;
         font-display: block;
       }
+      /* Medium(500) — 템플릿 01 할인율 원 글자 (요청 2026-11-23, Bold 는 너무 두꺼웠다).
+         Bold 와 같은 저장소의 파일이다. 이 선언이 없으면 500 을 줘도 Bold 로 그려진다. */
+      @font-face {
+        font-family: "GmarketSans";
+        font-weight: 500;
+        src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansMedium.woff")
+          format("woff");
+        font-display: swap;
+      }
       @font-face {
         font-family: "GmarketSans";
         font-weight: 700;

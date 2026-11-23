@@ -142,6 +142,9 @@
             document.fonts.load("600 32px Pretendard"),
             document.fonts.load("700 28px Pretendard"),
             document.fonts.load("700 28px GmarketSans"),
+            /* 템플릿 01 할인율 원 (Medium). 캔버스는 안 받아진 서체를 기다려 주지
+               않으므로 여기서 미리 받아 둔다 — 빠지면 첫 그림이 대체 서체로 나온다. */
+            document.fonts.load("500 36px GmarketSans"),
             /* 누볼라 03 소제목 (.fig 79:553) */
             document.fonts.load("400 48px 'Afacad Flux'"),
             document.fonts.load("600 80px 'Afacad Flux'"),
