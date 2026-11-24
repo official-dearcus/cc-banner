@@ -1272,7 +1272,9 @@
                  optY: 431, optPadTop: 75, optW: 1000, rowW: 938, rowGap: 48,
                  chipGap: 10, chipMaxW: 148, chipLabelH: 48, chipLabelSize: 30,
                  /* 색 줄이 하나뿐일 때의 칩 최대 폭 (2026-11-24) */
-                 singleMaxW: 240 },
+                 singleMaxW: 240,
+                 /* 색 줄이 하나일 때 이름 줄 ↔ 칩 간격. 전에는 158 (506 − 348) */
+                 singleGap: 80 },
       };
 
       /* 피드·썸네일용 pill (02·03) */
@@ -1799,8 +1801,16 @@
              (5색 3행 → 박스 끝 y 1491, 141px 초과 · 2026-08-18).
            남는 세로에 맞춰 사진 높이를 줄인다. 이름칸·행간격은 그대로 둔다. */
         const NVF_BOTTOM = 40;
-        const availH =
-          H - K.optY - NVF_BOTTOM - (shared ? S.boxPad * 2 : K.optPadTop);
+        /* 색 줄이 하나일 때는 칩을 색 이름 줄 바로 아래(singleGap)에서 시작한다
+           (요청 2026-11-24 — 이름 줄과 칩 사이가 158 이나 비어 있었다).
+           원래 시작점 optY + optPadTop = 506 은 이름이 두 줄일 때에 맞춘 값이다.
+           위로 당긴 만큼 세로 여유가 생겨 칩이 그만큼 더 커진다. */
+        const chipTop = single
+          ? ly + (K.singleGap ?? 80)
+          : K.optY + K.optPadTop;
+        const availH = shared
+          ? H - K.optY - NVF_BOTTOM - S.boxPad * 2
+          : H - chipTop - NVF_BOTTOM;
         const maxImgH = (availH - (R - 1) * rowGap - R * labelH) / R;
         if (maxImgH > 20 && imgH > maxImgH) {
           imgH = maxImgH;
@@ -1809,7 +1819,7 @@
         const chipH = imgH + labelGap + labelH;
         const optH = R * chipH + (R - 1) * rowGap;
         /* 흰 컨테이너 — 상세와 같이 제품 사진이 배경에 묻히지 않게 (2026-08-18) */
-        let ry = K.optY + K.optPadTop;
+        let ry = chipTop;
         if (shared) {
           ctx.fillStyle = S.boxFill;
           ctx.fillRect(S.boxX, K.optY, S.boxW, optH + S.boxPad * 2);
