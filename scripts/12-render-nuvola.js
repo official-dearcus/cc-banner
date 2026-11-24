@@ -1972,8 +1972,18 @@
              03  100 ≠ 118       296 ≠ 330   ← 제목 18 · 상자 34 낮았다
            S.headY · boxY(.fig Frame6 @330)는 더 안 쓴다 — 옵션면 값에서 가져온다. */
         nvfHead(ctx, W, state.tpl === "03" ? O.head03.headY : O.headY, "option", th);
-        const boxY = nvfOptTop(th);
-        const { x: boxX, w: boxW } = nvfOptSpan(th);
+        /* 템플릿 03 — 흰 상자에 가격 카드와 같은 테두리 띠를 두른다 (요청 2026-11-24).
+           색·굵기는 카드와 같은 값이다: th[frameKey] · fFrameW 24.
+           ⚠ 상자 바깥 폭은 그대로다(56~1024, 옵션면 카드 묶음과 같다). 띠는 안쪽으로
+             들어간다 → 흰 면과 사진이 좌우 24 씩 좁아진다(968 → 920, 옵션 카드 폭과 같다).
+             세로는 띠만큼 위아래로 24 씩 늘어난다. 시작 높이는 옵션면과 같은 296 그대로.
+           01·02 는 카드에 테두리가 없으므로 fw = 0 — 전과 완전히 같다. */
+        const _CS = nvCard5();
+        const fw =
+          _CS.frameKey && th[_CS.frameKey] ? _CS.fFrameW || _CS.frameW || 0 : 0;
+        const outY = nvfOptTop(th);
+        const { x: outX, w: outW } = nvfOptSpan(th);
+        const boxX = outX + fw, boxW = outW - fw * 2, boxY = outY + fw;
         const sImg = nvSizeInfoImg();
         /* 피드는 캔버스 높이가 1350 으로 고정이라 상세처럼 무한정 늘릴 수 없다.
            ① 사진이 S.imgH 보다 낮으면 → 그 높이만큼만 쓰고 흰 박스도 같이 줄인다
@@ -1986,6 +1996,10 @@
         const boxH = state.notice
           ? ntY + S.ntH + botPad
           : S.imgY + imgH + S.imgY;
+        if (fw) {
+          ctx.fillStyle = th[_CS.frameKey];
+          ctx.fillRect(outX, outY, outW, boxH + fw * 2);
+        }
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(boxX, boxY, boxW, boxH);
         if (sImg)
