@@ -1511,11 +1511,19 @@
           trk(ctx, range03(state.d1, state.d2), cx, C.dateY + SH.extra + C.dateH / 2, C.track, "center");
         }
         ctx.textBaseline = "alphabetic";
-        nvfGrid(
-          ctx,
-          gridKeep ? { ...C.grid, y: C.grid.y + SH.extra } : t03Grid(C.grid, SH.extra),
-          th,
-        );
+        /* 피드: 상자를 내리되, 다음 장(옵션면)의 카드 묶음 아래 끝보다 더 내려가지는
+           않게 한다 (요청 2026-11-24). 넘겨 볼 때 두 장의 아래 여백이 같아야 한다.
+             옵션면 아래 끝  optBox03: 320 + 944 + 테두리 24 = 1288
+             사진 상자       554 + 764 = 1318  → 30 넘는다 → 높이를 30 줄인다(칸마다 15)
+           한 줄일 때(450 + 764 = 1214)는 넘지 않으므로 안 건드린다. */
+        let grid = gridKeep
+          ? { ...C.grid, y: C.grid.y + SH.extra }
+          : t03Grid(C.grid, SH.extra);
+        if (gridKeep && SH.extra) {
+          const over = grid.y + grid.h - nvfOptBottom(th);
+          if (over > 0) grid = { ...grid, h: grid.h - over, ch: grid.ch - over / 2 };
+        }
+        nvfGrid(ctx, grid, th);
       }
 
       /* 섹션 헤딩 (option info. / color info.) */
@@ -1864,6 +1872,19 @@
         const CS = nvCard5();
         const fw = CS.frameKey && th[CS.frameKey] ? CS.fFrameW || CS.frameW || 0 : 0;
         return B.y + B.pad - fw;
+      }
+      /* 피드 옵션면에서 카드 묶음(테두리·흰 상자 포함)이 끝나는 y — 카드 2장 기준.
+           01  listY + 카드 468×2 + 간격 20           = 1265
+           02  optBox.y + h                            = 1290
+           03  optBox03.y + h + 테두리                 = 1288 */
+      function nvfOptBottom(th) {
+        const O = NVF.opt;
+        if (!nvCfg().optDark) return O.listY + O.cardH * 2 + O.listGap;
+        const B = state.tpl === "03" ? NVF.optBox03 : NVF.optBox;
+        if (B.bg !== null) return B.y + B.h;
+        const CS = nvCard5();
+        const fw = CS.frameKey && th[CS.frameKey] ? CS.fFrameW || CS.frameW || 0 : 0;
+        return B.y + B.pad + B.cardH * 2 + B.gap + fw;
       }
       /* 같은 이유로 좌우도 맞춘다. 01·02 는 60~1020 으로 원래 같았고,
          03 만 카드 둘레 띠가 56~1024 라 사이즈 상자(60~1020)보다 4 씩 넓었다. */
