@@ -166,7 +166,9 @@
         <div class="navtitle" id="navTitle"></div>
         <!-- [2] 제품군 네비게이터 — "제품군" 탭에서만 보인다 -->
         <nav class="gnav" id="gnav" hidden></nav>
-        <div class="block" data-nav="data">
+        <!-- data-open="always" — 접지 않는 블록 (요청 2026-11-24).
+             제품군은 작업 내내 옮겨 다니는 곳이라 항상 펼쳐 둔다. 24-panel-collapse 가 이 표시를 본다. -->
+        <div class="block" data-nav="data" id="groupBlock" data-open="always">
           <label class="h"><span class="num">1</span> 제품군</label>
           <!-- 검색바는 숨긴다 (요청 2026-11-23) — 이제 고른 제품군만 떠서 찾을 게 없다.
                ⚠ 지우지 않는다. #groupSearch 의 값을 여러 곳에서 읽는다(항상 빈 값). -->

@@ -43,6 +43,14 @@
         scope.querySelectorAll(".block > label.h").forEach((head) => {
           if (head.dataset.clpBound) return;
           const block = head.parentElement;
+          /* data-open="always" — 항상 펼쳐 두는 블록(데이터 탭의 제품군).
+             화살표도 클릭도 붙이지 않는다. 예전에 접어 둔 기록이 있어도 무시한다. */
+          if (block.dataset.open === "always") {
+            head.dataset.clpBound = "1";
+            block.classList.remove("collapsed");
+            head.style.cursor = "default";
+            return;
+          }
           const key = blockKey(block, head);
           head.dataset.clpBound = "1";
           head.dataset.clpKey = key;
@@ -84,6 +92,7 @@
       function setAllCollapsed(on) {
         document.querySelectorAll(".block > label.h").forEach((head) => {
           const block = head.parentElement;
+          if (block.dataset.open === "always") return; // [전부 접기] 에도 안 접힌다
           const key = head.dataset.clpKey || blockKey(block, head);
           if (on) COLLAPSED[key] = true;
           else delete COLLAPSED[key];
