@@ -60,6 +60,7 @@
           listLineH: 40, listGap: 4, listSize: 28, listLabelGap: 10,
           optY: 416, optW: 780, rowGap: 38, chipGap: 12,
           chipMaxW: 120, chipLabelH: 40, chipLabelGap: 4, chipLabelSize: 24,
+          singleMaxW: 165, // 색 줄이 하나일 때의 칩 최대 폭 (2026-11-24)
         },
       };
       /* 템플릿별 헤딩 서체 (.fig 실측) — 01 검증 완료, 02·03 은 해당 템플릿 작업 시 확정 */
@@ -1058,19 +1059,40 @@
         const mode = nvColorGridMode(src);
         const S = NV_COLOR_SHARED;
         const shared = mode === "shared";
+        /* 색 줄이 하나뿐이면 4개 이상은 두 줄로 접고 칩을 키운다 — 피드(nvfColor)와
+           같은 규칙이다 (요청 2026-11-24, 피드만 고쳤다가 상세도 같이).
+             4 → 2+2 · 5 → 3+2 · 6 → 3+3,  3개 이하는 한 줄
+             칩 최대 폭 120 → singleMaxW 165
+           ⚠ 컬러 섹션은 최소 높이가 1080(K.H)이라 한 줄 배치는 아래가 크게 비었다.
+             두 줄로 접어도 그 1080 안에 들어가게 사진 높이를 한 번 더 누른다 →
+             섹션 높이와 아래 섹션 위치는 전과 같다. */
+        const single = !shared && src.length === 1;
+        let singleGrid = null;
+        if (single) {
+          const list = src[0].list;
+          const first = list.length >= 4 ? Math.ceil(list.length / 2) : list.length;
+          singleGrid =
+            first < list.length ? [list.slice(0, first), list.slice(first)] : [list];
+        }
         const F = shared
           ? { chipW: S.chipW, imgH: S.chipW / ratio }
-          : nvChipFit(K, ratio, Math.max(1, ...src.map((r) => r.list.length)), K.optW);
-        const chipW = F.chipW, imgH = F.imgH;
+          : single
+            ? nvChipFit(
+                { ...K, chipMaxW: K.singleMaxW || K.chipMaxW },
+                ratio,
+                Math.max(1, ...singleGrid.map((r) => r.length)),
+                K.optW,
+              )
+            : nvChipFit(K, ratio, Math.max(1, ...src.map((r) => r.list.length)), K.optW);
+        let chipW = F.chipW, imgH = F.imgH;
         const labelGap = shared ? S.labelGap : K.chipLabelGap;
         const labelH = shared ? S.labelH : K.chipLabelH;
         const labelSize = shared ? S.labelSize : K.chipLabelSize;
         const chipGap = shared ? S.chipGap : K.chipGap;
-        const chipH = imgH + labelGap + labelH;
         /* 그리기용 행 목록 */
         const grid = mode === "shared"
           ? nvTwoCol(nvChipUnion(src))
-          : src.map((r) => r.list);
+          : singleGrid || src.map((r) => r.list);
         const rows = src;
         const L = Math.max(1, src.length);
         const R = Math.max(1, grid.length);
@@ -1080,6 +1102,16 @@
         const txtEnd = K.txtY + headH + K.txtGap + nameH;
         const optY = txtEnd + 60; // .fig: txt-wrap 끝 → color_option 간격 60
         const rowGap = nvColorRowGap(shared ? S.rowGap : K.rowGap);
+        if (single) {
+          /* 1080 안에 들어가는 사진 높이 (아래 여백 98 은 H 계산과 같은 값) */
+          const maxImgH =
+            (K.H - 98 - optY - (R - 1) * rowGap - R * (labelGap + labelH)) / R;
+          if (maxImgH > 20 && imgH > maxImgH) {
+            imgH = maxImgH;
+            chipW = imgH * ratio;
+          }
+        }
+        const chipH = imgH + labelGap + labelH;
         const optH = R * chipH + (R - 1) * rowGap;
         /* 공통 모드는 칩 묶음을 흰 박스가 감싼다 (.fig color_option) */
         const boxPad = shared ? S.boxPad : 0;
