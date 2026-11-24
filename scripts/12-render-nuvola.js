@@ -1270,7 +1270,9 @@
                  eyebrow: 40, eyebrowLH: 53, headGap: 20, heading: 72, headingLH: 76,
                  listLineH: 48, listGap: 4, listSize: 36, listLabelGap: 12,
                  optY: 431, optPadTop: 75, optW: 1000, rowW: 938, rowGap: 48,
-                 chipGap: 10, chipMaxW: 148, chipLabelH: 48, chipLabelSize: 30 },
+                 chipGap: 10, chipMaxW: 148, chipLabelH: 48, chipLabelSize: 30,
+                 /* 색 줄이 하나뿐일 때의 칩 최대 폭 (2026-11-24) */
+                 singleMaxW: 240 },
       };
 
       /* 피드·썸네일용 pill (02·03) */
@@ -1768,11 +1770,30 @@
         const labelSize = shared ? S.labelSize : K.chipLabelSize;
         const chipGap = shared ? S.chipGap : K.chipGap;
         const rowGap = nvColorRowGap(shared ? S.rowGap : K.rowGap);
-        const grid = shared ? nvTwoCol(nvChipUnion(rows)) : rows.map((r) => r.list);
+        let grid = shared ? nvTwoCol(nvChipUnion(rows)) : rows.map((r) => r.list);
+        /* 색 줄이 하나뿐인 제품군(누볼라 욕실화 성인 · 키즈 등)은 칩이 한 줄로만 놓여
+           아래 절반이 비었다 (요청 2026-11-24).
+             4개 이상이면 두 줄로 나눈다 — 4 → 2+2 · 5 → 3+2 · 6 → 3+3 (윗줄이 많다)
+             3개 이하면 한 줄 그대로
+             어느 쪽이든 칩 최대 폭을 148 → singleMaxW 로 키운다
+           ⚠ 줄이 둘 이상인 제품군(누볼라 패밀리 키즈/성인)은 안 건드린다 — 줄 구성은
+             시트가 정한다(2026-08-14 메모). 여기서 나누는 건 "한 줄을 보기 좋게 접는 것"뿐이다.
+           ⚠ 피드만이다. 상세는 높이가 내용에 맞춰 줄어서 빈 자리가 없다.
+           실제 크기는 아래 "남는 세로에 맞추기"에서 한 번 더 걸러진다(두 줄이면 보통 여기서 정해진다). */
+        const single = !shared && rows.length === 1;
+        let Kfit = K;
+        if (single) {
+          const list = rows[0].list;
+          if (list.length >= 4) {
+            const first = Math.ceil(list.length / 2);
+            grid = [list.slice(0, first), list.slice(first)];
+          }
+          Kfit = { ...K, chipMaxW: K.singleMaxW || K.chipMaxW };
+        }
         const R = Math.max(1, grid.length);
         let chipW = shared
           ? S.chipW
-          : nvChipFit(K, ratio, Math.max(1, ...rows.map((r) => r.list.length)), K.rowW).chipW;
+          : nvChipFit(Kfit, ratio, Math.max(1, ...grid.map((r) => r.length)), K.rowW).chipW;
         let imgH = chipW / ratio;
         /* ⚠ 피드는 1350 고정이라 상세 값을 그대로 키우면 넘친다
              (5색 3행 → 박스 끝 y 1491, 141px 초과 · 2026-08-18).
