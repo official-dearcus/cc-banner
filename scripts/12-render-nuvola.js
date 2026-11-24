@@ -1220,7 +1220,11 @@
                size: 96, lineH: 104, titleGap: 8, dateSize: 40,
                barY: 1250, barH: 100, copySize: 44 },
         /* .fig feed_01 실측 */
+        /* titleFit "wrap" · titleStep — 제목이 사진 상자보다 넓으면 OPEN 앞에서 나누고,
+           둘째 줄은 104 아래(글자 120 의 대문자 높이 + 숨 쉴 틈)에 놓는다.
+           사진 상자는 크기 그대로 104 내려간다: 아래 여백 136 → 32. */
         t03: { font: "'Afacad Flux', Pretendard", track: -2, lineH: 80,
+               titleFit: "wrap", titleStep: 104,
                gradTop: "#d0dfb1", gradBottom: "#e0e4c4",
                sellerY: 140, sellerSize: 60,
                titleY2: 232, titleSize: 120,
@@ -1248,7 +1252,9 @@
              y     430 → 340   (예전 날짜가 시작하던 자리. 대제목과의 간격 48 유지)
              h     570 → 660   (아래 끝 1000 · 하단 여백 80 그대로)
              ch    260 → 305   (305×2 + gy10 + pad40 = 660) */
+        /* titleFit "shrink" — 썸네일은 한 줄을 지키고 글자를 상자 폭(960)에 맞게 줄인다 */
         th03: { font: "'Afacad Flux', Pretendard", track: -2, lineH: 80,
+                titleFit: "shrink",
                 sellerY: 120, sellerSize: 60,
                 titleY2: 212, titleSize: 120,
                 dateOff: true,
@@ -1466,12 +1472,36 @@
         ctx.font = `400 ${C.sellerSize}px ${C.font}`;
         trk(ctx, `${state.seller || "Seller_name"} Pick!`, cx, C.sellerY + C.lineH / 2, C.track, "center");
 
-        /* 상세(nvMain03)와 같은 규칙 — 사진 상자 폭을 넘으면 OPEN 앞에서 나눈다 */
+        /* 대제목이 사진 상자 폭을 넘을 때 — 결과물마다 방법이 다르다 (요청 2026-11-24)
+             썸네일 (titleFit "shrink")  한 줄을 지키고 글자를 상자 폭에 맞게 줄인다.
+                                         사진 상자는 크기도 위치도 그대로다.
+             피드   (titleFit "wrap")    OPEN 앞에서 두 줄로 나누고, 사진 상자는
+                                         크기를 그대로 둔 채 줄 간격만큼만 내린다.
+           전날(AD)에는 둘 다 두 줄 + 상자 높이 축소였다 — 사진 칸이 60 씩 낮아졌다. */
+        const rawTitle = heroT2() || heroT1() || "";
+        let big, SH, titleSize = C.titleSize, titleTrack = C.track, gridKeep = false;
         ctx.font = `700 ${C.titleSize}px ${C.font}`;
-        const big = t03TitleLines(ctx, heroT2() || heroT1() || "", C.grid.w, C.track);
-        const SH = t03Shift(big.length, C.titleSize, C.lineH);
+        if (C.titleFit === "shrink") {
+          big = String(rawTitle).split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+          const widest = Math.max(0, ...big.map((l) => trkWidth(ctx, l, C.track)));
+          if (widest > C.grid.w) {
+            /* 자간(track)도 같은 비율로 줄여야 폭이 정확히 맞는다 */
+            const k = C.grid.w / widest;
+            titleSize = Math.floor(C.titleSize * k);
+            titleTrack = C.track * k;
+            ctx.font = `700 ${titleSize}px ${C.font}`;
+          }
+          SH = t03Shift(big.length, C.titleSize, C.lineH); // 시트에서 두 줄로 적은 경우만 값이 생긴다
+        } else {
+          big = t03TitleLines(ctx, rawTitle, C.grid.w, C.track);
+          SH = t03Shift(big.length, C.titleSize, C.lineH);
+          if (C.titleStep) {
+            SH = { step: C.titleStep, extra: Math.max(0, big.length - 1) * C.titleStep };
+            gridKeep = true;
+          }
+        }
         big.forEach((l, i) =>
-          trk(ctx, l, cx, C.titleY2 + C.lineH / 2 + i * SH.step, C.track, "center"),
+          trk(ctx, l, cx, C.titleY2 + C.lineH / 2 + i * SH.step, titleTrack, "center"),
         );
 
         /* 썸네일(th03)만 날짜를 안 그린다. 피드(t03)·상세(nvMain03)는 그대로 */
@@ -1481,7 +1511,11 @@
           trk(ctx, range03(state.d1, state.d2), cx, C.dateY + SH.extra + C.dateH / 2, C.track, "center");
         }
         ctx.textBaseline = "alphabetic";
-        nvfGrid(ctx, t03Grid(C.grid, SH.extra), th);
+        nvfGrid(
+          ctx,
+          gridKeep ? { ...C.grid, y: C.grid.y + SH.extra } : t03Grid(C.grid, SH.extra),
+          th,
+        );
       }
 
       /* 섹션 헤딩 (option info. / color info.) */
