@@ -1,0 +1,209 @@
+/* CC 배너 제너레이터 — 07-flow
+   상단 진행 표시(31-flow-steps) · 미리보기 배율 막대(32-zoom) — 2026-11-25 */
+      #flowSteps {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        min-width: 0;
+        flex: 1;
+        margin-left: 12px;
+      }
+      .fsteps {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex: none;
+      }
+      .fsep {
+        width: 14px;
+        height: 1px;
+        background: var(--line);
+      }
+      .fstep {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--ink-soft);
+        background: none;
+        border: 1px solid transparent;
+        border-radius: 999px;
+        padding: 5px 11px 5px 6px;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .fstep:hover {
+        background: var(--accent-weak);
+      }
+      .fstep .fnum {
+        display: inline-grid;
+        place-items: center;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        font-size: 11px;
+        font-weight: 700;
+        background: #eceaf3;
+        color: var(--ink-soft);
+      }
+      .fstep.done .fnum {
+        background: var(--accent-weak);
+        color: var(--accent);
+      }
+      .fstep.cur {
+        color: var(--accent);
+        font-weight: 700;
+        background: var(--accent-weak);
+        border-color: var(--accent);
+      }
+      .fstep.cur .fnum {
+        background: var(--accent);
+        color: #fff;
+      }
+      .fnextwrap {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+        margin-left: auto;
+        font-size: 12px;
+        color: var(--ink-soft);
+      }
+      .fgrp {
+        flex: none;
+        padding: 3px 9px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        white-space: nowrap;
+      }
+      .fhint {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .fhint.err {
+        color: var(--err);
+        font-weight: 600;
+      }
+      .fhint.ok {
+        color: #1d7a46;
+        font-weight: 600;
+      }
+      .fnext {
+        flex: none;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 600;
+        color: #fff;
+        background: var(--accent);
+        border: 0;
+        border-radius: 8px;
+        padding: 8px 14px;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .fnext:hover {
+        opacity: 0.88;
+      }
+      /* 상태 줄은 길어지면(이미지 로드 실패 목록 등) 말줄임 — 진행 표시를 덮지 않게 */
+      header.top #statusline {
+        flex: 0 1 240px;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        text-align: right;
+      }
+      /* 좁은 화면 — 안내 글부터 뺀다. 단계와 [다음] 버튼은 끝까지 남긴다 */
+      @media (max-width: 1750px) {
+        .fhint:not(.err):not(.ok) {
+          display: none;
+        }
+      }
+      @media (max-width: 1500px) {
+        .fgrp,
+        header.top .tag {
+          display: none;
+        }
+        header.top #statusline {
+          flex-basis: 150px;
+        }
+      }
+      @media (max-width: 1320px) {
+        .fsep,
+        header.top #statusline {
+          display: none;
+        }
+        #flowSteps {
+          gap: 8px;
+        }
+      }
+      #warnBlock.flash {
+        animation: fflash 1.2s ease-out 1;
+        border-radius: 10px;
+      }
+      @keyframes fflash {
+        0% {
+          box-shadow: 0 0 0 3px var(--accent);
+        }
+        100% {
+          box-shadow: 0 0 0 3px transparent;
+        }
+      }
+
+      /* ── 미리보기 배율 ── */
+      .zoom {
+        gap: 4px;
+      }
+      .zoom button {
+        font: inherit;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--ink);
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        height: 30px;
+        padding: 0 10px;
+        cursor: pointer;
+      }
+      .zoom button.sq {
+        width: 30px;
+        padding: 0;
+        font-size: 16px;
+        line-height: 1;
+      }
+      .zoom button:hover:not(:disabled) {
+        border-color: var(--accent);
+      }
+      .zoom button:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      .zoom button.on {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+      }
+      .zoom #zoomVal {
+        min-width: 46px;
+        text-align: center;
+        font-variant-numeric: tabular-nums;
+        color: var(--ink);
+        font-weight: 600;
+      }
+      .zoom .zgap {
+        width: 8px;
+      }
+      /* 100% 처럼 미리보기가 가운데 칸보다 넓어지면 칸 안에서 스크롤 */
+      main.center {
+        min-width: 0;
+      }
+      main.center .stage {
+        max-width: 100%;
+        /* 배율 막대가 높아진 만큼(16 → 30) — 미리보기 아래 끝이 창 밖으로 안 나가게 */
+        max-height: calc(100vh - 215px);
+      }

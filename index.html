@@ -38,6 +38,7 @@
     <link rel="stylesheet" href="styles/04-panels.css" />
     <link rel="stylesheet" href="styles/05-stage.css" />
     <link rel="stylesheet" href="styles/06-setup.css" />
+    <link rel="stylesheet" href="styles/07-flow.css" />
 
     <!--
       스크립트: 기능별 분리.
@@ -75,6 +76,8 @@
     <script defer src="scripts/28-try-event.js"></script>
     <script defer src="scripts/30-nav.js"></script>
     <script defer src="scripts/29-perf.js"></script>
+    <script defer src="scripts/31-flow-steps.js"></script>
+    <script defer src="scripts/32-zoom.js"></script>
   </head>
   <body>
     <!-- ============================================================
@@ -154,7 +157,8 @@
           CC <b>Banner</b>
         </button>
         <span class="tag" id="tplTag">뱀부500</span>
-        <div class="spacer"></div>
+        <!-- 진행 표시 (31-flow-steps.js) — 지금 단계 · 다음 할 일 -->
+        <div id="flowSteps"></div>
         <span id="statusline">폰트 로딩 중…</span>
       </header>
 
@@ -331,10 +335,15 @@
           <button data-f="thumb">썸네일</button>
           <button data-f="feed">인스타 피드</button>
         </div>
-        <div class="zoom">
-          미리보기
-          <input type="range" id="zoom" min="15" max="50" value="26" />
+        <!-- 배율 막대 (32-zoom.js). #zoom 은 값 보관용으로 숨겨 둔다 — 여러 스크립트가 읽는다 -->
+        <div class="zoom" id="zoomBar">
+          <button type="button" class="sq" id="zoomOut" title="축소 (Ctrl+휠)" aria-label="축소">−</button>
+          <input type="range" id="zoom" min="10" max="200" value="26" hidden />
           <span id="zoomVal">26%</span>
+          <button type="button" class="sq" id="zoomIn" title="확대 (Ctrl+휠)" aria-label="확대">+</button>
+          <span class="zgap"></span>
+          <button type="button" id="zoomFit" title="화면에 맞춰 보기">화면 맞춤</button>
+          <button type="button" id="zoom100" title="실제 크기로 보기">100%</button>
         </div>
         <div class="stage" id="stageDetail"><canvas id="preview"></canvas></div>
         <div class="stage" id="stageThumb" hidden>
@@ -488,7 +497,8 @@
           </div>
           <div id="sheetErr"></div>
         </div>
-        <div class="block">
+        <!-- 검수 정보라 항상 펼쳐 둔다 (2026-11-25) — 접혀 있으면 오류를 못 본다 -->
+        <div class="block" id="warnBlock" data-open="always">
           <label class="h">상태 · 경고</label>
           <div id="warnList"></div>
         </div>
