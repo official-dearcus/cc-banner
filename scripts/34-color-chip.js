@@ -13,10 +13,10 @@
 
    배치 (상세 기준 px · 피드는 ×1.3)
      지름 24 · 칩 사이 8 · 줄 사이 6 · 사진 칸 아래에서 12 · 테두리 1(검정 14%)
-     한 줄 최대 6개. 넘으면 줄을 나누되 고르게 나눈다: 7 → 4+3 · 8 → 4+4 · 12 → 6+6 · 13 → 5+4+4
+     한 줄 최대 8개(사진 칸 320 에 8개 = 248). 넘으면 고르게 나눈다: 9 → 5+4 · 12 → 6+6 · 16 → 8+8
      각 줄은 사진 칸 가로 가운데. 줄이 늘면 위로 쌓인다(맨 아랫줄 위치는 고정). */
 
-      const CHIP = { d: 24, gap: 8, rowGap: 6, bottom: 12, stroke: 1, perRow: 6 };
+      const CHIP = { d: 24, gap: 8, rowGap: 6, bottom: 12, stroke: 1, perRow: 8 };
       let COLOR_CHIPS = []; // [{ label, hex, chipUrl, img, groupKey }]
 
       const chipNorm = (s) => String(s || "").replace(/\s+/g, "").toLowerCase();
