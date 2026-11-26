@@ -195,9 +195,16 @@
            상세는 오른쪽 사진(380)까지 간격을 지키려고 글자 폭도 342 → 332 로 줄였다
            (txtOptW · vlValW 274 → 264 · 가격줄 폭). 피드는 폭 437 그대로 — 줄이면
            5자리 가격(429)까지 두 줄이 된다. 사진까지 간격 34 → 21. */
-        "03": { style: "inline", txtOptW: 332, priceH: 100,
+        /* 글자 열 ↔ 사진 간격도 +10 (요청 2026-11-26, 같은 날 두 번째) — 글자 폭을 더 줄인다.
+             상세  글자 30~352 (폭 322) · 사진 380 → 간격 28   (원래 20~362 · 간격 18)
+             피드  글자 33~457 (폭 424) · 사진 491 → 간격 34   (원래 20~457 · 간격 34 → G 에서 21)
+           ⚠ 피드 폭 424 에는 5자리 가격 한 줄(429)이 안 들어간다 → 그대로면 03 은 모든
+             제품군이 두 줄이 된다. 03 피드만 가격줄 간격을 4 씩 좁혔다
+             (fPriceGapX 24 → 20 · fPriceNumGap 20 → 16) → 421 로 한 줄에 들어간다. */
+        "03": { style: "inline", txtOptW: 322, priceH: 100,
+                fPriceGapX: 20, fPriceNumGap: 16,
                 /* .fig 2026-08: value_list 22px · fr 1:4 (라벨60 값274) · 행높이 28 · 카드 hug */
-                vlLabelW: 60, vlValW: 264, vlRowH: 28, vlLineH: 28, cardGap: 36, cardPadBot: 0, fTxtW: 436,
+                vlLabelW: 60, vlValW: 254, vlRowH: 28, vlLineH: 28, cardGap: 36, cardPadBot: 0, fTxtW: 423,
                 /* .fig: 카드 사방 20px #f0f3dd 테두리 (선이 아니라 띠) */
                 /* .fig 03: 테두리·선·컬러섹션은 t03Frame, 배지는 t03Badge (테마별) */
                 frameKey: "t03Frame", frameW: 20,
@@ -215,9 +222,9 @@
                 textDY: 0, priceDY: 260,
                 /* .fig feed_02(03): 카드 920×460, 텍스트 card+20 437, img card+491,+26 409×409 */
                 fTextDY: 0, fPriceDY: 334, fImgDX: 491, fImgDY: 26, fOptDX: 33,
-                fImgW: 409, fImgH: 409, fOptW: 437,
+                fImgW: 409, fImgH: 409, fOptW: 424,
                 /* .fig feed_02: txt_option 436 · 라벨 60 · 값 349 (87 부터) */
-                fVlLabelW: 60, fVlColGap: 27, fVlValW: 349,
+                fVlLabelW: 60, fVlColGap: 27, fVlValW: 336,
                 /* .fig feed: 카드 테두리 24 (상세는 20), 배지 200×60 · 글자 30px */
                 fFrameW: 24, fBadgeW: 200, fBadgeH: 60, fBadgeSize: 30, fBadgeGap: 36,
                 fDiscD: 102 },
@@ -858,9 +865,13 @@
          할인이 없는 카드(flat)는 원래 혜택가 한 줄뿐이라 그대로다. */
       function nvPriceSpec(feed, avail) {
         const O = feed ? NVF.opt : NV.opt;
+        const CS = nvCard5();
         return {
           avail,
-          disc: O.discD, gapX: O.priceGapX, numGap: O.priceNumGap,
+          disc: O.discD,
+          /* 템플릿이 피드 간격을 따로 정했으면 그 값(03) */
+          gapX: (feed && CS.fPriceGapX) || O.priceGapX,
+          numGap: (feed && CS.fPriceNumGap) || O.priceNumGap,
           saleSize: O.saleSize, normalSize: O.normalSize,
           trS: feed ? -0.8 : -0.56, trN: feed ? -0.56 : -0.4,
           strike: feed ? 2 : 1.5,
@@ -882,9 +893,10 @@
              5자리+5자리 (14,900원 26,900원)     상세 312 · 피드 429   → 한 줄 (전과 같다)
              6자리+6자리 (189,000원 369,000원)   상세 341 · 피드 471   → 두 줄
            6자리는 상세에서 341/342 로 "들어가긴" 한다. 하지만 03 은 사진까지 19 밖에 안 남아
-           닿아 보였다 → 상세는 오른쪽에 NV_PRICE_ROOM(8) 이 비어야 한 줄로 둔다.
+           닿아 보였다 → 상세는 오른쪽에 NV_PRICE_ROOM(4) 이 비어야 한 줄로 둔다.
+           (8 이었는데 03 글자 폭이 322 가 되면서 5자리 312 가 아슬아슬해져 4 로 낮췄다)
            ⚠ 이 여유를 키우면 5자리 제품군까지 두 줄이 된다(피드 03 이 429/437 로 8 남는다). */
-      const NV_PRICE_ROOM = 8;
+      const NV_PRICE_ROOM = 4;
       function nvPriceStacked(ctx) {
         const specs = [
           [nvPriceSpec(false, nvCard5().txtOptW || NV.opt.optW), NV_PRICE_ROOM],
