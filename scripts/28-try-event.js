@@ -48,14 +48,21 @@
       function tryProducts() {
         const g = (typeof G === "function" && G()[state.group]) || {};
         const nm = (r) => (typeof rowName === "function" ? rowName(r) : r.name || "");
+        /* 고른 제품은 "그 제품"으로 고정한다 (결정 2026-11-26).
+           예전에는 kind "row" = "지금 제품군의 i 번째" 로 저장해서, 누볼라에서 고른 경품이
+           처마 피드에서는 처마의 i 번째 제품으로 바뀌었다. 이제 제품군키를 같이 저장한다
+           (xrow · xoff) → 어느 제품군 피드에서든 고른 제품이 나온다.
+           ⚠ 예전에 저장된 row · off 값은 tryProduct 가 전처럼 "지금 제품군" 기준으로 읽는다. */
+        const gk = state.group,
+          gl = g.label || gk;
         const on = (g.rows || []).map((r, i) => ({
-          kind: "row", i, name: nm(r),
+          kind: "xrow", g: gk, gl, i, name: nm(r),
           url: r.thumbUrl || "", feedUrl: r.feedThumbUrl || "",
         }));
         /* enabled=FALSE 인 행 — 옵션엔 안 나오지만 경품으로는 쓴다.
            i 는 offRows 안의 번호라 kind 를 나눠 저장한다. */
         const off = (g.offRows || []).map((r, i) => ({
-          kind: "off", i, name: nm(r),
+          kind: "xoff", g: gk, gl, i, name: nm(r),
           url: r.thumbUrl || "", feedUrl: r.feedThumbUrl || "",
         }));
         return on.concat(off);
@@ -145,6 +152,7 @@
         if (p.kind === "gift") return `gift:${p.key}`;
         if (p.kind === "custom") return "custom";
         if (p.kind === "xrow") return `xrow:${p.g}:${p.i}`;
+        if (p.kind === "xoff") return `xoff:${p.g}:${p.i}`;
         if (p.kind === "off") return `off:${p.i}`;
         return `row:${p.i}`;
       }
@@ -159,9 +167,9 @@
         }
         /* 다른 제품군 제품 — 저장된 제품군키로 시트를 다시 본다.
            이름·가격이 시트에서 바뀌면 배너도 따라간다. 행이 사라졌으면 저장값으로 버틴다. */
-        if (p.kind === "xrow") {
+        if (p.kind === "xrow" || p.kind === "xoff") {
           const g2 = (typeof G === "function" && G()[p.g]) || {};
-          const r = (g2.rows || [])[p.i | 0];
+          const r = (p.kind === "xoff" ? g2.offRows || [] : g2.rows || [])[p.i | 0];
           if (r)
             return {
               name: typeof rowName === "function" ? rowName(r) : r.name || "",
@@ -169,7 +177,8 @@
             };
           return { name: p.name || "", url: p.url || "", feedUrl: p.feedUrl || "" };
         }
-        const list = tryProducts().filter((x) => x.kind === (p.kind === "off" ? "off" : "row"));
+        /* 예전 저장분(row · off) — 지금 제품군의 i 번째 */
+        const list = tryProducts().filter((x) => x.kind === (p.kind === "off" ? "xoff" : "xrow"));
         return list[Math.max(0, Math.min(list.length - 1, p.i | 0))] || { name: "", url: "" };
       }
       /* 이벤트 렌더러가 알아듣는 모양으로 바꾼다.
@@ -257,8 +266,8 @@
         if (!box) return;
         const LIST = S ? SETUP_TRY : tryTarget();
         const all = S ? [] : tryProducts();
-        const rows = all.filter((p) => p.kind === "row");
-        const offs = all.filter((p) => p.kind === "off");
+        const rows = all.filter((p) => p.kind === "xrow");
+        const offs = all.filter((p) => p.kind === "xoff");
         /* 처음 화면: 고른 제품군이 위에, 나머지는 "다른 제품군 추가" 뒤에 */
         const mine = S
           ? trySetupPick()
@@ -309,10 +318,10 @@
 
         box.innerHTML = LIST.map((e, i) => {
           const p = tryPick(e);
-          /* 처음 화면에서 고른 "지금 제품군의 제품"(xrow)은 패널 목록에서 row 로 보인다 */
+          /* 예전 저장분(row · off)은 지금 제품군의 같은 번호에 표시한다 */
           const cur =
-            !S && p.kind === "xrow" && p.g === state.group
-              ? `row:${p.i}`
+            p.kind === "row" || p.kind === "off"
+              ? `${p.kind === "off" ? "xoff" : "xrow"}:${state.group}:${p.i | 0}`
               : tryPickKey(p);
           const custom = p.kind === "custom";
           return `<div class="evrow" data-i="${i}">
