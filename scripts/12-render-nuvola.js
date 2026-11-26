@@ -190,9 +190,14 @@
            - box-img 가 오른쪽(@380), 텍스트가 왼쪽
            - 할인율 배경 accent(#65812d) + 흰 글자   (02 는 연한 배경 + 진한 글자)
            - 혜택가 titleColor(#448122) / 정상가 #999999 */
-        "03": { style: "inline", txtOptW: 342, priceH: 100,
+        /* 글자 열 왼쪽 여백 20 → 30 (요청 2026-11-26 "좌측 여백이 너무 좁다").
+           OPTION 배지·제품명·옵션·가격줄이 같이 10 들어간다(피드는 ×1.3 = 13).
+           상세는 오른쪽 사진(380)까지 간격을 지키려고 글자 폭도 342 → 332 로 줄였다
+           (txtOptW · vlValW 274 → 264 · 가격줄 폭). 피드는 폭 437 그대로 — 줄이면
+           5자리 가격(429)까지 두 줄이 된다. 사진까지 간격 34 → 21. */
+        "03": { style: "inline", txtOptW: 332, priceH: 100,
                 /* .fig 2026-08: value_list 22px · fr 1:4 (라벨60 값274) · 행높이 28 · 카드 hug */
-                vlLabelW: 60, vlValW: 274, vlRowH: 28, vlLineH: 28, cardGap: 36, cardPadBot: 0, fTxtW: 436,
+                vlLabelW: 60, vlValW: 264, vlRowH: 28, vlLineH: 28, cardGap: 36, cardPadBot: 0, fTxtW: 436,
                 /* .fig: 카드 사방 20px #f0f3dd 테두리 (선이 아니라 띠) */
                 /* .fig 03: 테두리·선·컬러섹션은 t03Frame, 배지는 t03Badge (테마별) */
                 frameKey: "t03Frame", frameW: 20,
@@ -206,10 +211,10 @@
                 imgRight: true, discBgKey: "t03Badge", discInk: "#ffffff",
                 saleInk: "t03Ink", normalInk: "#999999",
                 /* 03 은 이미지 위/아래 여백 20 고정 */
-                cardDX: 10, cardW: 720, imgDX: 380, imgDY: 20, imgH: 320, imgPadBot: 20, optDX: 20,
+                cardDX: 10, cardW: 720, imgDX: 380, imgDY: 20, imgH: 320, imgPadBot: 20, optDX: 30,
                 textDY: 0, priceDY: 260,
                 /* .fig feed_02(03): 카드 920×460, 텍스트 card+20 437, img card+491,+26 409×409 */
-                fTextDY: 0, fPriceDY: 334, fImgDX: 491, fImgDY: 26, fOptDX: 20,
+                fTextDY: 0, fPriceDY: 334, fImgDX: 491, fImgDY: 26, fOptDX: 33,
                 fImgW: 409, fImgH: 409, fOptW: 437,
                 /* .fig feed_02: txt_option 436 · 라벨 60 · 값 349 (87 부터) */
                 fVlLabelW: 60, fVlColGap: 27, fVlValW: 349,
@@ -834,7 +839,7 @@
             trk(ctx, d != null ? d + "%" : "—", ix + O.discD / 2, pcy, -0.56, "center");
           }
           /* 혜택가·정상가 — 한 줄 / 넘치면 두 줄 (nvInlinePrices) */
-          nvInlinePrices(ctx, r, ix, py, flat, nvPriceSpec(false, O.optW), {
+          nvInlinePrices(ctx, r, ix, py, flat, nvPriceSpec(false, CS.txtOptW || O.optW), {
             sale: th[CS.saleInk] || CS.saleInk || "#333333",
             normal: CS.normalInk || "#666666",
           });
@@ -882,7 +887,7 @@
       const NV_PRICE_ROOM = 8;
       function nvPriceStacked(ctx) {
         const specs = [
-          [nvPriceSpec(false, NV.opt.optW), NV_PRICE_ROOM],
+          [nvPriceSpec(false, nvCard5().txtOptW || NV.opt.optW), NV_PRICE_ROOM],
           [nvPriceSpec(true, nvCard5().fOptW || NVF.opt.listW - NVF.opt.optX - 38), 0],
         ];
         return (state.rows || []).some(
@@ -955,7 +960,7 @@
         if (nvCard5().style !== "inline") return [];
         const ctx = (nvPriceTooWide._c ||
           (nvPriceTooWide._c = document.createElement("canvas"))).getContext("2d");
-        const P = nvPriceSpec(false, NV.opt.optW);
+        const P = nvPriceSpec(false, nvCard5().txtOptW || NV.opt.optW);
         const room = P.avail - P.disc - P.gapX;
         const out = [];
         (state.rows || []).forEach((r, i) => {
@@ -1847,17 +1852,22 @@
           /* ── 02 · 03 피드 (.fig 80:897) ── */
           const pcy = py + O.discD / 2;
           if (!flat) {
-            ctx.fillStyle = th.colorBgLight || th.sectionBg || "#f0f3dd";
-            ctx.fillRect(ix, py, O.discD, O.discD);
-            ctx.fillStyle = th.discInk || th.accent;
+            /* 상세(nvCard)와 같은 값을 읽는다 — 예전에는 02 모양(연한 사각 + 진한 글자)이
+               박혀 있어서 03 피드도 02 처럼 나왔다 (신고 2026-11-26).
+                 02  연한 배경 · 각진 사각 · accent 글자 · 혜택가 #333 · 정상가 #666
+                 03  t03Badge 배경 · 둥근 사각(fDiscR) · 흰 글자 · 혜택가 t03Ink · 정상가 #999 */
+            ctx.fillStyle = th[CS.discBgKey] || th.colorBgLight || th.sectionBg || "#f0f3dd";
+            if (CS.fDiscR) roundRect(ctx, ix, py, O.discD, O.discD, CS.fDiscR), ctx.fill();
+            else ctx.fillRect(ix, py, O.discD, O.discD);
+            ctx.fillStyle = CS.discInk || th.discInk || th.accent;
             ctx.font = `700 ${O.discSize}px GmarketSans, Pretendard`;
             ctx.textAlign = "center";
             trk(ctx, d != null ? d + "%" : "—", ix + O.discD / 2, pcy, -0.72, "center");
           }
           /* 상세와 같은 규칙 — 한 줄 / 넘치면 두 줄 (nvInlinePrices) */
           nvInlinePrices(ctx, r, ix, py, flat, nvPriceSpec(true, IW), {
-            sale: "#333333",
-            normal: "#666666",
+            sale: th[CS.saleInk] || CS.saleInk || "#333333",
+            normal: CS.normalInk || "#666666",
           });
         }
         ctx.textBaseline = "alphabetic";
