@@ -694,6 +694,9 @@
         ctx.fillRect(imgLeft, imgTop, O.imgW, imgH0);
         if (r.thumb)
           drawThumbCover(ctx, r.thumb, imgLeft, imgTop, O.imgW, imgH0);
+        /* 컬러 칩 — 사진 칸 아래쪽 가운데 (34-color-chip) */
+        if (typeof drawCardChips === "function")
+          drawCardChips(ctx, r, imgLeft, imgTop, O.imgW, imgH0, 1);
 
         const ix = cx0 + (CS0.optDX ?? O.optX);
         /* .fig 는 카드 안에서 위(이름) / 아래(가격) 배치다(justify-between).
@@ -1605,6 +1608,8 @@
         ctx.fillStyle = "#f8f8f8";
         ctx.fillRect(fImgX, fImgY, fImgW, imgH2);
         if (r.thumb) drawThumbCover(ctx, r.thumb, fImgX, fImgY, fImgW, imgH2);
+        if (typeof drawCardChips === "function")
+          drawCardChips(ctx, r, fImgX, fImgY, fImgW, imgH2, 1.3);
 
         const ix = x + (CSF.fOptDX ?? O.optX);
         const IW = CSF.fOptW || CW - O.optX - 38;

@@ -25,6 +25,8 @@ const TABS = [
      "시트에 탭이 없습니다" 로 보인다 — 시트를 채워도 소용이 없다. */
   "EventMaster",
   "GiftMaster",
+  /* 가격 카드 컬러 칩 사전 (2026-11-26). 탭이 없으면 프론트는 칩 없이 그린다. */
+  "ColorChip",
 ];
 
 const TOKEN_URL = "https://oauth2.googleapis.com/token";

@@ -70,6 +70,16 @@
           if (!r.normal) w.push(["err", `카드 ${i + 1} 정상가 없음`, ""]);
         });
         if (!state.rows.length) w.push(["err", "카드 없음", ""]);
+        /* 컬러 칩 사전에 없는 색 이름 (34-color-chip) — 다운로드는 막지 않는다 */
+        if (typeof chipMissing === "function") {
+          const miss = chipMissing();
+          if (miss.length)
+            w.push([
+              "warn",
+              "컬러 칩 없음",
+              `${miss.map(esc).join(", ")} — 시트 <b>ColorChip</b> 탭에 없어 칩이 빠집니다.`,
+            ]);
+        }
         if (!w.length) w.push(["ok", "이상 없음", "다운로드 준비 완료."]);
         $("#warnList").innerHTML = w
           .map(([k, t, m]) => `<div class="warnbox ${k}"><b>${t}</b>${m}</div>`)

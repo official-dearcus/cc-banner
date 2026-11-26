@@ -250,7 +250,8 @@
             hCsv = "",
             cCsv = "",
             eCsv = "",
-            gCsv = "";
+            gCsv = "",
+            kCsv = ""; // ColorChip — 가격 카드 컬러 칩 사전 (34-color-chip · 선택 탭)
           /* 선택 탭은 없으면 조용히 넘어간다 — 이벤트 배너를 안 쓰는 시트도 그대로 동작 */
           const tryCsv = async (fn) => { try { return await fn(); } catch (e) { return ""; } };
           if (src.mode === "csv" && src.csv === "manual") {
@@ -283,6 +284,13 @@
             const uG = ($("#urlG") && $("#urlG").value.trim()) || "";
             if (uE) eCsv = await tryCsv(() => fetchCsv(uE));
             if (uG) gCsv = await tryCsv(() => fetchCsv(uG));
+            /* ColorChip 은 주소 칸을 따로 두지 않았다 — /api/sheet 를 쓰는 경우에만
+               ProductMaster 주소에서 탭 이름만 바꿔 읽는다. (탭별 게시 CSV 주소를
+               직접 붙여 쓰는 경우에는 주소를 알 길이 없어 칩이 안 나온다.) */
+            if (/[?&]tab=ProductMaster\b/.test(uP))
+              kCsv = await tryCsv(() =>
+                fetchCsv(uP.replace(/([?&]tab=)ProductMaster\b/, "$1ColorChip")),
+              );
           } else if (src.mode === "csv") {
             const inp = parseSheetInput($("#docId").value);
             if (!inp) throw mkErr("E101", "문서 ID 또는 게시 URL을 입력하세요");
@@ -308,6 +316,7 @@
               }
               eCsv = await tryCsv(() => fetchPubTabCsv(inp.id, tabs, nE));
               gCsv = await tryCsv(() => fetchPubTabCsv(inp.id, tabs, nG));
+              kCsv = await tryCsv(() => fetchPubTabCsv(inp.id, tabs, "ColorChip"));
             } else {
               pCsv = await fetchCsv(sheetCsvUrl(inp.id, nP));
               tCsv = await fetchCsv(sheetCsvUrl(inp.id, nT));
@@ -323,6 +332,7 @@
               }
               eCsv = await tryCsv(() => fetchCsv(sheetCsvUrl(inp.id, nE)));
               gCsv = await tryCsv(() => fetchCsv(sheetCsvUrl(inp.id, nG)));
+              kCsv = await tryCsv(() => fetchCsv(sheetCsvUrl(inp.id, "ColorChip")));
             }
           } else {
             const u = $("#gasUrl").value.trim();
@@ -346,6 +356,8 @@
               eCsv = rowsToCsv(j.EventMaster.header, j.EventMaster.rows);
             if (j.GiftMaster && j.GiftMaster.header.length)
               gCsv = rowsToCsv(j.GiftMaster.header, j.GiftMaster.rows);
+            if (j.ColorChip && j.ColorChip.header.length)
+              kCsv = rowsToCsv(j.ColorChip.header, j.ColorChip.rows);
           }
           const P = parseSheet(pCsv, "ProductMaster");
           const T = parseSheet(tCsv, "TemplateMaster");
@@ -358,6 +370,15 @@
           /* 이벤트 마스터는 제품군과 무관한 전역 목록이라 buildGroups 를 안 탄다 */
           const E = eCsv ? parseSheet(eCsv, "EventMaster") : { rows: [], errors: [] };
           const GF = gCsv ? parseSheet(gCsv, "GiftMaster") : { rows: [], errors: [] };
+          /* 컬러 칩 사전 — 탭이 없으면 칩 없이 전과 똑같이 그린다 */
+          let K = { rows: [], errors: [] };
+          try {
+            if (kCsv) K = parseSheet(kCsv, "ColorChip");
+          } catch (e) {
+            K = { rows: [], errors: [] };
+          }
+          if (typeof setColorChips === "function")
+            setColorChips(K.rows.filter((r) => r.enabled !== false));
           const srt = (a, b) => (a.sortOrder || 0) - (b.sortOrder || 0) || a._row - b._row;
           EVENT_TYPES = E.rows.filter((r) => r.enabled !== false).sort(srt);
           GIFTS = GF.rows.filter((r) => r.enabled !== false).sort(srt);
@@ -370,6 +391,7 @@
             ...C.errors,
             ...E.errors,
             ...GF.errors,
+            ...K.errors,
             ...B.errors,
           ];
           if (!Object.keys(B.groups).length) {

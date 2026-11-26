@@ -190,6 +190,23 @@
             sortOrder: { type: "number", optional: true },
           },
         },
+        /* 컬러 칩 사전 — 가격 카드 사진 아래에 놓는 색 동그라미 (34-color-chip, 2026-11-26)
+           label    색 이름. ColorMaster.label 또는 optionInfo 의 "Color: …" 에 적힌 이름과
+                    같아야 한다(공백·대소문자는 무시).
+           hex      단색 칩. "#2B2B2B"
+           chipUrl  무늬 칩(도담도담 등). 정사각형 작은 그림. 있으면 hex 보다 먼저 쓴다.
+           groupKey 비우면 전 제품군 공통. 같은 이름인데 제품군마다 색이 다를 때만 적는다. */
+        ColorChip: {
+          required: ["label"],
+          columns: {
+            label: { type: "string" },
+            hex: { type: "string", optional: true },
+            chipUrl: { type: "url", optional: true },
+            groupKey: { type: "string", optional: true },
+            enabled: { type: "bool", optional: true, default: true },
+            sortOrder: { type: "number", optional: true },
+          },
+        },
         HeroMaster: {
           required: ["groupKey", "url"],
           columns: {
