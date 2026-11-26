@@ -202,7 +202,12 @@
              제품군이 두 줄이 된다. 03 피드만 가격줄 간격을 4 씩 좁혔다
              (fPriceGapX 24 → 20 · fPriceNumGap 20 → 16) → 421 로 한 줄에 들어간다. */
         "03": { style: "inline", txtOptW: 322, priceH: 100,
-                fPriceGapX: 20, fPriceNumGap: 16,
+                /* I 에서 다시 좁힘: 20/16 으로는 숫자 폭이 넓은 5자리(44,800원 95,700원 = 427)가
+                   424 를 2~3 넘어 도담·뱀부500·에어비움·풋케어·플로팅만 두 줄이 됐다.
+                   상세도 316/318 로 2 밖에 안 남았다 → 상세·피드 모두 16/12.
+                   지금 시트의 5자리 최대: 상세 308/318 · 피드 419/424. */
+                priceGapX: 16, priceNumGap: 12,
+                fPriceGapX: 16, fPriceNumGap: 12,
                 /* .fig 2026-08: value_list 22px · fr 1:4 (라벨60 값274) · 행높이 28 · 카드 hug */
                 /* cardPadBot 0 → 10 (요청 2026-11-26): 가격줄(할인율 배지)을 10 올린다.
                    배지 아래 여백 20 → 30 = 왼쪽 여백과 같다. 카드 높이·사진은 그대로
@@ -872,9 +877,9 @@
         return {
           avail,
           disc: O.discD,
-          /* 템플릿이 피드 간격을 따로 정했으면 그 값(03) */
-          gapX: (feed && CS.fPriceGapX) || O.priceGapX,
-          numGap: (feed && CS.fPriceNumGap) || O.priceNumGap,
+          /* 템플릿이 간격을 따로 정했으면 그 값(03) */
+          gapX: (feed ? CS.fPriceGapX : CS.priceGapX) || O.priceGapX,
+          numGap: (feed ? CS.fPriceNumGap : CS.priceNumGap) || O.priceNumGap,
           saleSize: O.saleSize, normalSize: O.normalSize,
           trS: feed ? -0.8 : -0.56, trN: feed ? -0.56 : -0.4,
           strike: feed ? 2 : 1.5,
