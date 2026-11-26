@@ -80,6 +80,29 @@
         }
         return out;
       }
+      /* 제품군 하나의 옵션 제품을 "제품군키를 들고 있는" 모양(xrow)으로 —
+         처음 화면에서 고를 때 쓴다 (요청 2026-11-26). 처음 화면에는 "지금 제품군"이
+         없어서 row(지금 제품군의 i 번째)로 저장하면 어느 제품인지 알 수 없다. */
+      function tryGroupProducts(k) {
+        const g = ((typeof G === "function" && G()) || {})[k] || {};
+        const nm = (r) => (typeof rowName === "function" ? rowName(r) : r.name || "");
+        return (g.rows || []).map((r, i) => ({
+          kind: "xrow", g: k, gl: g.label || k, i, name: nm(r),
+          url: r.thumbUrl || "", feedUrl: r.feedThumbUrl || "",
+        }));
+      }
+      /* 처음 화면의 임시 목록 — [옵션 편집으로] 를 눌러야 SESSION.tryEvents 가 된다
+         (이벤트의 SETUP_EVENTS 와 같은 방식) */
+      let SETUP_TRY = [];
+      const tryClone = (l) =>
+        (l || []).map((e) => ({ ...e, pick: e.pick ? { ...e.pick } : e.pick }));
+      const TRY_IDS = {
+        panel: { box: "tryEvents", add: "tryAdd", hint: "tryHint" },
+        setup: { box: "suTryEvents", add: "suTryAdd", hint: "suTryHint" },
+      };
+      function trySetupPick() {
+        return typeof SETUP_PICK !== "undefined" ? SETUP_PICK : [];
+      }
       /* 제품군별로 묶어서 돌려준다 — 드롭다운 optgroup 하나가 제품군 하나 */
       function tryOtherGrouped() {
         const by = new Map();
@@ -210,35 +233,62 @@
           return SESSION.tryEvents || (SESSION.tryEvents = []);
         return state.tryEvents || (state.tryEvents = []);
       }
-      function tryAdd() {
-        const ps = tryProducts(); // 처음 값은 늘 제 제품군 것으로
+      function tryAdd(where) {
+        const S = where === "setup";
+        /* 처음 값 — 패널: 지금 제품군의 첫 제품 · 처음 화면: 고른 첫 제품군의 첫 제품 */
+        const ps = S
+          ? trySetupPick().flatMap((k) => tryGroupProducts(k))
+          : tryProducts();
         /* 후보가 하나도 없어도 직접 입력으로 시작할 수 있다 */
-        tryTarget().push({
+        (S ? SETUP_TRY : tryTarget()).push({
           num: 10,
           qty: 1,
           pick: ps.length ? { ...ps[0] } : { kind: "custom", name: "", url: "" },
         });
-        renderTryEvents();
-        if (typeof draw === "function") draw();
+        renderTryEvents(S ? "setup" : "panel");
+        if (!S && typeof draw === "function") draw();
       }
-      function renderTryEvents() {
-        const box = document.getElementById("tryEvents");
+      /* where: "panel"(좌측 데이터 탭 · 기본) | "setup"(처음 화면 6번) — 같은 편집기를 쓴다.
+         처음 화면은 "지금 제품군"이 없다 → 고른 제품군별로 묶어 보여 주고 xrow 로 저장한다. */
+      function renderTryEvents(where) {
+        const S = where === "setup";
+        const ID = TRY_IDS[S ? "setup" : "panel"];
+        const box = document.getElementById(ID.box);
         if (!box) return;
-        const LIST = tryTarget();
-        const all = tryProducts();
+        const LIST = S ? SETUP_TRY : tryTarget();
+        const all = S ? [] : tryProducts();
         const rows = all.filter((p) => p.kind === "row");
         const offs = all.filter((p) => p.kind === "off");
-        const others = tryOtherGrouped();
+        /* 처음 화면: 고른 제품군이 위에, 나머지는 "다른 제품군 추가" 뒤에 */
+        const mine = S
+          ? trySetupPick()
+              .map((k) => tryGroupProducts(k))
+              .filter((l) => l.length)
+              .map((l) => ({ label: l[0].gl, list: l }))
+          : [];
+        const others = S
+          ? Object.keys((typeof G === "function" && G()) || {})
+              .filter((k) => !trySetupPick().includes(k))
+              .map((k) => tryGroupProducts(k))
+              .filter((l) => l.length)
+              .map((l) => ({ label: l[0].gl, list: l }))
+          : tryOtherGrouped();
 
-        const hint = document.getElementById("tryHint");
-        const add = document.getElementById("tryAdd");
-        const cnt = document.getElementById("tryCount");
-        if (cnt) cnt.textContent = LIST.length ? `${LIST.length}개` : "";
+        const hint = document.getElementById(ID.hint);
+        const add = document.getElementById(ID.add);
+        if (!S) {
+          const cnt = document.getElementById("tryCount");
+          if (cnt) cnt.textContent = LIST.length ? `${LIST.length}개` : "";
+        }
         if (add) add.disabled = false;
         if (hint)
-          hint.innerHTML = LIST.length
-            ? "인스타 피드에만 들어갑니다. 옵션 외 단품은 <b>ProductMaster</b> 에 <b>enabled=FALSE</b> 로 넣어두면 여기에 뜹니다."
-            : "경품은 이 제품군의 제품 중에서 고릅니다. 없으면 직접 입력하세요. 인스타 피드 전용입니다.";
+          hint.innerHTML = S
+            ? LIST.length
+              ? "인스타 피드에만 들어갑니다. 편집 화면 <b>데이터 탭</b>에서도 고칠 수 있습니다."
+              : "경품은 고른 제품군의 제품 중에서 고릅니다. 없으면 직접 입력하세요. 인스타 피드 전용입니다."
+            : LIST.length
+              ? "인스타 피드에만 들어갑니다. 옵션 외 단품은 <b>ProductMaster</b> 에 <b>enabled=FALSE</b> 로 넣어두면 여기에 뜹니다."
+              : "경품은 이 제품군의 제품 중에서 고릅니다. 없으면 직접 입력하세요. 인스타 피드 전용입니다.";
 
         /* 가격카드 추가와 같은 생김새. 보조 줄은 안 넣는다 — 이름만 (요청 2026-10-28) */
         const pk = (list, cur) =>
@@ -259,7 +309,11 @@
 
         box.innerHTML = LIST.map((e, i) => {
           const p = tryPick(e);
-          const cur = tryPickKey(p);
+          /* 처음 화면에서 고른 "지금 제품군의 제품"(xrow)은 패널 목록에서 row 로 보인다 */
+          const cur =
+            !S && p.kind === "xrow" && p.g === state.group
+              ? `row:${p.i}`
+              : tryPickKey(p);
           const custom = p.kind === "custom";
           return `<div class="evrow" data-i="${i}">
       <span class="evdrag" title="끌어서 순서 변경">⠿</span>
@@ -273,6 +327,7 @@
       ${
         TRY_OPEN === i
           ? `<div class="picker trypick">` +
+            mine.map((o) => `<div class="pkgroup">${esc(o.label)}</div>${pk(o.list, cur)}`).join("") +
             (rows.length ? `<div class="pkgroup">제품군 제품</div>${pk(rows, cur)}` : "") +
             (offs.length ? `<div class="pkgroup">옵션 외 단품</div>${pk(offs, cur)}` : "") +
             `<div class="pk custom${custom ? " on" : ""}" data-v="custom" data-i="${i}">
@@ -302,9 +357,13 @@
     </div>`;
         }).join("");
 
-        const after = () => { renderTryEvents(); if (typeof draw === "function") draw(); };
+        /* 처음 화면은 아직 배너에 안 올라간 임시 목록이라 캔버스를 다시 그릴 일이 없다 */
+        const after = () => {
+          renderTryEvents(S ? "setup" : "panel");
+          if (!S && typeof draw === "function") draw();
+        };
         /* 직접 입력은 타이핑 중 다시 그리면 커서가 튄다 → 캔버스만 갱신 */
-        const live = () => { if (typeof draw === "function") draw(); };
+        const live = () => { if (!S && typeof draw === "function") draw(); };
 
         box.querySelectorAll('input[data-f="num"], input[data-f="qty"]').forEach(
           (inp) => (inp.onchange = () => {
@@ -334,7 +393,10 @@
           const e2 = LIST[+(el.closest(".evrow").dataset.i)];
           if (v === "custom") e2.pick = { kind: "custom", name: "", url: "" };
           else {
-            const hit = tryCandidates().find((p) => tryPickKey(p) === v);
+            const pool = S
+              ? mine.concat(others).flatMap((o) => o.list)
+              : tryCandidates();
+            const hit = pool.find((p) => tryPickKey(p) === v);
             if (hit) e2.pick = { ...hit };
           }
           delete e2.rowIdx;
@@ -400,8 +462,36 @@
       (function initTryEvents() {
         const start = () => {
           const b = document.getElementById("tryAdd");
-          if (b) b.onclick = tryAdd;
+          if (b) b.onclick = () => tryAdd("panel");
           renderTryEvents();
+          /* 처음 화면 6번 (요청 2026-11-26) — 설정을 열 때 지금 목록을 복사해 오고,
+             [옵션 편집으로] 를 누를 때 행사에 넣는다. 새 행사(reset)는 빈 목록에서 시작. */
+          const sb = document.getElementById("suTryAdd");
+          if (sb) sb.onclick = () => tryAdd("setup");
+          renderTryEvents("setup"); // 첫 진입은 이 파일보다 먼저 열린다 — 안내 글을 채운다
+          if (typeof openSetup === "function") {
+            const os0 = openSetup;
+            openSetup = function (reset) {
+              SETUP_TRY = reset ? [] : tryClone(tryTarget());
+              TRY_OPEN = -1;
+              TRY_OTHERS = false;
+              const r = os0.apply(this, arguments);
+              renderTryEvents("setup");
+              return r;
+            };
+          }
+          if (typeof startSession === "function") {
+            const ss0 = startSession;
+            startSession = function () {
+              if (typeof SESSION !== "undefined" && SESSION)
+                SESSION.tryEvents = tryClone(SETUP_TRY);
+              TRY_OPEN = -1;
+              TRY_OTHERS = false;
+              const r = ss0.apply(this, arguments);
+              renderTryEvents();
+              return r;
+            };
+          }
           /* 제품군을 바꾸면 경품 목록이 달라진다 */
           if (typeof draw === "function") {
             const _d = draw;

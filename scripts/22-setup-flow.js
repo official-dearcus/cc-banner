@@ -898,7 +898,8 @@ selectGroup = function (key) {
       updateSetupBar();
     };
   const go = $("#suGo");
-  if (go) go.onclick = startSession;
+  /* 화살표로 감싼다 — 28-try-event 가 startSession 을 감싸는데, 함수를 직접 걸면 옛것이 불린다 */
+  if (go) go.onclick = () => startSession();
 
   /* 헤더 로고 → 처음 화면 (행사 설정). 요청 2026-09-04
      [행사 정보 수정] 과 같은 길이다 — 세션 값은 그대로 두고 설정만 다시 띄운다.

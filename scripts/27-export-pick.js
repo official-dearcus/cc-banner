@@ -50,6 +50,26 @@
         ).length;
       }
 
+      /* ---------- 제품군 고르기 (요청 2026-11-26) ----------
+         행사에 제품군이 둘 이상이면 어느 제품군을 받을지도 고른다.
+         "욕실화만 먼저" · "나머지만 묶어서" 처럼 나눠 받을 때 쓴다.
+         끈 것만 기억한다(DL_GROUP_OFF) → 새로 넣은 제품군은 기본으로 켜져 있다.
+         받을 항목(상세·썸네일·피드)은 전처럼 모든 제품군에 같이 적용된다. */
+      const DL_GROUP_OFF = {};
+      function dlSessionGroups() {
+        return typeof SESSION !== "undefined" && SESSION && SESSION.started
+          ? SESSION.groups || []
+          : [];
+      }
+      /* 받을 제품군 — 19-export 의 buildSessionImages 가 이 목록만 돈다 */
+      function dlGroups() {
+        return dlSessionGroups().filter((k) => !DL_GROUP_OFF[k]);
+      }
+      function dlGroupLabel(k) {
+        const g = typeof G === "function" && G()[k];
+        return (g && g.label) || k;
+      }
+
       /* ---------- UI ---------- */
       function renderDlPick() {
         const box = document.getElementById("dlPickBox");
@@ -59,7 +79,26 @@
           `<label class="dlrow"><input type="checkbox" data-dk="${k}"${
             dlHas(k) ? " checked" : ""
           } /> ${esc(label)}</label>`;
+        const sg = dlSessionGroups();
+        const pickG = dlGroups();
+        const grpHtml =
+          sg.length > 1
+            ? `<div class="dlgrp">제품군</div>` +
+              sg
+                .map(
+                  (k) =>
+                    `<label class="dlrow"><input type="checkbox" data-dg="${esc(k)}"${
+                      DL_GROUP_OFF[k] ? "" : " checked"
+                    } /> ${esc(dlGroupLabel(k))}</label>`,
+                )
+                .join("") +
+              `<div class="dlacts dlgacts">
+                 <button type="button" id="dlGAll">전체</button>
+                 <button type="button" id="dlGCur">지금 제품군만</button>
+               </div>`
+            : "";
         box.innerHTML =
+          grpHtml +
           `<div class="dlgrp">기본</div>` +
           DL_BASE.map((b) => row(b.key, b.label)).join("") +
           /* 상세가 없는 섹션(써볼래요)은 상세 목록에서 뺀다 */
@@ -85,6 +124,28 @@
         box.querySelectorAll("input[data-dk]").forEach((c) => {
           c.onchange = () => dlToggle(c.dataset.dk, c.checked);
         });
+        box.querySelectorAll("input[data-dg]").forEach((c) => {
+          c.onchange = () => {
+            if (c.checked) delete DL_GROUP_OFF[c.dataset.dg];
+            else DL_GROUP_OFF[c.dataset.dg] = true;
+            renderDlPick();
+          };
+        });
+        const g1 = box.querySelector("#dlGAll");
+        const g2 = box.querySelector("#dlGCur");
+        if (g1)
+          g1.onclick = () => {
+            sg.forEach((k) => delete DL_GROUP_OFF[k]);
+            renderDlPick();
+          };
+        if (g2)
+          g2.onclick = () => {
+            sg.forEach((k) => {
+              if (k === state.group) delete DL_GROUP_OFF[k];
+              else DL_GROUP_OFF[k] = true;
+            });
+            renderDlPick();
+          };
         const setAll = (on) => {
           const all = DL_BASE.map((b) => b.key).concat(
             secs.flatMap((s) =>
@@ -105,11 +166,24 @@
         /* 버튼 글자에 개수를 보여준다 — 열어보지 않아도 몇 개인지 안다 */
         const n = dlCount(secs);
         const tog = document.getElementById("dlPickBtn");
-        if (tog) tog.textContent = `받을 항목 (${n})`;
+        const part = sg.length > 1 && pickG.length < sg.length;
+        if (tog)
+          tog.textContent =
+            sg.length > 1
+              ? `받을 항목 (${n}) · 제품군 ${pickG.length}/${sg.length}`
+              : `받을 항목 (${n})`;
         const dl = document.getElementById("dlBtn");
-        if (dl) {
-          dl.disabled = n === 0;
-          dl.textContent = n === 0 ? "받을 항목을 고르세요" : "다운로드 (ZIP)";
+        /* 만드는 중에는 19-export 가 버튼 글자("○○ 생성 중…")를 쥐고 있다 — 건드리지 않는다 */
+        if (dl && !dl.dataset.busy) {
+          const noG = sg.length > 1 && pickG.length === 0;
+          dl.disabled = n === 0 || noG;
+          dl.textContent = noG
+            ? "받을 제품군을 고르세요"
+            : n === 0
+              ? "받을 항목을 고르세요"
+              : part
+                ? `다운로드 (ZIP) · ${pickG.length}개 제품군`
+                : "다운로드 (ZIP)";
         }
       }
       (function initDlPick() {
@@ -126,6 +200,9 @@
             document.addEventListener("click", (e) => {
               if (box.hidden) return;
               if (box.contains(e.target) || e.target === tog) return;
+              /* 목록 안의 버튼([전체]·[전부] 등)은 누르는 순간 목록이 새로 그려져
+                 DOM 에서 빠진다 → "바깥"으로 보여 닫히던 것을 막는다 */
+              if (!document.contains(e.target)) return;
               box.hidden = true;
             });
           }

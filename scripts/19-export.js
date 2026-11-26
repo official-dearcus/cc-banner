@@ -174,10 +174,13 @@
         const files = [];
         const bad = [];
         const gs = G();
-        for (let i = 0; i < SESSION.groups.length; i++) {
-          const k = SESSION.groups[i];
+        /* 받을 제품군만 (27-export-pick 의 [받을 항목] → 제품군, 요청 2026-11-26) */
+        const list =
+          typeof dlGroups === "function" ? dlGroups() : SESSION.groups.slice();
+        for (let i = 0; i < list.length; i++) {
+          const k = list[i];
           const label = (gs[k] && gs[k].label) || k;
-          if (onStep) onStep(label, i + 1, SESSION.groups.length);
+          if (onStep) onStep(label, i + 1, list.length);
           gotoGroup(k);
           await loadSheetImages(); // 탭을 안 열어봤다면 여기서 이미지가 들어온다
           if (!warnings()) {
@@ -233,6 +236,7 @@
         }
         const btn = $("#dlBtn");
         btn.disabled = true;
+        btn.dataset.busy = "1"; // 그리는 동안 renderDlPick 이 글자를 덮지 않게
         const old = btn.textContent;
         btn.textContent = "이미지 생성 중…";
         try {
@@ -293,7 +297,9 @@
           else msg = `저장 실패 — ${m}`;
           status(msg, 1);
         } finally {
+          delete btn.dataset.busy;
           btn.disabled = false;
           btn.textContent = old;
+          if (typeof renderDlPick === "function") renderDlPick();
         }
       };
