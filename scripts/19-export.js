@@ -200,7 +200,27 @@
           SESSION.d1 && SESSION.d2
             ? `${SESSION.d1.replace(/-/g, "")}-${SESSION.d2.replace(/-/g, "")}`
             : "nodate";
-        return `${who}_${p}.zip`;
+        /* 일부 제품군만 받을 때는 이름 뒤에 제품군을 붙인다 (요청 2026-11-26).
+           나눠 받으면 파일명이 같아 브라우저가 "(1)" 만 붙였다 — 열어 봐야 알 수 있었다.
+             전체        이나라_20261126-20261202.zip          (전과 같다)
+             1개         …_누볼라욕실화.zip
+             2개         …_처마+에어비움.zip
+             3개 이상    …_처마외2.zip
+           제품군 이름의 공백·기호는 뺀다. */
+        const all = SESSION.groups || [];
+        const pick = typeof dlGroups === "function" ? dlGroups() : all;
+        let tail = "";
+        if (pick.length && pick.length < all.length) {
+          const gs = G();
+          const nm = (k) =>
+            String((gs[k] && gs[k].label) || k).replace(/[^\w가-힣]+/g, "");
+          tail =
+            "_" +
+            (pick.length <= 2
+              ? pick.map(nm).join("+")
+              : `${nm(pick[0])}외${pick.length - 1}`);
+        }
+        return `${who}_${p}${tail}.zip`;
       }
 
       /* JSZip 지연 로드 — 다운로드를 실제로 누를 때만 받아온다.
