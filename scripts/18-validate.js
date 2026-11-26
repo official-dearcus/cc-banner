@@ -70,6 +70,17 @@
           if (!r.normal) w.push(["err", `카드 ${i + 1} 정상가 없음`, ""]);
         });
         if (!state.rows.length) w.push(["err", "카드 없음", ""]);
+        /* 02·03 가격줄 — 두 줄로 내려도 칸을 넘어 글자를 줄인 카드 (12-render-nuvola) */
+        if (typeof nvPriceTooWide === "function") {
+          let wide = [];
+          try { wide = nvPriceTooWide(); } catch (e) {}
+          if (wide.length)
+            w.push([
+              "warn",
+              "가격 글자 축소",
+              `카드 ${wide.join(", ")} — 가격이 칸보다 길어 글자를 줄였습니다. 금액을 확인하세요.`,
+            ]);
+        }
         /* 컬러 칩 사전에 없는 색 이름 (34-color-chip) — 다운로드는 막지 않는다 */
         if (typeof chipMissing === "function") {
           const miss = chipMissing();

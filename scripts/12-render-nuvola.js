@@ -833,28 +833,137 @@
             ctx.textAlign = "center";
             trk(ctx, d != null ? d + "%" : "—", ix + O.discD / 2, pcy, -0.56, "center");
           }
-          ctx.textAlign = "left";
-          let px2 = flat ? ix : ix + O.discD + O.priceGapX;
-          ctx.fillStyle = th[CS.saleInk] || CS.saleInk || "#333333";
-          ctx.font = `700 ${O.saleSize}px Pretendard`;
-          const saleTxt = won(r.sale);
-          trk(ctx, saleTxt, px2, pcy, -0.56, "left");
-          if (!flat) {
-            px2 += trkWidth(ctx, saleTxt, -0.56) + O.priceNumGap;
-            ctx.fillStyle = CS.normalInk || "#666666";
-            ctx.font = `400 ${O.normalSize}px Pretendard`;
-            const npTxt = won(r.normal);
-            trk(ctx, npTxt, px2, pcy, -0.4, "left");
-            const npW = trkWidth(ctx, npTxt, -0.4);
-            ctx.strokeStyle = CS.normalInk || "#666666";
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            ctx.moveTo(px2, pcy);
-            ctx.lineTo(px2 + npW, pcy);
-            ctx.stroke();
-          }
+          /* 혜택가·정상가 — 한 줄 / 넘치면 두 줄 (nvInlinePrices) */
+          nvInlinePrices(ctx, r, ix, py, flat, nvPriceSpec(false, O.optW), {
+            sale: th[CS.saleInk] || CS.saleInk || "#333333",
+            normal: CS.normalInk || "#666666",
+          });
         }
         ctx.textBaseline = "alphabetic";
+      }
+
+      /* ── 02 · 03 가격줄: [할인율] 혜택가 정상가 ──
+         원래는 한 줄에 폭 제한 없이 이어 썼다. 가격이 6자리가 되면 글자 칸(상세 342 ·
+         피드 437~456)을 넘어 02 는 카드 밖으로, 03 은 오른쪽 사진에 닿았다 (신고 2026-11-26).
+           · 한 줄로 다 들어가면 전과 같다.
+           · 한 카드라도 넘치면 그 제품군의 모든 카드를 두 줄로 — 정상가 위 · 혜택가 아래,
+             할인율 칸 높이 안에서 세로 가운데. 카드 높이는 안 변한다.
+             (카드마다 한 줄/두 줄이 섞이면 어색하다 → 제품군 단위로 맞춘다)
+           · 두 줄로도 넘치는 줄은 그 줄만 글자를 줄인다(nvPriceTooWide 가 경고로 알린다).
+         할인이 없는 카드(flat)는 원래 혜택가 한 줄뿐이라 그대로다. */
+      function nvPriceSpec(feed, avail) {
+        const O = feed ? NVF.opt : NV.opt;
+        return {
+          avail,
+          disc: O.discD, gapX: O.priceGapX, numGap: O.priceNumGap,
+          saleSize: O.saleSize, normalSize: O.normalSize,
+          trS: feed ? -0.8 : -0.56, trN: feed ? -0.56 : -0.4,
+          strike: feed ? 2 : 1.5,
+        };
+      }
+      function nvPriceWidths(ctx, r, P) {
+        const f0 = ctx.font;
+        ctx.font = `700 ${P.saleSize}px Pretendard`;
+        const s = trkWidth(ctx, won(r.sale), P.trS);
+        ctx.font = `400 ${P.normalSize}px Pretendard`;
+        const n = trkWidth(ctx, won(r.normal), P.trN);
+        ctx.font = f0;
+        return { s, n, one: P.disc + P.gapX + s + P.numGap + n };
+      }
+      /* 이 제품군에 한 줄로 안 들어가는 카드가 하나라도 있는가.
+         · 상세와 피드를 둘 다 재서 어느 한쪽이라도 넘치면 양쪽 다 두 줄로 한다
+           (같은 제품이 상세는 한 줄, 피드는 두 줄이면 안 된다 — 피드가 조금 더 빡빡하다).
+         · 실제 서체(Pretendard)로 잰 값 — 글자 칸: 상세 342 · 피드 02 456 / 03 437
+             5자리+5자리 (14,900원 26,900원)     상세 312 · 피드 429   → 한 줄 (전과 같다)
+             6자리+6자리 (189,000원 369,000원)   상세 341 · 피드 471   → 두 줄
+           6자리는 상세에서 341/342 로 "들어가긴" 한다. 하지만 03 은 사진까지 19 밖에 안 남아
+           닿아 보였다 → 상세는 오른쪽에 NV_PRICE_ROOM(8) 이 비어야 한 줄로 둔다.
+           ⚠ 이 여유를 키우면 5자리 제품군까지 두 줄이 된다(피드 03 이 429/437 로 8 남는다). */
+      const NV_PRICE_ROOM = 8;
+      function nvPriceStacked(ctx) {
+        const specs = [
+          [nvPriceSpec(false, NV.opt.optW), NV_PRICE_ROOM],
+          [nvPriceSpec(true, nvCard5().fOptW || NVF.opt.listW - NVF.opt.optX - 38), 0],
+        ];
+        return (state.rows || []).some(
+          (r) =>
+            !flatPrice(r) &&
+            specs.some(([P, room]) => nvPriceWidths(ctx, r, P).one > P.avail - room),
+        );
+      }
+      function nvInlinePrices(ctx, r, ix, py, flat, P, ink) {
+        const pcy = py + P.disc / 2;
+        const saleTxt = won(r.sale),
+          npTxt = won(r.normal);
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+        /* 폭 w 안에 들어가게 글자 크기를 줄인 값 */
+        const fitSize = (weight, size, text, tr, w) => {
+          ctx.font = `${weight} ${size}px Pretendard`;
+          const tw = trkWidth(ctx, text, tr);
+          return tw > w ? Math.floor(((size * w) / tw) * 10) / 10 : size;
+        };
+        const strike = (x, y, text, tr) => {
+          const w = trkWidth(ctx, text, tr);
+          ctx.strokeStyle = ink.normal;
+          ctx.lineWidth = P.strike;
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(x + w, y);
+          ctx.stroke();
+        };
+        if (flat) {
+          const sz = fitSize(700, P.saleSize, saleTxt, P.trS, P.avail);
+          ctx.fillStyle = ink.sale;
+          ctx.font = `700 ${sz}px Pretendard`;
+          trk(ctx, saleTxt, ix, pcy, P.trS, "left");
+          return;
+        }
+        const x = ix + P.disc + P.gapX;
+        if (!nvPriceStacked(ctx)) {
+          ctx.fillStyle = ink.sale;
+          ctx.font = `700 ${P.saleSize}px Pretendard`;
+          trk(ctx, saleTxt, x, pcy, P.trS, "left");
+          const x2 = x + trkWidth(ctx, saleTxt, P.trS) + P.numGap;
+          ctx.fillStyle = ink.normal;
+          ctx.font = `400 ${P.normalSize}px Pretendard`;
+          trk(ctx, npTxt, x2, pcy, P.trN, "left");
+          strike(x2, pcy, npTxt, P.trN);
+          return;
+        }
+        /* 두 줄 — 정상가 위 · 혜택가 아래 */
+        const room = P.avail - P.disc - P.gapX;
+        const nSz = fitSize(400, P.normalSize, npTxt, P.trN, room);
+        const sSz = fitSize(700, P.saleSize, saleTxt, P.trS, room);
+        const lhN = P.normalSize * 1.2,
+          lhS = P.saleSize * 1.2,
+          gap = P.saleSize * 0.14;
+        const top = py + (P.disc - (lhN + gap + lhS)) / 2;
+        const yN = top + lhN / 2,
+          yS = top + lhN + gap + lhS / 2;
+        ctx.fillStyle = ink.normal;
+        ctx.font = `400 ${nSz}px Pretendard`;
+        trk(ctx, npTxt, x, yN, P.trN, "left");
+        strike(x, yN, npTxt, P.trN);
+        ctx.fillStyle = ink.sale;
+        ctx.font = `700 ${sSz}px Pretendard`;
+        trk(ctx, saleTxt, x, yS, P.trS, "left");
+      }
+      /* 두 줄로도 넘쳐서 글자를 줄인 카드 번호(1부터) — 18-validate 가 경고로 쓴다.
+         상세 기준으로 잰다(피드도 비율이 거의 같다). 01 은 구조가 달라 해당 없다. */
+      function nvPriceTooWide() {
+        if (nvCard5().style !== "inline") return [];
+        const ctx = (nvPriceTooWide._c ||
+          (nvPriceTooWide._c = document.createElement("canvas"))).getContext("2d");
+        const P = nvPriceSpec(false, NV.opt.optW);
+        const room = P.avail - P.disc - P.gapX;
+        const out = [];
+        (state.rows || []).forEach((r, i) => {
+          const w = nvPriceWidths(ctx, r, P);
+          if (flatPrice(r) ? w.s > P.avail + 0.5 : w.s > room + 0.5 || w.n > room + 0.5)
+            out.push(i + 1);
+        });
+        return out;
       }
 
       /* ── section-option ── */
@@ -1745,21 +1854,11 @@
             ctx.textAlign = "center";
             trk(ctx, d != null ? d + "%" : "—", ix + O.discD / 2, pcy, -0.72, "center");
           }
-          ctx.textAlign = "left";
-          let fx = flat ? ix : ix + O.discD + O.priceGapX;
-          ctx.fillStyle = "#333333";
-          ctx.font = `700 ${O.saleSize}px Pretendard`;
-          const slT = won(r.sale);
-          trk(ctx, slT, fx, pcy, -0.8, "left");
-          if (flat) { ctx.textBaseline = "alphabetic"; return; }
-          fx += trkWidth(ctx, slT, -0.8) + O.priceNumGap;
-          ctx.fillStyle = "#666666";
-          ctx.font = `400 ${O.normalSize}px Pretendard`;
-          const npT = won(r.normal);
-          trk(ctx, npT, fx, pcy, -0.56, "left");
-          const npW = trkWidth(ctx, npT, -0.56);
-          ctx.strokeStyle = "#666666"; ctx.lineWidth = 2;
-          ctx.beginPath(); ctx.moveTo(fx, pcy); ctx.lineTo(fx + npW, pcy); ctx.stroke();
+          /* 상세와 같은 규칙 — 한 줄 / 넘치면 두 줄 (nvInlinePrices) */
+          nvInlinePrices(ctx, r, ix, py, flat, nvPriceSpec(true, IW), {
+            sale: "#333333",
+            normal: "#666666",
+          });
         }
         ctx.textBaseline = "alphabetic";
       }
