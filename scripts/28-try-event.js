@@ -120,7 +120,9 @@
         return [...by.values()];
       }
       /* 목록에서 "다른 제품군"을 펼쳐 두었나. 목록을 닫으면 다시 접는다. */
-      let TRY_OTHERS = false;
+      /* 기본은 펼침 (요청 2026-11-26) — 다른 제품군 제품을 고르는 일이 직접 입력보다 흔하다.
+         접어 두면 [직접 입력] 이 먼저 눈에 들어와 그쪽이 기본처럼 보였다. */
+      let TRY_OTHERS = true;
       /* 지금 경품 목록이 열려 있는 행 번호. -1 이면 전부 닫힘.
          기본 <select> 는 한 칸 고르면 창이 닫혀서 "펼치기"를 누르는 순간
          목록이 사라졌다 (2026-10-28 신고). 직접 만든 패널이라 열어 둘 수 있다. */
@@ -248,11 +250,16 @@
         const ps = S
           ? trySetupPick().flatMap((k) => tryGroupProducts(k))
           : tryProducts();
-        /* 후보가 하나도 없어도 직접 입력으로 시작할 수 있다 */
+        /* 제 제품군에 후보가 없으면 다른 제품군의 첫 제품으로 시작한다.
+           시트에 제품이 하나도 없을 때만 직접 입력 (요청 2026-11-26) */
+        const first =
+          ps[0] ||
+          Object.keys((typeof G === "function" && G()) || {})
+            .flatMap((k) => tryGroupProducts(k))[0];
         (S ? SETUP_TRY : tryTarget()).push({
           num: 10,
           qty: 1,
-          pick: ps.length ? { ...ps[0] } : { kind: "custom", name: "", url: "" },
+          pick: first ? { ...first } : { kind: "custom", name: "", url: "" },
         });
         renderTryEvents(S ? "setup" : "panel");
         if (!S && typeof draw === "function") draw();
@@ -339,19 +346,20 @@
             mine.map((o) => `<div class="pkgroup">${esc(o.label)}</div>${pk(o.list, cur)}`).join("") +
             (rows.length ? `<div class="pkgroup">제품군 제품</div>${pk(rows, cur)}` : "") +
             (offs.length ? `<div class="pkgroup">옵션 외 단품</div>${pk(offs, cur)}` : "") +
-            `<div class="pk custom${custom ? " on" : ""}" data-v="custom" data-i="${i}">
-               <div class="pkname">+ 직접 입력</div>
-               <div class="pkmeta">이름과 사진 주소를 넣습니다</div></div>` +
             (others.length
               ? `<div class="pk custom" data-v="${TRY_OTHERS ? "__less" : "__more"}" data-i="${i}">
-                   <div class="pkname">${TRY_OTHERS ? "−" : "+"} 다른 제품군 추가</div>
-                   <div class="pkmeta">${others.length}개 제품군${TRY_OTHERS ? "" : " · 눌러서 펼치기"}</div></div>` +
+                   <div class="pkname">${TRY_OTHERS ? "−" : "+"} 다른 제품군</div>
+                   <div class="pkmeta">${others.length}개 제품군${TRY_OTHERS ? " · 눌러서 접기" : " · 눌러서 펼치기"}</div></div>` +
                 (TRY_OTHERS
                   ? others
                       .map((o) => `<div class="pkgroup">${esc(o.label)}</div>${pk(o.list, cur)}`)
                       .join("")
                   : "")
               : "") +
+            /* 직접 입력은 맨 아래 — 목록에 없는 경품일 때만 쓴다 */
+            `<div class="pk custom${custom ? " on" : ""}" data-v="custom" data-i="${i}">
+               <div class="pkname">+ 직접 입력</div>
+               <div class="pkmeta">목록에 없을 때 — 이름과 사진 주소를 넣습니다</div></div>` +
             `</div>`
           : ""
       }
@@ -387,7 +395,7 @@
         box.querySelectorAll(".trygiftbtn").forEach((b) => (b.onclick = () => {
           const i2 = +b.dataset.i;
           TRY_OPEN = TRY_OPEN === i2 ? -1 : i2;
-          if (TRY_OPEN === -1) TRY_OTHERS = false; // 닫으면 다른 제품군도 접는다
+          if (TRY_OPEN === -1) TRY_OTHERS = true; // 닫으면 다음에 열 때 다시 펼친 채로
           after();
         }));
         /* 목록에서 고르기 */
@@ -410,7 +418,7 @@
           }
           delete e2.rowIdx;
           TRY_OPEN = -1;
-          TRY_OTHERS = false;
+          TRY_OTHERS = true;
           after();
         }));
         box.querySelectorAll(".trycus").forEach((inp) => (inp.oninput = () => {
@@ -483,7 +491,7 @@
             openSetup = function (reset) {
               SETUP_TRY = reset ? [] : tryClone(tryTarget());
               TRY_OPEN = -1;
-              TRY_OTHERS = false;
+              TRY_OTHERS = true;
               const r = os0.apply(this, arguments);
               renderTryEvents("setup");
               return r;
@@ -495,7 +503,7 @@
               if (typeof SESSION !== "undefined" && SESSION)
                 SESSION.tryEvents = tryClone(SETUP_TRY);
               TRY_OPEN = -1;
-              TRY_OTHERS = false;
+              TRY_OTHERS = true;
               const r = ss0.apply(this, arguments);
               renderTryEvents();
               return r;
