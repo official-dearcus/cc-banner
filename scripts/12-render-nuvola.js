@@ -204,7 +204,10 @@
         "03": { style: "inline", txtOptW: 322, priceH: 100,
                 fPriceGapX: 20, fPriceNumGap: 16,
                 /* .fig 2026-08: value_list 22px · fr 1:4 (라벨60 값274) · 행높이 28 · 카드 hug */
-                vlLabelW: 60, vlValW: 254, vlRowH: 28, vlLineH: 28, cardGap: 36, cardPadBot: 0, fTxtW: 423,
+                /* cardPadBot 0 → 10 (요청 2026-11-26): 가격줄(할인율 배지)을 10 올린다.
+                   배지 아래 여백 20 → 30 = 왼쪽 여백과 같다. 카드 높이·사진은 그대로
+                   (사진 아래는 20 이라 배지와 10 어긋난다 — 알고 정한 것). */
+                vlLabelW: 60, vlValW: 254, vlRowH: 28, vlLineH: 28, cardGap: 36, cardPadBot: 10, fTxtW: 423,
                 /* .fig: 카드 사방 20px #f0f3dd 테두리 (선이 아니라 띠) */
                 /* .fig 03: 테두리·선·컬러섹션은 t03Frame, 배지는 t03Badge (테마별) */
                 frameKey: "t03Frame", frameW: 20,
@@ -221,7 +224,7 @@
                 cardDX: 10, cardW: 720, imgDX: 380, imgDY: 20, imgH: 320, imgPadBot: 20, optDX: 30,
                 textDY: 0, priceDY: 260,
                 /* .fig feed_02(03): 카드 920×460, 텍스트 card+20 437, img card+491,+26 409×409 */
-                fTextDY: 0, fPriceDY: 334, fImgDX: 491, fImgDY: 26, fOptDX: 33,
+                fTextDY: 0, fPriceDY: 321, fImgDX: 491, fImgDY: 26, fOptDX: 33,
                 fImgW: 409, fImgH: 409, fOptW: 424,
                 /* .fig feed_02: txt_option 436 · 라벨 60 · 값 349 (87 부터) */
                 fVlLabelW: 60, fVlColGap: 27, fVlValW: 336,
