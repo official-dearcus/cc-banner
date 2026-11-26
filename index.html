@@ -78,6 +78,7 @@
     <script defer src="scripts/29-perf.js"></script>
     <script defer src="scripts/31-flow-steps.js"></script>
     <script defer src="scripts/32-zoom.js"></script>
+    <script defer src="scripts/33-apply-all.js"></script>
   </head>
   <body>
     <!-- ============================================================
@@ -157,7 +158,7 @@
           CC <b>Banner</b>
         </button>
         <span class="tag" id="tplTag">뱀부500</span>
-        <!-- 진행 표시 (31-flow-steps.js) — 지금 단계 · 다음 할 일 -->
+        <!-- 진행 표시 (31-flow-steps.js) — 제품군별 확인 상태 · 다음 할 일 -->
         <div id="flowSteps"></div>
         <span id="statusline">폰트 로딩 중…</span>
       </header>
@@ -273,6 +274,12 @@
         <div class="block" data-nav="tpl" id="themeBlock">
           <label class="h"><span class="num">9</span> 컬러</label>
           <div class="swatches" id="themeSw"></div>
+        </div>
+
+        <!-- 템플릿·컬러를 체크한 다른 제품군에도 적용 (33-apply-all.js) — 제품군이 둘 이상일 때만 보인다 -->
+        <div class="block" data-nav="tpl" id="applyBlock" hidden>
+          <label class="h"><span class="num">·</span> 다른 제품군에도 적용</label>
+          <div id="applyList"></div>
         </div>
 
         <div class="block" data-nav="tpl">

@@ -8,36 +8,38 @@
         flex: 1;
         margin-left: 12px;
       }
-      .fsteps {
+      .fchips {
         display: flex;
         align-items: center;
         gap: 6px;
-        flex: none;
+        min-width: 0;
+        overflow-x: auto;
+        scrollbar-width: none;
+        padding: 2px;
       }
-      .fsep {
-        width: 14px;
-        height: 1px;
-        background: var(--line);
+      .fchips::-webkit-scrollbar {
+        display: none;
       }
-      .fstep {
+      .fchip {
         display: inline-flex;
         align-items: center;
         gap: 6px;
+        flex: none;
         font: inherit;
         font-size: 13px;
         font-weight: 500;
         color: var(--ink-soft);
-        background: none;
-        border: 1px solid transparent;
+        background: var(--panel);
+        border: 1px solid var(--line);
         border-radius: 999px;
-        padding: 5px 11px 5px 6px;
+        padding: 5px 12px 5px 6px;
         cursor: pointer;
         white-space: nowrap;
       }
-      .fstep:hover {
-        background: var(--accent-weak);
+      .fchip:hover {
+        border-color: var(--accent);
       }
-      .fstep .fnum {
+      .fchip .fdot {
         display: inline-grid;
         place-items: center;
         width: 20px;
@@ -48,19 +50,93 @@
         background: #eceaf3;
         color: var(--ink-soft);
       }
-      .fstep.done .fnum {
-        background: var(--accent-weak);
-        color: var(--accent);
+      .fchip.done .fdot {
+        background: #1d7a46;
+        color: #fff;
       }
-      .fstep.cur {
+      .fchip.err .fdot {
+        background: var(--err);
+        color: #fff;
+      }
+      .fchip .fcnt {
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--err);
+      }
+      .fchip.cur {
         color: var(--accent);
         font-weight: 700;
         background: var(--accent-weak);
         border-color: var(--accent);
       }
-      .fstep.cur .fnum {
-        background: var(--accent);
-        color: #fff;
+      .fchip.cur.todo .fdot {
+        background: #fff;
+        box-shadow: inset 0 0 0 1.5px var(--accent);
+      }
+      .fcount {
+        flex: none;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+      }
+      .fundo {
+        flex: none;
+        font: inherit;
+        font-size: 12px;
+        color: var(--ink-soft);
+        background: none;
+        border: 0;
+        padding: 4px 2px;
+        text-decoration: underline;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .fnext.err {
+        background: var(--err);
+      }
+      /* 템플릿 탭 — 다른 제품군에도 적용 */
+      .applylist {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin: 10px 0;
+      }
+      .applyrow {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        font-size: 13px;
+        cursor: pointer;
+      }
+      .applyrow.off {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .applyrow .anm {
+        font-weight: 600;
+        color: var(--ink);
+      }
+      .applyrow .anow {
+        margin-left: auto;
+        font-size: 11px;
+        color: var(--ink-soft);
+        white-space: nowrap;
+      }
+      .applyact {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .applyact .btn {
+        margin-left: auto;
+        padding: 8px 14px;
+      }
+      .applymsg {
+        color: #1d7a46;
+        font-weight: 600;
+        margin-top: 8px;
       }
       .fnextwrap {
         display: flex;
@@ -124,7 +200,7 @@
         }
       }
       @media (max-width: 1500px) {
-        .fgrp,
+        .fcount,
         header.top .tag {
           display: none;
         }
@@ -133,7 +209,6 @@
         }
       }
       @media (max-width: 1320px) {
-        .fsep,
         header.top #statusline {
           display: none;
         }
